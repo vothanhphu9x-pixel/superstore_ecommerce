@@ -1,0 +1,12 @@
+superstore_db:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      port: 5432
+      user: postgres
+      password: ""
+      dbname: superstore_warehouse
+      schema: analytics
+      threads: 4

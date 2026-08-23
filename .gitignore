@@ -1,0 +1,40 @@
+# Odoo vendor source — full clone từ github.com/odoo/odoo
+odoo_dev/odoo/
+
+# Secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Local tool credentials/config
+data_platform/superstore_db/.dbt/profiles.yml
+data_platform/superstore_db/.dbt/.user.yml
+odoo_dev/odoo.conf
+
+# Dependencies / build artifacts
+node_modules/
+.next/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.pyc
+.coverage
+.coverage.*
+coverage.xml
+.mypy_cache/
+.ruff_cache/
+RAG_CHATBOT/env/
+
+# Runtime data
+data_platform/minio/
+data_platform/n8n_data/
+
+# Logs
+logs/
+*.log
+
+# OS / Office temporary files
+.DS_Store
+~$*
