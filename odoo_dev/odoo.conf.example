@@ -1,8 +1,8 @@
 [options]
-admin_passwd = change_me
 db_host = localhost
 db_port = 5432
 db_user = odoo
-db_password =
-addons_path = /mnt/extra-addons
-xmlrpc_port = 8069
+db_password = CHANGE_ME
+addons_path = /absolute/path/to/E-commerce/odoo_dev/odoo/addons,/absolute/path/to/E-commerce/odoo_dev/custom-addons
+http_port = 8069
+admin_passwd = CHANGE_ME_WITH_A_LONG_RANDOM_VALUE

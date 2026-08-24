@@ -1,16 +1,105 @@
-name: Quality
+name: Quality Gate
 
 on:
   pull_request:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   hygiene:
+    name: Repository hygiene
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
-      - run: make check
+          python-version: "3.13"
+      - run: python scripts/check_repo_hygiene.py
+
+  backend:
+    name: FastAPI tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: RAG_CHATBOT/requirements.txt
+      - name: Install CPU-only Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r RAG_CHATBOT/requirements.txt
+      - name: Run unit tests
+        working-directory: RAG_CHATBOT
+        run: python -m pytest tests/ -q
+
+  frontend:
+    name: Next.js checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      INTERNAL_API_URL: http://127.0.0.1:8000
+      API_KEY: ci-placeholder-only
+      NEXT_PUBLIC_PRODUCT_IMAGE_BASE: http://127.0.0.1:9000/product-images
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: RAG_CHATBOT/frontend/package-lock.json
+      - working-directory: RAG_CHATBOT/frontend
+        run: npm ci
+      - working-directory: RAG_CHATBOT/frontend
+        run: npm run lint
+      - working-directory: RAG_CHATBOT/frontend
+        run: npx tsc --noEmit
+      - working-directory: RAG_CHATBOT/frontend
+        run: npm run build
+
+  configuration:
+    name: Compose and dbt parse
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SNOWFLAKE_ACCOUNT: ci-placeholder
+      SNOWFLAKE_USER: ci-placeholder
+      SNOWFLAKE_PASSWORD: ci-placeholder
+      SNOWFLAKE_ROLE: ACCOUNTADMIN
+      SNOWFLAKE_DB: SUPERSTORE_DB
+      SNOWFLAKE_WAREHOUSE: COMPUTE_WH
+      DBT_SCHEMA: ANALYTIC_LAYER
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Materialize safe local config for Compose validation
+        run: |
+          cp data_platform/.env.example data_platform/.env
+          cp RAG_CHATBOT/.env.example RAG_CHATBOT/.env
+          cp RAG_CHATBOT/frontend/.env.example RAG_CHATBOT/frontend/.env.local
+      - name: Validate Docker Compose
+        run: docker compose --env-file data_platform/.env.example -f data_platform/docker-compose.yml config --quiet
+      - name: Install dbt
+        run: python -m pip install "dbt-snowflake==1.11.3"
+      - name: Prepare secret-free dbt profile
+        run: |
+          mkdir -p "$RUNNER_TEMP/dbt"
+          cp data_platform/superstore_db/.dbt/profiles.yml.example "$RUNNER_TEMP/dbt/profiles.yml"
+      - name: Resolve dbt packages
+        run: dbt deps --project-dir data_platform/superstore_db --profiles-dir "$RUNNER_TEMP/dbt"
+      - name: Parse dbt project without connecting to Snowflake
+        run: dbt parse --no-partial-parse --project-dir data_platform/superstore_db --profiles-dir "$RUNNER_TEMP/dbt"

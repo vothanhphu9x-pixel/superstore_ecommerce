@@ -2,11 +2,12 @@ superstore_db:
   target: dev
   outputs:
     dev:
-      type: postgres
-      host: localhost
-      port: 5432
-      user: postgres
-      password: ""
-      dbname: superstore_warehouse
-      schema: analytics
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'ACCOUNTADMIN') }}"
+      database: "{{ env_var('SNOWFLAKE_DB', 'SUPERSTORE_DB') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'COMPUTE_WH') }}"
+      schema: "{{ env_var('DBT_SCHEMA', 'ANALYTIC_LAYER') }}"
       threads: 4
