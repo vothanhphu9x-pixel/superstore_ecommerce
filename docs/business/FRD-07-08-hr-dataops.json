@@ -1,0 +1,123 @@
+{
+  "document": "FRD-07-08-hr-dataops.md",
+  "total_chunks": 13,
+  "chunks": [
+    {
+      "id": "FRD-07-08-hr-dataops_001",
+      "doc_id": "FRD-07-08-hr-dataops",
+      "doc_title": "FRD-07 — YÊU CẦU CHỨC NĂNG: NHÂN SỰ (HR)",
+      "section": "1. Tổng quan phòng ban",
+      "content": "1. Tổng quan phòng ban\n\n**Sứ mệnh:** Duy trì hồ sơ nhân sự đầy đủ và chính xác cho 45 nhân viên; đảm bảo đúng người đúng chỗ với hợp đồng rõ ràng; hỗ trợ phân tích chi phí nhân sự và hiệu suất tổ chức.\n\n**Nhân sự:** 1 HR Generalist — xử lý tuyển dụng, hợp đồng, onboarding, hồ sơ, off-boarding.\n\n**Phạm vi module HR trong dự án này:**\n- Quản lý hồ sơ nhân viên (hr.employee)\n- Cơ cấu tổ chức (phòng ban, chức danh)\n- Hợp đồng lao động và lịch sử thay đổi lương (hr.contract — nguồn dữ liệu SCD2!)\n- Chấm công cơ bản (HR Attendance)\n- Payslip đơn giản (lương cơ bản × số ngày công)\n\n**KPI phòng:**\n\n| KPI | Mục tiêu | Chu kỳ |\n|---|---|---|\n| Hồ sơ nhân viên cập nhật đầy đủ | 100% | Liên tục |\n| Tỷ lệ biến động nhân sự (Turnover) | ≤ 15%/năm | Năm |\n| Thời gian onboarding | ≤ 5 ngày làm việc từ ngày bắt đầu | Từng trường hợp |\n| Hợp đồng hết hạn được gia hạn trước | 30 ngày trước hạn | Tháng |\n\n---",
+      "char_count": 902,
+      "source_file": "FRD-07-08-hr-dataops.md"
+    },
+    {
+      "id": "FRD-07-08-hr-dataops_002",
+      "doc_id": "FRD-07-08-hr-dataops",
+      "doc_title": "FRD-07 — YÊU CẦU CHỨC NĂNG: NHÂN SỰ (HR)",
+      "section": "2. Cấu trúc tổ chức trong Odoo",
+      "content": "2. Cấu trúc tổ chức trong Odoo\n\n**Phòng ban (hr.department) — cây phân cấp:**\n```\nSuperstore Inc.\n├── Executive\n├── Sales & CRM\n│     └── West Region Sales\n│     └── East Region Sales\n│     └── Central Region Sales\n│     └── South Region Sales\n├── Marketing\n├── Purchasing\n├── Warehouse & Logistics\n│     └── WH-WEST Team\n│     └── WH-EAST Team\n│     └── WH-CENTRAL Team\n│     └── WH-SOUTH Team\n├── Manufacturing\n├── Accounting\n├── HR & Administration\n└── IT & Data\n```\n\n---",
+      "char_count": 474,
+      "source_file": "FRD-07-08-hr-dataops.md"
+    },
+    {
+      "id": "FRD-07-08-hr-dataops_003",
+      "doc_id": "FRD-07-08-hr-dataops",
+      "doc_title": "FRD-07 — YÊU CẦU CHỨC NĂNG: NHÂN SỰ (HR)",
+      "section": "3. Sơ đồ luồng nghiệp vụ",
+      "content": "3. Sơ đồ luồng nghiệp vụ\n\n```mermaid\nflowchart TD\n    A([Nhu cầu tuyển dụng từ Dept Manager]) --> B[HR đăng tin tuyển dụng]\n    B --> C[Nhận CV & Phỏng vấn]\n    C --> D{Kết quả phỏng vấn}\n    D -->|Không đạt| E[Thông báo từ chối]\n    D -->|Đạt| F[Offer Letter & Thống nhất lương]\n    F --> G[Tạo hồ sơ nhân viên\\nhr.employee]\n    G --> H[Gắn phòng ban, chức danh\\nhr.department / hr.job]\n    H --> I[Tạo hợp đồng lao động\\nhr.contract state=open]\n    I --> J[Onboarding: cấp tài khoản\\nres.users]\n    J --> K([Nhân viên đi làm])\n    K --> L[Chấm công hằng ngày\\nhr.attendance]\n    L --> M[Cuối tháng: tạo Payslip\\nhr.payslip]\n    M --> N[Kế toán ghi nhận chi phí lương\\naccount.move: Dr 6000 / Cr 1010]\n\n    K --> O{Thay đổi trong quá trình}\n    O -->|Tăng lương| P[Đóng contract cũ\\nTạo contract mới với wage mới]\n    O -->|Chuyển phòng| Q[Cập nhật department_id\\ntạo contract mới nếu có thay đổi lương]\n    O -->|Nghỉ việc| R[Off-boarding:\\narcive hr.employee\\nlock res.users]\n```\n\n---",
+      "char_count": 987,
+      "source_file": "FRD-07-08-hr-dataops.md"
+    },
+    {
+      "id": "FRD-07-08-hr-dataops_004",
+      "doc_id": "FRD-07-08-hr-dataops",
+      "doc_title": "FRD-07 — YÊU CẦU CHỨC NĂNG: NHÂN SỰ (HR)",
+      "section": "4. SOP — Quy trình chuẩn",
+      "content": "4. SOP — Quy trình chuẩn\n\n| Bước | Ai | Hành động | Trên Odoo | Bảng DB ghi | Kết quả |\n|---|---|---|---|---|---|\n| 1 | HR | Tạo hồ sơ nhân viên | HR → Employees → New | `hr_employee` INSERT | Hồ sơ tạo |\n| 2 | HR | Gắn phòng ban & chức danh | Employee → Department / Job Position | `hr_employee.department_id`, `job_id` UPDATE | Vị trí xác định |\n| 3 | HR | Tạo hợp đồng lao động | Employee → Contract → New | `hr_contract` INSERT (state=open) | Contract với wage |\n| 4 | IT/Admin | Tạo tài khoản đăng nhập Odoo | Settings → Users → New | `res_users` INSERT | User gắn với employee |\n| 5 | Supervisor | Chấm công hằng ngày | HR → Attendances → Check In/Out | `hr_attendance` INSERT | Giờ công ghi nhận |\n| 6 | HR | Tạo payslip cuối tháng | HR → Payroll → Create Payslip Batch | `hr_payslip` INSERT | Lương draft |\n| 7 | HR | Xác nhận payslip | Payslip → Confirm | `hr_payslip.state` = `done` | Lương đã duyệt |\n| 8 | Accounting | Ghi sổ chi phí lương | (Journal entry từ payslip) | `account_move_line` | Dr 6000 Payroll / Cr 1010 |\n| 9 | HR | Tăng lương: đóng contract cũ | Contract → Expiration date = ngày hôm nay | `hr_contract.state` = `close` | Contract cũ đóng |\n| 10 | HR | Tạo contract mới | Contract → New với wage mới | `hr_contract` INSERT mới | Lịch sử lương SCD2 tự nhiên! |\n\n---",
+      "char_count": 1293,
+      "source_file": "FRD-07-08-hr-dataops.md"
+    },
+    {
+      "id": "FRD-07-08-hr-dataops_005",
+      "doc_id": "FRD-07-08-hr-dataops",
+      "doc_title": "FRD-07 — YÊU CẦU CHỨC NĂNG: NHÂN SỰ (HR)",
+      "section": "5. Quy tắc nghiệp vụ",
+      "content": "5. Quy tắc nghiệp vụ\n\n| Mã | Quy tắc | Chi tiết |\n|---|---|---|\n| BR-HR-01 | 1 nhân viên — nhiều contract | Tăng lương/chuyển phòng → đóng contract cũ, tạo mới — giữ toàn bộ lịch sử |\n| BR-HR-02 | Contract trước khi làm | Nhân viên phải có contract active trước khi được tạo payslip |\n| BR-HR-03 | Gia hạn trước 30 ngày | HR nhắc gia hạn contract 30 ngày trước khi hết hạn |\n| BR-HR-04 | Lương tối thiểu | Không được tạo contract với wage < Federal Minimum Wage ($7.25/giờ) |\n| BR-HR-05 | Archive khi nghỉ | Nhân viên nghỉ việc: archive hr.employee + lock res.users — dữ liệu lịch sử vẫn giữ |\n\n---",
+      "char_count": 598,
+      "source_file": "FRD-07-08-hr-dataops.md"
+    },
+    {
+      "id": "FRD-07-08-hr-dataops_006",
+      "doc_id": "FRD-07-08-hr-dataops",
+      "doc_title": "FRD-07 — YÊU CẦU CHỨC NĂNG: NHÂN SỰ (HR)",
+      "section": "6. Data Footprint",
+      "content": "6. Data Footprint\n\n| Bảng DB | Vai trò | Loại |\n|---|---|---|\n| `hr_department` | Phòng ban | Master |\n| `hr_job` | Chức danh | Master |\n| `hr_employee` | Hồ sơ nhân viên | Master |\n| `hr_contract` | Hợp đồng lao động (SCD2 tự nhiên!) | Transaction |\n| `hr_attendance` | Chấm công | Transaction |\n| `hr_payslip` | Phiếu lương | Transaction |\n\n**Ghi chú SCD2:** Chuỗi `hr_contract` của một nhân viên qua các năm (thay đổi lương, ký lại HĐ) là ví dụ SCD2 (Slowly Changing Dimension Type 2) tự nhiên và đẹp nhất trong hệ thống — dùng để luyện `dbt snapshot`.\n\n---\n---\n\n# FRD-08 — YÊU CẦU CHỨC NĂNG: DATA OPS & BI",
+      "char_count": 609,
+      "source_file": "FRD-07-08-hr-dataops.md"
+    },
+    {
+      "id": "FRD-07-08-hr-dataops_007",
+      "doc_id": "FRD-07-08-hr-dataops",
+      "doc_title": "FRD-07 — YÊU CẦU CHỨC NĂNG: NHÂN SỰ (HR)",
+      "section": "1. Tổng quan phòng ban",
+      "content": "1. Tổng quan phòng ban\n\n**Sứ mệnh:** Đảm bảo dòng dữ liệu từ ERP Odoo (PostgreSQL) chảy liên tục, chính xác và kịp thời đến data warehouse (Snowflake) và dashboard (Power BI) — biến dữ liệu vận hành thành insight cho ban lãnh đạo.\n\n**Nhân sự:** 1 Data Analyst / Data Engineer (bạn — kiêm nhiệm IT + Data).\n\n**Stack kỹ thuật:**\n\n| Layer | Công nghệ | Vai trò |\n|---|---|---|\n| Source | Odoo 18 CE + PostgreSQL 16 | ERP + OLTP database |\n| CDC | Debezium | Bắt mọi thay đổi DB theo thời gian thực |\n| Message Queue | Apache Kafka | Trung chuyển CDC events |\n| Data Lake (Bronze) | MinIO (S3-compatible) | Lưu raw events JSON — immutable |\n| Orchestration | Apache Airflow | Lên lịch và điều phối pipeline |\n| Transformation | dbt (data build tool) | Staging → Silver (SCD2) → Gold (Star Schema) |\n| Data Warehouse | Snowflake | OLAP — lưu cleaned, modeled data |\n| BI | Power BI | Dashboard cho ban lãnh đạo |\n| RAG Chatbot | FastAPI + Qdrant + LLM | Chatbot trả lời câu hỏi nội bộ |\n| Marketing External | MinIO (CSV ingest) | Ad spend data từ Google Ads / Meta |\n\n---",
+      "char_count": 1067,
+      "source_file": "FRD-07-08-hr-dataops.md"
+    },
+    {
+      "id": "FRD-07-08-hr-dataops_008",
+      "doc_id": "FRD-07-08-hr-dataops",
+      "doc_title": "FRD-07 — YÊU CẦU CHỨC NĂNG: NHÂN SỰ (HR)",
+      "section": "2. Kiến trúc pipeline tổng thể",
+      "content": "2. Kiến trúc pipeline tổng thể\n\n```\n[Odoo/PostgreSQL] ──Debezium──► [Kafka] ──Consumer──► [MinIO Bronze]\n                                                              │\n                                                     [Airflow trigger]\n                                                              │\n                                                    ┌─────────────────┐\n                                                    │  dbt pipeline   │\n                                                    │ Staging (typed) │\n                                                    │ Silver (SCD2)   │\n                                                    │ Gold (Star)     │\n                                                    └────────┬────────┘\n                                                             │\n                                                      [Snowflake DW]\n                                                             │\n                                              ┌──────────────┴──────────┐\n                                              │                         │\n                                        [Power BI]              [RAG Chatbot]\n                                        Dashboard              Qdrant + LLM\n\n[Google Ads / Meta CSV] ──ingest──► [MinIO] ──dbt──► [fact_ad_spend]\n```\n\n---",
+      "char_count": 1311,
+      "source_file": "FRD-07-08-hr-dataops.md"
+    },
+    {
+      "id": "FRD-07-08-hr-dataops_009",
+      "doc_id": "FRD-07-08-hr-dataops",
+      "doc_title": "FRD-07 — YÊU CẦU CHỨC NĂNG: NHÂN SỰ (HR)",
+      "section": "3. Sơ đồ luồng nghiệp vụ",
+      "content": "3. Sơ đồ luồng nghiệp vụ\n\n```mermaid\nflowchart TD\n    A([Sự kiện nghiệp vụ trên Odoo\\ne.g. SO confirmed, Invoice posted]) --> B[PostgreSQL WAL log ghi nhận]\n    B --> C[Debezium đọc WAL\\ntạo CDC event JSON]\n    C --> D[Kafka Topic nhận event\\ne.g. trading_erp.public.sale_order]\n    D --> E[Kafka Consumer script\\nghi vào MinIO Bronze]\n    E --> F[MinIO: raw/yyyy/mm/dd/table/\\nimmutable JSON files]\n    F --> G[Airflow DAG trigger hằng ngày]\n    G --> H[dbt Staging:\\nCAST types, thêm metadata]\n    H --> I[dbt Silver/Snapshot:\\nSCD2 cho dim thay đổi theo thời gian]\n    I --> J[dbt Gold:\\nfact_sales, fact_purchase, fact_inventory\\ndim_customer, dim_product, dim_date...]\n    J --> K[Snowflake DW: Gold layer]\n    K --> L[Power BI: Dashboard refresh]\n    K --> M[RAG Chatbot: query khi cần]\n\n    N([Google Ads / Meta CSV hằng tháng]) --> O[Manual upload vào MinIO]\n    O --> P[dbt staging stg_ad_spend]\n    P --> Q[dbt mart_roas_by_channel]\n    Q --> K\n```\n\n---",
+      "char_count": 963,
+      "source_file": "FRD-07-08-hr-dataops.md"
+    },
+    {
+      "id": "FRD-07-08-hr-dataops_010",
+      "doc_id": "FRD-07-08-hr-dataops",
+      "doc_title": "FRD-07 — YÊU CẦU CHỨC NĂNG: NHÂN SỰ (HR)",
+      "section": "4. SOP — Vận hành hằng ngày",
+      "content": "4. SOP — Vận hành hằng ngày\n\n| Thời điểm | Ai | Công việc | Công cụ | Kiểm tra |\n|---|---|---|---|---|\n| Liên tục | Hệ thống | Debezium → Kafka → MinIO chạy nền | Debezium connector | Kafka lag = 0; MinIO file count tăng |\n| 02:00 AM hằng ngày | Airflow DAG | Trigger dbt run toàn bộ | Airflow scheduler | dbt run success; 0 test failures |\n| Sáng sớm | Data Analyst | Kiểm tra Airflow dashboard | Airflow UI | Tất cả DAG runs = success |\n| Sáng sớm | Data Analyst | Kiểm tra data quality alerts | dbt test + Slack | Không có test failure |\n| Cuối tháng | Data Analyst | Ingest ad spend CSV từ Google/Meta | MinIO upload + dbt run | mart_roas cập nhật |\n| Cuối tháng | Data Analyst | Refresh KPI Scorecard cho CFO/CEO | Power BI | Báo cáo tháng |\n| Khi cần | Data Analyst | Tạo/sửa dbt model mới theo yêu cầu | VS Code + dbt | Model pass all tests |\n\n---",
+      "char_count": 854,
+      "source_file": "FRD-07-08-hr-dataops.md"
+    },
+    {
+      "id": "FRD-07-08-hr-dataops_011",
+      "doc_id": "FRD-07-08-hr-dataops",
+      "doc_title": "FRD-07 — YÊU CẦU CHỨC NĂNG: NHÂN SỰ (HR)",
+      "section": "5. Quy tắc Data Ops",
+      "content": "5. Quy tắc Data Ops\n\n| Mã | Quy tắc | Chi tiết |\n|---|---|---|\n| BR-DATA-01 | Bronze immutable | Không bao giờ sửa hoặc xóa file trong Bronze MinIO — đây là nguồn gốc sự thật |\n| BR-DATA-02 | dbt test bắt buộc | Mọi model Gold phải có ít nhất: `not_null(PK)`, `unique(PK)`, `accepted_values(state)` |\n| BR-DATA-03 | SCD2 cho dim thay đổi | dim_customer, dim_product price, dim_employee contract → dbt snapshot với dbt_valid_from/to |\n| BR-DATA-04 | Gold layer: chỉ đọc | Không ai được sửa data trực tiếp trong Snowflake Gold. Mọi thay đổi qua nguồn Odoo |\n| BR-DATA-05 | Alert khi pipeline fail | Airflow gửi Slack/email alert nếu DAG fail; on-call: Data Analyst xử lý trong 4h |\n| BR-DATA-06 | Schema evolution | Khi Odoo cần upgrade hoặc custom thêm field → phải cập nhật dbt model tương ứng ngay |\n| BR-DATA-07 | Không query trực tiếp Bronze | Analyst chỉ query Silver và Gold; Bronze chỉ dbt pipeline chạm vào |\n\n---",
+      "char_count": 920,
+      "source_file": "FRD-07-08-hr-dataops.md"
+    },
+    {
+      "id": "FRD-07-08-hr-dataops_012",
+      "doc_id": "FRD-07-08-hr-dataops",
+      "doc_title": "FRD-07 — YÊU CẦU CHỨC NĂNG: NHÂN SỰ (HR)",
+      "section": "6. Danh sách Dashboard Power BI",
+      "content": "6. Danh sách Dashboard Power BI\n\n| Dashboard | Audience | Refresh | Nguồn dữ liệu chính |\n|---|---|---|---|\n| CEO Executive Scorecard | CEO, CFO | Hằng ngày | fact_sales, fact_purchase, account_move |\n| Sales Performance | Sales Director, Regional Mgr | Hằng ngày | fact_sales, dim_customer, dim_product |\n| Inventory Overview | Warehouse Mgr | Hằng ngày | fact_inventory_movement, stock_quant |\n| Manufacturing KPI | Plant Manager | Hằng ngày | fact_manufacturing, mrp_production |\n| Marketing ROAS | Marketing Mgr | Hằng tháng | mart_roas_by_channel, fact_sales |\n| Finance P&L | CFO, Chief Accountant | Hằng tháng | account_move_line, fact_journal_entries |\n| AR Aging | AR Specialist | Hằng ngày | account_move, account_payment |\n| HR Headcount | HR, CFO | Hàng tuần | hr_employee, hr_contract |\n\n---",
+      "char_count": 804,
+      "source_file": "FRD-07-08-hr-dataops.md"
+    },
+    {
+      "id": "FRD-07-08-hr-dataops_013",
+      "doc_id": "FRD-07-08-hr-dataops",
+      "doc_title": "FRD-07 — YÊU CẦU CHỨC NĂNG: NHÂN SỰ (HR)",
+      "section": "7. Data Footprint (Gold Layer Tables)",
+      "content": "7. Data Footprint (Gold Layer Tables)\n\n| Bảng Gold | Nguồn | Phục vụ Dashboard |\n|---|---|---|\n| `fact_sales` | `sale_order_line` | Sales Performance, CEO Scorecard |\n| `fact_purchase` | `purchase_order_line` | Purchasing cost analysis |\n| `fact_inventory_movement` | `stock_move` (done) | Inventory Overview |\n| `fact_manufacturing` | `mrp_production`, `mrp_workorder` | Manufacturing KPI |\n| `fact_journal_entries` | `account_move_line` | Finance P&L |\n| `fact_ad_spend` | External CSV (Google/Meta) | Marketing ROAS |\n| `dim_customer` | `res_partner` (SCD2) | Tất cả fact |\n| `dim_product` | `product_product` + `product_template` | Tất cả fact |\n| `dim_date` | Generated calendar | Tất cả fact |\n| `dim_warehouse` | `stock_warehouse` | Inventory, Manufacturing |\n| `dim_employee` | `hr_employee` + `hr_contract` (SCD2) | HR, Sales performance |\n| `mart_roas_by_channel` | fact_sales JOIN fact_ad_spend | Marketing |",
+      "char_count": 919,
+      "source_file": "FRD-07-08-hr-dataops.md"
+    }
+  ]
+}

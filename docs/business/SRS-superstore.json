@@ -1,0 +1,1050 @@
+{
+  "document": "SRS-superstore.md",
+  "total_chunks": 116,
+  "chunks": [
+    {
+      "id": "SRS-superstore_001",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Thông tin tài liệu",
+      "content": "| Thuộc tính      | Giá trị                                                   |\n| --------------- | --------------------------------------------------------- |\n| Tên tài liệu    | Software/System Requirements Specification (SRS)          |\n| Dự án           | Superstore ERP & Data Platform                            |\n| Phiên bản       | 2.0                                                       |\n| Ngày cập nhật   | 2026                                                      |\n| Audience        | Data Engineer, IT Admin, Developer, QA, System Architect  |\n| Trace về        | BRD (BO-01 → BO-08), FRD-01 → FRD-08                     |\n| Tác giả         | BA/DE Team — Superstore Inc.                              |\n| Trạng thái      | Draft / In Review                                         |\n\n---",
+      "char_count": 803,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_002",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Mục lục",
+      "content": "1. Giới thiệu\n2. Mô tả tổng thể hệ thống *(Sơ đồ 1 — System Architecture)*\n3. Tính năng hệ thống — Yêu cầu chức năng\n4. Yêu cầu giao diện ngoài\n5. Yêu cầu phi chức năng\n6. Ma trận truy vết\n\n- Phụ lục A: Kiến trúc & Stack công nghệ\n- Phụ lục B: Cấu hình Odoo chi tiết\n- Phụ lục C: Data Dictionary *(Sơ đồ 2 — ERD, link `superstore-erd.drawio`)*\n- Phụ lục D: Simulation Specification\n- Phụ lục E: Data Pipeline Spec *(Sơ đồ 3 — Data Flow Bronze→Silver→Gold)*\n- Phụ lục F: RAG Chatbot Spec\n- Phụ lục G: Analytics & KPI Catalog (Sales · Customer · Production/OEE · Inventory · Accounting · HR)",
+      "char_count": 589,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_003",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "1. Giới thiệu > 1.1. Mục đích (Purpose)",
+      "content": "Tài liệu này đặc tả đầy đủ các yêu cầu chức năng và phi chức năng của hệ thống **Superstore ERP & Data Platform** — một nền tảng tích hợp gồm ERP (Odoo 18), CDC Data Pipeline, Data Warehouse (Snowflake), BI Dashboard (Power BI), và RAG Chatbot.\n\nTài liệu nhắm đến các đối tượng sau:\n\n- **Data Engineer / Developer:** Xây dựng pipeline, viết dbt models, tích hợp hệ thống\n- **System Architect:** Thiết kế và đánh giá kiến trúc tổng thể\n- **QA Engineer:** Viết test case dựa trên yêu cầu được đánh số\n- **IT Admin:** Cấu hình, deploy, và vận hành hệ thống",
+      "char_count": 553,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_004",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "1. Giới thiệu > 1.2. Phạm vi (Scope)",
+      "content": "**Tên hệ thống:** Superstore ERP & Data Platform\n\n**Mô tả:** Hệ thống mô phỏng môi trường ERP production của một công ty bán lẻ B2B/B2C tại Mỹ (Superstore Inc.), kết hợp với data platform đầy đủ gồm: CDC pipeline, data warehouse lớp medallion, BI dashboard, và RAG chatbot nội bộ.\n\n**Mục tiêu chính của hệ thống:**\n\n- Vận hành toàn bộ chu trình kinh doanh (O2C, P2P, Manufacturing) trên Odoo 18\n- Bắt toàn bộ thay đổi dữ liệu real-time từ PostgreSQL qua Debezium → Kafka\n- Transform dữ liệu theo kiến trúc Medallion (Bronze → Staging → Silver → Gold)\n- Cung cấp dashboard BI phục vụ phân tích CEO, Operations, Marketing\n- Cung cấp RAG chatbot trả lời câu hỏi về chính sách, quy trình, sản phẩm",
+      "char_count": 693,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_005",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "1. Giới thiệu > 1.2. Phạm vi (Scope)",
+      "content": "**Trong phạm vi (In Scope):**\n\n- ERP: Sales, CRM, Marketing, Purchase, Inventory, Manufacturing, Accounting, HR\n- CDC Pipeline: Debezium → Kafka → MinIO (Bronze)\n- Data Transformation: Airflow + dbt (Staging → Silver → Gold → Mart)\n- Data Warehouse: Snowflake\n- BI: Power BI Desktop/Service\n- AI: RAG Chatbot (Qdrant + sentence-transformers + Qwen 2.5)\n- Data Generator: Script Python giả lập 4 năm dữ liệu lịch sử (2023–2026)\n\n**Ngoài phạm vi (Out of Scope):**\n\n- Ứng dụng mobile cho end-user\n- Tích hợp với hệ thống thanh toán thực (real payment gateway)\n- Triển khai ERP cho công ty thực tế (đây là môi trường portfolio/demo)\n- Multi-language ERP (chỉ dùng English UI)",
+      "char_count": 671,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_006",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "1. Giới thiệu > 1.3. Định nghĩa và từ viết tắt",
+      "content": "| Thuật ngữ / Viết tắt | Định nghĩa                                                                                     |\n| -------------------- | ---------------------------------------------------------------------------------------------- |\n| ERP                  | Enterprise Resource Planning — Phần mềm quản lý nguồn lực doanh nghiệp                        |\n| CDC                  | Change Data Capture — Kỹ thuật bắt thay đổi dữ liệu real-time từ database                   |\n| WAL                  | Write-Ahead Log — Log ghi trước của PostgreSQL, nguồn dữ liệu cho Debezium                    |\n| O2C                  | Order-to-Cash — Chu trình từ tạo đơn hàng đến thu tiền                                        |",
+      "char_count": 725,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_007",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "1. Giới thiệu > 1.3. Định nghĩa và từ viết tắt",
+      "content": "| Thuật ngữ / Viết tắt | Định nghĩa                                                                                     |\n| -------------------- | ---------------------------------------------------------------------------------------------- |\n| P2P                  | Procure-to-Pay — Chu trình từ đặt mua đến thanh toán nhà cung cấp                             |\n| MO                   | Manufacturing Order — Lệnh sản xuất trong Odoo                                                 |\n| SO                   | Sales Order — Đơn hàng bán                                                                     |\n| PO                   | Purchase Order — Đơn hàng mua                                                                  |",
+      "char_count": 730,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_008",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "1. Giới thiệu > 1.3. Định nghĩa và từ viết tắt",
+      "content": "| Thuật ngữ / Viết tắt | Định nghĩa                                                                                     |\n| -------------------- | ---------------------------------------------------------------------------------------------- |\n| SCD2                 | Slowly Changing Dimension Type 2 — Kỹ thuật lưu lịch sử thay đổi dimension                   |\n| RRF                  | Reciprocal Rank Fusion — Thuật toán kết hợp kết quả tìm kiếm dense + sparse                   |\n| RAG                  | Retrieval-Augmented Generation — Kỹ thuật kết hợp tìm kiếm văn bản với LLM                   |\n| BOM                  | Bill of Materials — Định mức nguyên vật liệu cho sản phẩm sản xuất                            |",
+      "char_count": 725,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_009",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "1. Giới thiệu > 1.3. Định nghĩa và từ viết tắt",
+      "content": "| Thuật ngữ / Viết tắt | Định nghĩa                                                                                     |\n| -------------------- | ---------------------------------------------------------------------------------------------- |\n| OLTP                 | Online Transaction Processing — Database giao dịch (Odoo/PostgreSQL)                          |\n| OLAP                 | Online Analytical Processing — Database phân tích (Snowflake)                                  |\n| COA                  | Chart of Accounts — Hệ thống tài khoản kế toán                                                |\n| ROAS                 | Return On Ad Spend — Hiệu quả chi tiêu quảng cáo                                              |",
+      "char_count": 728,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_010",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "1. Giới thiệu > 1.3. Định nghĩa và từ viết tắt",
+      "content": "| Thuật ngữ / Viết tắt | Định nghĩa                                                                                     |\n| -------------------- | ---------------------------------------------------------------------------------------------- |\n| RFM                  | Recency, Frequency, Monetary — Framework phân khúc khách hàng                                  |\n| Grain                | Mức độ chi tiết nhỏ nhất của một fact table (1 row tương ứng với gì)                          |\n| WH                   | Warehouse — Kho hàng                                                                           |\n| SKU                  | Stock Keeping Unit — Đơn vị lưu kho, mã sản phẩm                                              |",
+      "char_count": 729,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_011",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "1. Giới thiệu > 1.3. Định nghĩa và từ viết tắt",
+      "content": "| Thuật ngữ / Viết tắt | Định nghĩa                                                                                     |\n| -------------------- | ---------------------------------------------------------------------------------------------- |\n| SLA                  | Service Level Agreement — Cam kết thời gian giao hàng                                          |\n| UTM                  | Urchin Tracking Module — Tham số tracking nguồn traffic marketing                              |",
+      "char_count": 487,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_012",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "1. Giới thiệu > 1.4. Tài liệu tham chiếu",
+      "content": "| Mã tài liệu | Tên tài liệu                                        | Phiên bản |\n| ------------ | --------------------------------------------------- | --------- |\n| BRD-SS       | Business Requirements Document — Superstore         | 1.0       |\n| FRD-01       | Functional Requirements — Sales & CRM               | 1.0       |\n| FRD-02       | Functional Requirements — Marketing & Campaign      | 1.0       |\n| FRD-03       | Functional Requirements — Purchase Management       | 1.0       |\n| FRD-04       | Functional Requirements — Inventory Management      | 1.0       |\n| FRD-05       | Functional Requirements — Manufacturing             | 1.0       |\n| FRD-06       | Functional Requirements — Accounting & Finance      | 1.0       |",
+      "char_count": 745,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_013",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "1. Giới thiệu > 1.4. Tài liệu tham chiếu",
+      "content": "| Mã tài liệu | Tên tài liệu                                        | Phiên bản |\n| ------------ | --------------------------------------------------- | --------- |\n| FRD-07       | Functional Requirements — Human Resources           | 1.0       |\n| FRD-08       | Functional Requirements — BI & Analytics            | 1.0       |\n| UC-SS        | Use Case Document — Superstore                      | 1.0       |\n| IEEE 830     | IEEE Recommended Practice for SRS                   | 1998      |\n| BABOK v3     | Business Analysis Body of Knowledge                 | 3.0       |",
+      "char_count": 579,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_014",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "1. Giới thiệu > 1.5. Tổng quan tài liệu",
+      "content": "Tài liệu được tổ chức theo chuẩn IEEE 830 gồm 6 phần chính:\n\n- **Section 1** (Giới thiệu): Mục đích, phạm vi, định nghĩa, tài liệu tham chiếu\n- **Section 2** (Mô tả tổng thể): Góc nhìn hệ thống, phân loại người dùng, môi trường vận hành, ràng buộc thiết kế\n- **Section 3** (Tính năng hệ thống): Yêu cầu chức năng có đánh số, trace về FRD\n- **Section 4** (Giao diện ngoài): UI, hardware, software, communications\n- **Section 5** (Yêu cầu phi chức năng): Performance, Security, Scalability, Availability, Data Quality\n- **Section 6** (Traceability Matrix): Bảng truy vết BRD → FRD → SRS\n- **Phụ lục A–F**: Đặc tả kỹ thuật chi tiết (config, schema, pipeline spec)\n\n---",
+      "char_count": 665,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_015",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.1. Góc nhìn hệ thống (Product Perspective)",
+      "content": "Superstore ERP & Data Platform **không phải là hệ thống độc lập** — đây là một **data ecosystem** gồm nhiều subsystem tích hợp với nhau:",
+      "char_count": 136,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_016",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.1. Góc nhìn hệ thống (Product Perspective)",
+      "content": "```\n┌─────────────────────────────────────────────────────────────┐\n│                   SUPERSTORE DATA ECOSYSTEM                 │\n│                                                             │\n│  ┌──────────────┐    CDC     ┌──────────────────────────┐  │\n│  │  Odoo 18 ERP │ ─────────▶ │  Data Platform           │  │\n│  │  (PostgreSQL)│  Debezium  │  Kafka → MinIO → dbt     │  │\n│  └──────────────┘  → Kafka   │  → Snowflake (Gold)      │  │\n│                              └────────────┬─────────────┘  │\n│  ┌──────────────┐                         │                 │\n│  │  Data Gen    │ ──XML-RPC──▶ Odoo       │ Direct query   │\n│  │  (Python)    │                         ▼                 │\n│  └──────────────┘            ┌──────────────────────────┐  │\n│                              │  Power BI Dashboard       │  │\n│  ┌──────────────┐            └──────────────────────────┘  │\n│  │  RAG Chatbot │◀── Corpus (JSON chunks từ tài liệu) ──   │\n│  │  (FastAPI +  │                                           │\n│  │   Qdrant)    │                                           │\n│  └──────────────┘                                           │\n└─────────────────────────────────────────────────────────────┘\n```",
+      "char_count": 1214,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_017",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.1. Góc nhìn hệ thống (Product Perspective)",
+      "content": "Hệ thống giao tiếp với các thành phần bên ngoài:\n\n- **Người dùng (Internal):** Nhân viên sales, kế toán, kho, sản xuất → dùng Odoo Web UI\n- **Analyst/Manager:** Dùng Power BI dashboard để ra quyết định\n- **Developer/DE:** Tương tác qua CLI, Airflow UI, dbt CLI, Qdrant API\n- **RAG Chatbot User:** Nhân viên nội bộ hỏi đáp qua chatbot interface",
+      "char_count": 343,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_018",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.2. Chức năng hệ thống (Product Functions)",
+      "content": "Hệ thống thực hiện các nhóm chức năng chính:\n\n**Nhóm 1 — ERP Operations (Odoo 18):**\n\n- Quản lý vòng đời đơn hàng bán (O2C): Quotation → SO → Delivery → Invoice → Payment\n- Quản lý mua hàng (P2P): RFQ → PO → Receipt → Vendor Bill → Payment\n- Quản lý sản xuất: MO → Work Orders → Finished Goods → Delivery\n- Quản lý kho: 4 kho khu vực, tồn kho, kiểm kê định kỳ\n- Kế toán: Ghi nhận doanh thu, COGS, AR/AP, báo cáo tài chính\n- Nhân sự: Hồ sơ nhân viên, hợp đồng, chấm công, bảng lương\n- Marketing: Email campaigns, UTM tracking, lead management\n\n**Nhóm 2 — Data Platform:**",
+      "char_count": 570,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_019",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.2. Chức năng hệ thống (Product Functions)",
+      "content": "- CDC real-time: Bắt thay đổi từ 9 bảng Odoo → Kafka topics\n- Bronze layer: Lưu raw events vào MinIO (JSON, partitioned by date)\n- Staging: Cast types, rename columns, loại bỏ duplicates\n- Silver: SCD2 dimensions (Customer, Product, Employee)\n- Gold: Star Schema fact tables (Sales, Purchase, Inventory, Manufacturing, Finance, Ad Spend)\n- Mart: Aggregated views phục vụ BI (ROAS, RFM scores)\n- Orchestration: Airflow DAGs lên lịch toàn bộ pipeline\n\n**Nhóm 3 — Analytics & BI:**",
+      "char_count": 478,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_020",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.2. Chức năng hệ thống (Product Functions)",
+      "content": "- Dashboard CEO: KPIs tổng quan — Revenue, Gross Profit, ROAS, headcount\n- Dashboard Operations: On-time delivery, inventory turnover, production efficiency\n- Dashboard Marketing: Campaign performance, ROAS by channel, CLV\n- Dashboard Finance: P&L, AR aging, cash flow trends\n- RFM Segmentation: Phân khúc khách hàng theo Recency/Frequency/Monetary\n\n**Nhóm 4 — RAG Chatbot:**\n\n- Trả lời câu hỏi về chính sách, quy trình, sản phẩm từ corpus tài liệu nội bộ\n- Hybrid search (dense + BM25 sparse) với CrossEncoder reranking\n- LLM generation via Qwen 2.5 local\n\n**Nhóm 5 — Data Simulation Engine:**",
+      "char_count": 594,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_021",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.2. Chức năng hệ thống (Product Functions)",
+      "content": "- Tạo dữ liệu lịch sử 4 năm (2023–2026) với quy mô ×50 dataset gốc\n- Giả lập imperfection có chủ đích (dữ liệu bẩn, trễ SLA, margin âm)\n- Live simulator từ 2027 (daily cron job)",
+      "char_count": 177,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_022",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.3. Phân loại người dùng (User Classes & Characteristics)",
+      "content": "| Nhóm người dùng     | Mô tả                                         | Trình độ kỹ thuật | Tần suất dùng  | Quyền hạn chính                   |\n| ------------------- | --------------------------------------------- | ----------------- | -------------- | --------------------------------- |\n| **Sales Rep**       | Nhân viên kinh doanh tạo và quản lý SO        | Thấp              | Hàng ngày      | Create/Edit SO, View Customer     |\n| **Sales Manager**   | Quản lý xét duyệt SO, quản lý team           | Trung bình        | Hàng ngày      | Approve SO, View Reports          |\n| **Warehouse Staff** | Nhân viên kho xử lý picking/packing/shipping  | Thấp              | Hàng ngày      | Validate Delivery, Inventory Adj  |",
+      "char_count": 723,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_023",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.3. Phân loại người dùng (User Classes & Characteristics)",
+      "content": "| Nhóm người dùng     | Mô tả                                         | Trình độ kỹ thuật | Tần suất dùng  | Quyền hạn chính                   |\n| ------------------- | --------------------------------------------- | ----------------- | -------------- | --------------------------------- |\n| **Purchaser**       | Tạo và theo dõi PO, làm việc với NCC          | Trung bình        | Hàng ngày      | Create/Confirm PO, Receive Goods  |\n| **Accountant**      | Xử lý hóa đơn, thanh toán, báo cáo tài chính | Trung bình        | Hàng ngày      | Full Accounting, No ERP Config    |\n| **HR Manager**      | Quản lý nhân sự, hợp đồng, bảng lương         | Trung bình        | Hàng tuần      | Full HR, View Attendance          |",
+      "char_count": 723,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_024",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.3. Phân loại người dùng (User Classes & Characteristics)",
+      "content": "| Nhóm người dùng     | Mô tả                                         | Trình độ kỹ thuật | Tần suất dùng  | Quyền hạn chính                   |\n| ------------------- | --------------------------------------------- | ----------------- | -------------- | --------------------------------- |\n| **Production Mgr**  | Tạo MO, quản lý Work Center                  | Trung bình        | Hàng ngày      | Create/Confirm MO, View BOM       |\n| **BI Analyst**      | Xem và khai thác dashboard Power BI           | Cao (nghiệp vụ)   | Hàng ngày      | Read-only Power BI, Export        |\n| **Data Engineer**   | Build/maintain pipeline, dbt, Airflow         | Rất cao           | Hàng ngày      | Full access to platform           |",
+      "char_count": 723,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_025",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.3. Phân loại người dùng (User Classes & Characteristics)",
+      "content": "| Nhóm người dùng     | Mô tả                                         | Trình độ kỹ thuật | Tần suất dùng  | Quyền hạn chính                   |\n| ------------------- | --------------------------------------------- | ----------------- | -------------- | --------------------------------- |\n| **IT Admin**        | Config Odoo, manage servers, Docker           | Cao               | Hàng tuần      | Odoo Admin, Server root           |\n| **Chatbot User**    | Nhân viên hỏi đáp qua RAG chatbot            | Thấp              | Linh hoạt      | Query chatbot, View answers       |",
+      "char_count": 578,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_026",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.4. Môi trường vận hành (Operating Environment)",
+      "content": "#### Development Environment\n\n| Thành phần     | Spec                               |\n| -------------- | ---------------------------------- |\n| Hardware       | MacBook Pro M-series               |\n| OS             | macOS (latest)                     |\n| Container      | Docker Desktop / Docker Compose    |\n| Python         | 3.11+                              |\n| Node.js        | 18+ (build tools)                  |\n\n#### Production Environment",
+      "char_count": 450,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_027",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.4. Môi trường vận hành (Operating Environment)",
+      "content": "| Thành phần     | Spec                                        |\n| -------------- | ------------------------------------------- |\n| Server         | Contabo VPS (hoặc Cloud VM tương đương)     |\n| OS             | Ubuntu 22.04 LTS                            |\n| Container      | Docker Compose (production profile)         |\n| CI/CD          | GitHub Actions                              |\n| Reverse Proxy  | Nginx                                       |\n\n#### Network & Port Map (Dev)",
+      "char_count": 485,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_028",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.4. Môi trường vận hành (Operating Environment)",
+      "content": "| Service                  | Port | Ghi chú                       |\n| ------------------------ | ---- | ----------------------------- |\n| Odoo Web                 | 8069 | `http://localhost:8069`       |\n| PostgreSQL               | 5432 | Odoo + DBeaver                |\n| Kafka Broker             | 9092 | Internal broker               |\n| Kafka Connect (Debezium) | 8083 | REST API register connector   |\n| MinIO Console            | 9001 | Web UI quản lý bucket         |\n| MinIO API                | 9000 | boto3/mc client               |\n| Airflow Web UI           | 8080 | DAG management                |\n| Qdrant REST API          | 6333 | Vector search                 |\n| FastAPI (RAG)            | 8000 | Chatbot API                   |\n| LM Studio (Qwen 2.5)     | 1234 | Local LLM inference server    |",
+      "char_count": 815,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_029",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.5. Ràng buộc thiết kế và triển khai (Design & Implementation Constraints)",
+      "content": "**Ràng buộc bắt buộc (không thể thay đổi):**\n\n- **ERP Platform:** Phải dùng Odoo Community 18.0 — không dùng Enterprise edition\n- **OLTP Database:** PostgreSQL 16 (do Odoo yêu cầu) — không thay thế bằng DB khác\n- **CDC Plugin:** Sử dụng `pgoutput` plugin của PostgreSQL (không dùng `wal2json` hay `decoderbufs`)\n- **Data Warehouse:** Snowflake — không thay thế bằng BigQuery hay Redshift\n- **LLM:** Qwen 2.5 chạy local qua LM Studio — không gọi OpenAI API (cost constraint)\n- **Embedding Model:** `sentence-transformers/all-MiniLM-L6-v2` (vector size = 768)\n- **Currency:** USD, thiết lập TRƯỚC KHI có bất kỳ journal entry nào\n\n**Ràng buộc kỹ thuật:**",
+      "char_count": 651,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_030",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.5. Ràng buộc thiết kế và triển khai (Design & Implementation Constraints)",
+      "content": "- Toàn bộ service chạy trên Docker Compose — không deploy bare-metal\n- dbt Core (không dùng dbt Cloud) — transform chạy local/VPS\n- Data Generator giao tiếp với Odoo chỉ qua XML-RPC (không direct SQL INSERT)\n- Không có custom Odoo module — chỉ dùng standard modules\n\n**Ràng buộc dữ liệu:**\n\n- Dataset gốc: Superstore Sales Dataset (Kaggle) — 9,994 rows, 2014–2017\n- Backfill data: Scale ×50, dịch thời gian +9 năm (2014→2023, 2017→2026)\n- Imperfection catalog phải được giả lập đúng tỷ lệ đã định nghĩa (xem Phụ lục D)",
+      "char_count": 518,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_031",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.6. Giả định và phụ thuộc (Assumptions & Dependencies)",
+      "content": "**Giả định:**\n\n- Odoo 18 Community có thể cài đặt thành công trên môi trường dev (macOS M-series + Docker)\n- PostgreSQL WAL level được set là `logical` — đây là điều kiện bắt buộc để Debezium hoạt động\n- Snowflake trial hoặc account có sẵn với đủ credit cho khối lượng dữ liệu portfolio\n- LM Studio có thể chạy Qwen 2.5 7B với RAM ≥ 16GB\n- Superstore dataset Kaggle không có license hạn chế việc dùng cho portfolio\n\n**Phụ thuộc ngoài:**",
+      "char_count": 436,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_032",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "2. Mô tả tổng thể hệ thống (Overall Description) > 2.6. Giả định và phụ thuộc (Assumptions & Dependencies)",
+      "content": "| Phụ thuộc              | Version yêu cầu | Rủi ro nếu không đáp ứng                                |\n| ---------------------- | --------------- | -------------------------------------------------------- |\n| Odoo Community 18.0    | 18.0 chính xác  | Breaking changes với 17.x (JSONB translatable fields)    |\n| Debezium PostgreSQL    | Latest stable   | Connector config có thể thay đổi theo minor version      |\n| Apache Kafka           | 3.x             | KRaft mode thay thế Zookeeper từ 3.3+                   |\n| dbt Core               | 1.x             | Snowflake adapter phải match dbt version                 |\n| sentence-transformers  | Latest          | Model checkpoint có thể thay đổi output dimension        |",
+      "char_count": 725,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_033",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features)",
+      "content": "> **Ghi chú:** Mỗi System Feature (SF) ở đây là tổng hợp từ FRD tương ứng. Chi tiết từng FR (FR-001, FR-002...) xem tại tài liệu FRD-01 đến FRD-08. Các SF ở đây focus vào **yêu cầu kỹ thuật của hệ thống** cần đáp ứng để FRD được thực thi.\n\n---",
+      "char_count": 243,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_034",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-01 | Quản lý bán hàng & CRM (trace: FRD-01, BO-01)",
+      "content": "**Mô tả:** Hệ thống phải hỗ trợ toàn bộ chu trình O2C từ Lead đến Payment.\n\n**Ưu tiên:** Cao\n\n**Sequence (Happy Path):**\n\n```\nLead/Opportunity → Quotation → Sales Order (Confirm) → Delivery Order\n→ Validate Delivery → Customer Invoice → Register Payment → Reconcile\n```\n\n**Yêu cầu kỹ thuật:**",
+      "char_count": 292,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_035",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-01 | Quản lý bán hàng & CRM (trace: FRD-01, BO-01)",
+      "content": "| Mã     | Yêu cầu                                                                                                     |\n| ------ | ----------------------------------------------------------------------------------------------------------- |\n| SF-01-01 | Hệ thống phải tự động tạo Delivery Order khi SO được confirm                                              |\n| SF-01-02 | Hệ thống phải áp dụng đúng Credit Terms theo Customer Segment (Consumer: immediate, Corporate: Net-30, Home Office: Net-15) |\n| SF-01-03 | Hệ thống phải block confirm SO nếu tồn kho không đủ (nếu route = MTO) |\n| SF-01-04 | SO đã confirm phải bị lock — không cho phép sửa order line; chỉ được tạo amendment mới |\n| SF-01-05 | Discount áp dụng ở line level (%), hiển thị cột discount trên SO form |",
+      "char_count": 773,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_036",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-01 | Quản lý bán hàng & CRM (trace: FRD-01, BO-01)",
+      "content": "| Mã     | Yêu cầu                                                                                                     |\n| ------ | ----------------------------------------------------------------------------------------------------------- |\n| SF-01-06 | Hệ thống phải ghi nhận UTM source/medium/campaign cho mỗi lead từ marketing |\n| SF-01-07 | Sales warning phải hiển thị nếu customer có công nợ quá hạn |\n| SF-01-08 | Hệ thống phải hỗ trợ đơn hủy sau confirm với lý do; đơn hủy tạo reverse entry kế toán |",
+      "char_count": 508,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_037",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-01 | Quản lý bán hàng & CRM (trace: FRD-01, BO-01)",
+      "content": "**Acceptance Criteria:**\n\n- Tạo được SO → xác nhận → tạo Delivery → xác nhận giao hàng → tạo Invoice → đăng ký thanh toán — toàn bộ trong một luồng không bị lỗi\n- Discount 15% trên SO line được reflect đúng trong Invoice và kế toán\n- SO lock sau khi confirm, không cho edit order line\n\n---",
+      "char_count": 289,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_038",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-02 | Marketing & Campaign Management (trace: FRD-02, BO-02)",
+      "content": "**Mô tả:** Hệ thống phải hỗ trợ email marketing với tracking UTM và đo lường ROAS.\n\n**Ưu tiên:** Trung bình\n\n**Yêu cầu kỹ thuật:**",
+      "char_count": 130,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_039",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-02 | Marketing & Campaign Management (trace: FRD-02, BO-02)",
+      "content": "| Mã     | Yêu cầu                                                                                                     |\n| ------ | ----------------------------------------------------------------------------------------------------------- |\n| SF-02-01 | Hệ thống phải lưu UTM source, medium, campaign cho mỗi lead được tạo từ campaign |\n| SF-02-02 | Hệ thống phải track email open rate và click rate cho mass mailing campaigns |\n| SF-02-03 | Ad spend data phải được import từ external source (CSV/API) vào hệ thống với format chuẩn |\n| SF-02-04 | ROAS = Revenue attributed / Ad spend phải tính được ở cấp độ campaign và channel |\n| SF-02-05 | Mỗi năm phải có ít nhất 1 Facebook campaign với ROAS < 1.5 (imperfection catalog) |",
+      "char_count": 727,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_040",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-02 | Marketing & Campaign Management (trace: FRD-02, BO-02)",
+      "content": "**Acceptance Criteria:**\n\n- Lead tạo từ email campaign có UTM được ghi đúng source/medium/campaign\n- Ad spend import thành công và tính ROAS đúng công thức\n\n---",
+      "char_count": 160,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_041",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-03 | Quản lý mua hàng (trace: FRD-03, BO-03)",
+      "content": "**Mô tả:** Hệ thống phải hỗ trợ chu trình P2P đầy đủ.\n\n**Ưu tiên:** Cao\n\n**Sequence:**\n\n```\nRFQ → Purchase Order (Confirm) → Receive Goods (Validate Receipt)\n→ Vendor Bill (Create) → Register Payment\n```\n\n**Yêu cầu kỹ thuật:**",
+      "char_count": 226,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_042",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-03 | Quản lý mua hàng (trace: FRD-03, BO-03)",
+      "content": "| Mã     | Yêu cầu                                                                                                     |\n| ------ | ----------------------------------------------------------------------------------------------------------- |\n| SF-03-01 | Hệ thống phải tự động tạo Receipt (incoming shipment) khi PO được confirm |\n| SF-03-02 | Giá mua (unit price) trên PO line phải sử dụng `standard_price` từ product |\n| SF-03-03 | Hệ thống phải ghi nhận scheduled_date trên Receipt để tính on-time delivery của NCC |\n| SF-03-04 | 10% PO phải có actual receipt date trễ hơn scheduled date (imperfection — xem Phụ lục D) |\n| SF-03-05 | Vendor Bill phải được match với PO receipt trước khi post |\n| SF-03-06 | Mỗi sub-category sản phẩm phải được gán ít nhất 1 nhà cung cấp |",
+      "char_count": 774,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_043",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-03 | Quản lý mua hàng (trace: FRD-03, BO-03)",
+      "content": "**Acceptance Criteria:**\n\n- PO confirm → Receipt tự động tạo → Validate receipt → Vendor Bill tạo đúng amount\n- Cột scheduled_date và actual date đều có giá trị để tính late delivery %\n\n---",
+      "char_count": 189,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_044",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-04 | Quản lý kho (trace: FRD-04, BO-04)",
+      "content": "**Mô tả:** Hệ thống phải quản lý 4 kho khu vực với đầy đủ tính năng kiểm kê và điều chuyển.\n\n**Ưu tiên:** Cao\n\n**Yêu cầu kỹ thuật:**",
+      "char_count": 132,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_045",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-04 | Quản lý kho (trace: FRD-04, BO-04)",
+      "content": "| Mã     | Yêu cầu                                                                                                     |\n| ------ | ----------------------------------------------------------------------------------------------------------- |\n| SF-04-01 | Hệ thống phải có đúng 4 kho: WH-WEST (LA), WH-EAST (Newark), WH-CENTRAL (Chicago), WH-SOUTH (Houston) |\n| SF-04-02 | Tồn kho đầu kỳ (Jan 2023) phải được nạp = safety_stock × 4 tuần tiêu thụ trung bình của từng SKU |\n| SF-04-03 | Đơn hàng phải được giao từ đúng kho phục vụ Region (West→WH-WEST, East→WH-EAST, v.v.) |\n| SF-04-04 | Kiểm kê định kỳ (quarterly) phải tạo inventory adjustment với ±2% sai lệch (WH-CENTRAL cao hơn) |\n| SF-04-05 | Hệ thống phải hỗ trợ stock move giữa các kho (internal transfer) |\n| SF-04-06 | Mỗi stock_move (done) phải tạo 1 bản ghi trong Kafka topic để CDC bắt |",
+      "char_count": 847,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_046",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-04 | Quản lý kho (trace: FRD-04, BO-04)",
+      "content": "**Acceptance Criteria:**\n\n- On-hand quantity tại mỗi kho khớp với tổng stock_move IN - OUT\n- Inventory adjustment posting tạo đúng journal entry\n\n---",
+      "char_count": 149,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_047",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-05 | Quản lý sản xuất & OEE (trace: FRD-05, BO-04)",
+      "content": "**Mô tả:** Hệ thống phải hỗ trợ Manufacturing Order với BOM và Work Order.\n\n**Ưu tiên:** Trung bình\n\n**Yêu cầu kỹ thuật:**",
+      "char_count": 122,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_048",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-05 | Quản lý sản xuất & OEE (trace: FRD-05, BO-04)",
+      "content": "| Mã     | Yêu cầu                                                                                                     |\n| ------ | ----------------------------------------------------------------------------------------------------------- |\n| SF-05-01 | Phải có ít nhất 5 BOM mẫu cho Furniture category, mỗi BOM có 3–6 components |\n| SF-05-02 | MO phải được tạo đủ số lượng để fulfill SO Furniture (MTO route) hoặc theo kế hoạch (MPS) |\n| SF-05-03 | Mỗi MO phải có ít nhất 2 Work Order qua Work Center (WC-CUT → WC-ASM → WC-QC) |\n| SF-05-04 | Khi MO hoàn thành, finished goods phải được nhập kho tự động |\n| SF-05-05 | Component consumption phải tạo stock_move với type = manufacturing |\n| SF-05-06 | 3 Work Centers tại WH-WEST phải có capacity cụ thể (xem Phụ lục B) |",
+      "char_count": 770,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_049",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-05 | Quản lý sản xuất & OEE (trace: FRD-05, BO-04)",
+      "content": "**Acceptance Criteria:**\n\n- MO confirm → Work Orders tạo đúng sequence → Validate → Finished goods tăng tồn kho\n- Component stock giảm đúng với BOM quantity khi MO hoàn thành\n\n---",
+      "char_count": 179,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_050",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-06 | Kế toán & Tài chính (trace: FRD-06, BO-06)",
+      "content": "**Mô tả:** Hệ thống phải ghi nhận đầy đủ journal entries theo US GAAP cho mọi giao dịch.\n\n**Ưu tiên:** Cao\n\n**Yêu cầu kỹ thuật:**",
+      "char_count": 129,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_051",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-06 | Kế toán & Tài chính (trace: FRD-06, BO-06)",
+      "content": "| Mã     | Yêu cầu                                                                                                     |\n| ------ | ----------------------------------------------------------------------------------------------------------- |\n| SF-06-01 | COA phải dùng US GAAP chart of accounts (import từ localization hoặc CSV) |\n| SF-06-02 | Mỗi Invoice posted phải tạo journal entry: DR Accounts Receivable / CR Revenue |\n| SF-06-03 | Mỗi Payment registered phải reconcile với Invoice và tạo entry: DR Cash / CR AR |\n| SF-06-04 | COGS phải được ghi nhận tự động khi Delivery validate (DR COGS / CR Inventory) |\n| SF-06-05 | Debit phải luôn bằng Credit trên mỗi journal entry (invariant) |\n| SF-06-06 | 10% hóa đơn B2B phải có payment overdue > due date (bad payers — tập trung 5–6 Corporate) |",
+      "char_count": 796,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_052",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-06 | Kế toán & Tài chính (trace: FRD-06, BO-06)",
+      "content": "| Mã     | Yêu cầu                                                                                                     |\n| ------ | ----------------------------------------------------------------------------------------------------------- |\n| SF-06-07 | Hệ thống phải lock posted journal entries (hash lock) |\n| SF-06-08 | Fiscal year: January → December |",
+      "char_count": 357,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_053",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-06 | Kế toán & Tài chính (trace: FRD-06, BO-06)",
+      "content": "**Acceptance Criteria:**\n\n- `assert_debit_equals_credit.sql` (dbt test) pass cho toàn bộ `fact_journal_entries`\n- AR aging report hiển thị đúng số ngày quá hạn cho các bad payer accounts\n\n---",
+      "char_count": 191,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_054",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-07 | Nhân sự & Lương (trace: FRD-07, BO-07)",
+      "content": "**Mô tả:** Hệ thống phải quản lý 45 nhân viên với hợp đồng và lịch sử tăng lương.\n\n**Ưu tiên:** Thấp\n\n**Yêu cầu kỹ thuật:**",
+      "char_count": 123,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_055",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-07 | Nhân sự & Lương (trace: FRD-07, BO-07)",
+      "content": "| Mã     | Yêu cầu                                                                                                     |\n| ------ | ----------------------------------------------------------------------------------------------------------- |\n| SF-07-01 | Phải có đúng 45 hồ sơ nhân viên (tên US giả lập), phân theo phòng ban và kho |\n| SF-07-02 | Mỗi nhân viên phải có ít nhất 1 hợp đồng lao động với lương cơ bản |\n| SF-07-03 | Mỗi nhân viên phải có 1–2 lần tăng lương trong 4 năm (để test SCD2 dim_employee) |\n| SF-07-04 | Dữ liệu lương phải lưu lịch sử đầy đủ — SCD2 snapshot phải bắt được salary change |\n| SF-07-05 | Phòng ban phải bao gồm: Sales, Purchasing, Warehouse (4 kho), Manufacturing, Accounting, Marketing, IT |",
+      "char_count": 726,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_056",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-07 | Nhân sự & Lương (trace: FRD-07, BO-07)",
+      "content": "**Acceptance Criteria:**\n\n- `dim_employee` SCD2 snapshot có đúng 2 bản ghi cho nhân viên có 1 lần tăng lương\n- Tổng headcount by department có thể query từ Gold layer\n\n---",
+      "char_count": 171,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_057",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-08 | BI & Analytics — Power BI Dashboard (trace: FRD-08, BO-08)",
+      "content": "**Mô tả:** Hệ thống phải cung cấp dashboards phục vụ CEO, Operations, Marketing, Finance.\n\n**Ưu tiên:** Cao\n\n**Yêu cầu kỹ thuật:**",
+      "char_count": 130,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_058",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-08 | BI & Analytics — Power BI Dashboard (trace: FRD-08, BO-08)",
+      "content": "| Mã     | Yêu cầu                                                                                                     |\n| ------ | ----------------------------------------------------------------------------------------------------------- |\n| SF-08-01 | Power BI kết nối trực tiếp với Snowflake Gold layer qua DirectQuery hoặc Import mode |\n| SF-08-02 | Toàn bộ RFM scoring logic phải là DAX measures (không dùng calculated columns) |\n| SF-08-03 | Dashboard phải có Time Intelligence: MTD, YTD, MoM%, YoY% cho Revenue và Profit |\n| SF-08-04 | Hệ thống phải hỗ trợ slicer: Region, Category, Time Period, Customer Segment |\n| SF-08-05 | ROAS phải hiển thị ở cấp channel (Google/Facebook/Email) và campaign |\n| SF-08-06 | RFM segment migration Sankey chart: hiển thị customer segment shift YoY |\n| SF-08-07 | Dashboard load time phải < 5 giây với full 4-năm data từ Snowflake |",
+      "char_count": 875,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_059",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-08 | BI & Analytics — Power BI Dashboard (trace: FRD-08, BO-08)",
+      "content": "**Acceptance Criteria:**\n\n- MTD Revenue tính đúng với `VAR _SnapDate = TODAY()` pattern\n- ALLEXCEPT filter context không làm sai per-customer metric khi cross-filter\n- Conditional Formatting hiển thị đúng màu theo threshold\n\n---",
+      "char_count": 228,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_060",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-09 | CDC Data Pipeline (trace: BRD BO-01 đến BO-08)",
+      "content": "**Mô tả:** Hệ thống phải bắt real-time changes từ 9 Odoo tables và đưa vào data platform.\n\n**Ưu tiên:** Cao\n\n**Sequence:**\n\n```\nPostgreSQL WAL → Debezium (Kafka Connect) → Kafka Topics\n→ Consumer (Python/Airflow) → MinIO Bronze (JSON)\n→ dbt Staging → dbt Silver (SCD2) → dbt Gold (Fact Tables) → Snowflake\n```\n\n**Yêu cầu kỹ thuật:**",
+      "char_count": 332,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_061",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-09 | CDC Data Pipeline (trace: BRD BO-01 đến BO-08)",
+      "content": "| Mã     | Yêu cầu                                                                                                     |\n| ------ | ----------------------------------------------------------------------------------------------------------- |\n| SF-09-01 | Debezium phải capture đúng 9 bảng: `sale_order`, `sale_order_line`, `res_partner`, `product_product`, `stock_move`, `account_move`, `account_move_line`, `purchase_order`, `mrp_production` |\n| SF-09-02 | Mỗi CDC event phải được ghi vào MinIO với path: `s3://bronze/{table_name}/year={YYYY}/month={MM}/day={DD}/` |\n| SF-09-03 | dbt staging models phải cast đúng types, rename theo convention snake_case, lọc bỏ `is_deleted = true` |\n| SF-09-04 | SCD2 snapshot phải dùng `dbt_valid_from` / `dbt_valid_to` với `dbt_valid_to = NULL` cho current record |",
+      "char_count": 803,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_062",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-09 | CDC Data Pipeline (trace: BRD BO-01 đến BO-08)",
+      "content": "| Mã     | Yêu cầu                                                                                                     |\n| ------ | ----------------------------------------------------------------------------------------------------------- |\n| SF-09-05 | Grain của mỗi fact table phải được định nghĩa rõ ràng (xem Phụ lục E) |\n| SF-09-06 | dbt tests phải chạy sau mỗi lần build: `not_null` trên PK, `unique` trên surrogate keys, `assert_debit_equals_credit` |\n| SF-09-07 | Airflow DAG phải có retry = 2, email on failure, và dependency: Staging → Silver → Gold (sequential) |",
+      "char_count": 575,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_063",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-09 | CDC Data Pipeline (trace: BRD BO-01 đến BO-08)",
+      "content": "**Acceptance Criteria:**\n\n- Insert 1 SO mới vào Odoo → Kafka nhận event trong < 2 giây → MinIO Bronze file được tạo\n- `dbt run --select gold` chạy xong không có model failure\n- `dbt test` pass tất cả tests\n\n---",
+      "char_count": 210,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_064",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-10 | RAG Chatbot (trace: BO-08)",
+      "content": "**Mô tả:** Hệ thống chatbot phải trả lời câu hỏi nội bộ từ corpus tài liệu được index.\n\n**Ưu tiên:** Trung bình\n\n**Query Pipeline:**\n\n```\nUser Question → Dense Embed (sentence-transformers)\n             → Sparse BM25\n             → Qdrant Hybrid Search (RRF Fusion, top-20)\n             → CrossEncoder Rerank (top-5)\n             → Qwen 2.5 Generate\n             → Response\n```\n\n**Yêu cầu kỹ thuật:**",
+      "char_count": 400,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_065",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-10 | RAG Chatbot (trace: BO-08)",
+      "content": "| Mã     | Yêu cầu                                                                                                     |\n| ------ | ----------------------------------------------------------------------------------------------------------- |\n| SF-10-01 | Qdrant collection `superstore_knowledge` phải có cả dense vector (768 dims) và sparse vector (BM25) |\n| SF-10-02 | Chunking strategy: split theo `##`/`###` heading, mỗi chunk 200–600 characters |\n| SF-10-03 | Mỗi chunk phải có metadata: `doc_id`, `section`, `source_file` |\n| SF-10-04 | Hybrid search phải dùng RRF (Reciprocal Rank Fusion) — không dùng weighted average đơn thuần |\n| SF-10-05 | CrossEncoder reranking phải chạy trên top-20 kết quả, trả về top-5 cho LLM |",
+      "char_count": 726,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_066",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-10 | RAG Chatbot (trace: BO-08)",
+      "content": "| Mã     | Yêu cầu                                                                                                     |\n| ------ | ----------------------------------------------------------------------------------------------------------- |\n| SF-10-06 | API endpoint `/query` phải trả về response trong < 5 giây (local LLM) |\n| SF-10-07 | Corpus phải bao gồm: company profile, BRD, FRD-01 đến FRD-08, Use Cases, SRS (file này) |",
+      "char_count": 429,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_067",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-10 | RAG Chatbot (trace: BO-08)",
+      "content": "**Acceptance Criteria:**\n\n- Query \"Chính sách chiết khấu tối đa của Superstore là bao nhiêu?\" → trả về đúng câu trả lời từ FRD-01\n- Không có double-IDF bug trong SparseEmbedder (IDF chỉ apply 1 lần khi index)\n\n---",
+      "char_count": 213,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_068",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-11 | Data Simulation Engine",
+      "content": "**Mô tả:** Script Python phải tạo dữ liệu lịch sử 4 năm với đúng phân phối thống kê.\n\n**Ưu tiên:** Cao (prerequisite cho mọi thứ khác)\n\n**Yêu cầu kỹ thuật:**",
+      "char_count": 157,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_069",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-11 | Data Simulation Engine",
+      "content": "| Mã     | Yêu cầu                                                                                                     |\n| ------ | ----------------------------------------------------------------------------------------------------------- |\n| SF-11-01 | Generator phải giao tiếp với Odoo chỉ qua XML-RPC — không direct SQL INSERT |\n| SF-11-02 | Scale factor: ×50 so với Superstore dataset gốc (~44.000 SO/năm, ~4.900 khách hàng) |\n| SF-11-03 | Phân phối Pareto: Top 20% khách hàng tạo 80% doanh thu |\n| SF-11-04 | Seasonality: Tháng 8–9 và 11–12 volume cao hơn 40–50% baseline |\n| SF-11-05 | Region split: West 30%, East 25%, Central 25%, South 20% |\n| SF-11-06 | Toàn bộ Imperfection Catalog (10 loại) phải được giả lập đúng tỷ lệ (xem Phụ lục D) |",
+      "char_count": 750,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_070",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-11 | Data Simulation Engine",
+      "content": "| Mã     | Yêu cầu                                                                                                     |\n| ------ | ----------------------------------------------------------------------------------------------------------- |\n| SF-11-07 | Generator phải support idempotent re-run (không tạo duplicate khi chạy lại một ngày) |\n| SF-11-08 | Live simulator từ 2027 phải chạy được qua cron job/n8n hàng ngày |",
+      "char_count": 421,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_071",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "3. Tính năng hệ thống — Yêu cầu chức năng (System Features) > SF-11 | Data Simulation Engine",
+      "content": "**Acceptance Criteria:**\n\n- Sau backfill: `SELECT COUNT(*) FROM sale_order` trả về ~176.000 SO (44.000 × 4 năm)\n- Regional split từ fact_sales khớp ±2% với target West/East/Central/South\n- Imperfection rates (trễ SLA, hủy đơn, trả hàng) khớp với catalog trong ±1%\n\n---",
+      "char_count": 268,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_072",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "4. Yêu cầu giao diện ngoài (External Interface Requirements) > 4.1. Giao diện người dùng (User Interfaces)",
+      "content": "**Odoo Web UI:**\n\n- Browser: Chrome 120+, Firefox 120+, Edge 120+ (Chromium-based)\n- Responsive: Odoo 18 hỗ trợ mobile view nhưng không bắt buộc optimize cho mobile trong scope này\n- Language: English (US) — UI không cần tiếng Việt\n- Không có custom CSS/theme — dùng default Odoo 18 theme\n\n**Power BI:**\n\n- Power BI Desktop (Windows) cho development\n- Power BI Service (web) cho sharing\n- Không yêu cầu custom visual ngoài marketplace\n\n**RAG Chatbot:**\n\n- Interface: FastAPI `/docs` (Swagger UI) cho testing\n- Production interface: TBD (có thể integrate vào web app sau)\n\n**Airflow UI:**\n\n- Browser-based, port 8080\n- Dùng để monitor DAG runs, trigger manual, xem logs",
+      "char_count": 668,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_073",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "4. Yêu cầu giao diện ngoài (External Interface Requirements) > 4.2. Giao diện phần cứng (Hardware Interfaces)",
+      "content": "- Không có yêu cầu hardware interface đặc biệt\n- Toàn bộ chạy trong Docker containers trên commodity hardware\n- GPU không bắt buộc (Qwen 2.5 7B chạy CPU inference với Apple Silicon M-series)",
+      "char_count": 190,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_074",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "4. Yêu cầu giao diện ngoài (External Interface Requirements) > 4.3. Giao diện phần mềm (Software Interfaces)",
+      "content": "| Giao diện                     | Protocol / Format   | Mục đích                                          |\n| ----------------------------- | ------------------- | ------------------------------------------------- |\n| Odoo ↔ Data Generator         | XML-RPC over HTTP   | Script Python tạo dữ liệu vào Odoo               |\n| PostgreSQL ↔ Debezium         | WAL (pgoutput)      | CDC bắt thay đổi                                  |\n| Debezium ↔ Kafka              | Kafka Producer API  | Publish CDC events                                |\n| Kafka ↔ MinIO Consumer        | Kafka Consumer API  | Consume và lưu Bronze                             |\n| MinIO ↔ dbt                   | S3-compatible API   | dbt đọc Bronze làm external source                |",
+      "char_count": 754,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_075",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "4. Yêu cầu giao diện ngoài (External Interface Requirements) > 4.3. Giao diện phần mềm (Software Interfaces)",
+      "content": "| Giao diện                     | Protocol / Format   | Mục đích                                          |\n| ----------------------------- | ------------------- | ------------------------------------------------- |\n| dbt ↔ Snowflake               | Snowflake connector | Write Staging/Silver/Gold                         |\n| Snowflake ↔ Power BI          | ODBC / Direct Query | BI query Warehouse                                |\n| FastAPI ↔ Qdrant              | Qdrant Python SDK   | Vector search                                     |\n| FastAPI ↔ LM Studio (Qwen)    | OpenAI-compatible REST | LLM generation                                 |\n| Qdrant ↔ sentence-transformers | Python SDK         | Dense embedding                                   |",
+      "char_count": 755,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_076",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "4. Yêu cầu giao diện ngoài (External Interface Requirements) > 4.4. Giao diện truyền thông (Communications Interfaces)",
+      "content": "- **Kafka:** TCP, port 9092, plaintext (dev); TLS (production)\n- **Debezium REST API:** HTTP, port 8083\n- **Qdrant REST API:** HTTP, port 6333, JSON\n- **LM Studio:** HTTP, port 1234, OpenAI-compatible JSON API\n- **MinIO:** HTTP/HTTPS, S3-compatible API, port 9000\n- **Airflow:** HTTP, port 8080\n- **Odoo:** HTTP, port 8069, XML-RPC\n\n---",
+      "char_count": 336,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_077",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "5. Yêu cầu phi chức năng (Non-Functional Requirements) > 5.1. Hiệu năng (Performance Requirements)",
+      "content": "| Mã      | Yêu cầu                                                                                         | Đo lường                          |\n| ------- | ------------------------------------------------------------------------------------------------ | --------------------------------- |\n| NFR-P01 | CDC latency: Thay đổi trong PostgreSQL phải xuất hiện trong Kafka topic trong < 2 giây         | Kafka consumer lag monitor        |\n| NFR-P02 | dbt `gold` layer build time phải < 30 phút cho full 4-năm data                                 | Airflow task duration             |\n| NFR-P03 | Power BI dashboard load < 5 giây với Import mode (full 4-năm Gold data)                        | Power BI Performance Analyzer     |",
+      "char_count": 727,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_078",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "5. Yêu cầu phi chức năng (Non-Functional Requirements) > 5.1. Hiệu năng (Performance Requirements)",
+      "content": "| Mã      | Yêu cầu                                                                                         | Đo lường                          |\n| ------- | ------------------------------------------------------------------------------------------------ | --------------------------------- |\n| NFR-P04 | RAG Chatbot response time < 5 giây (E2E: query → Qdrant → CrossEncoder → LLM → response)       | FastAPI response time log         |\n| NFR-P05 | Odoo Web UI load < 3 giây cho list view với 1.000+ records (paginated)                          | Browser DevTools Network tab      |\n| NFR-P06 | Data Generator: hoàn thành backfill 4 năm (176.000 SO) trong < 8 giờ                           | Script execution time             |",
+      "char_count": 728,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_079",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "5. Yêu cầu phi chức năng (Non-Functional Requirements) > 5.2. Bảo mật (Security Requirements)",
+      "content": "| Mã      | Yêu cầu                                                                                         |\n| ------- | ------------------------------------------------------------------------------------------------ |\n| NFR-S01 | PostgreSQL chỉ accept connections từ localhost và Kafka Connect container — không expose public |\n| NFR-S02 | Kafka trong dev environment: no-auth (PLAINTEXT). Production: SASL/SCRAM hoặc TLS               |\n| NFR-S03 | MinIO: bucket policy phải restrict write chỉ cho Kafka consumer service account                |\n| NFR-S04 | Snowflake: IP whitelist (dev machine + VPS IP); role-based access (TRANSFORMER role cho dbt, ANALYST role cho Power BI) |\n| NFR-S05 | Odoo Admin account: password phức tạp ≥ 12 ký tự; 2FA enable trên production                  |",
+      "char_count": 791,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_080",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "5. Yêu cầu phi chức năng (Non-Functional Requirements) > 5.2. Bảo mật (Security Requirements)",
+      "content": "| Mã      | Yêu cầu                                                                                         |\n| ------- | ------------------------------------------------------------------------------------------------ |\n| NFR-S06 | Qdrant: không expose ra ngoài internet trong dev; production cần authentication token           |\n| NFR-S07 | LM Studio (Qwen): chỉ bind localhost — không expose API ra ngoài                                |\n| NFR-S08 | Không lưu credentials trong source code — dùng `.env` file (gitignored) hoặc Docker secrets    |",
+      "char_count": 549,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_081",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "5. Yêu cầu phi chức năng (Non-Functional Requirements) > 5.3. Khả dụng (Availability Requirements)",
+      "content": "| Mã      | Yêu cầu                                                                                         |\n| ------- | ------------------------------------------------------------------------------------------------ |\n| NFR-A01 | Dev environment: best-effort, không có SLA cứng                                                 |\n| NFR-A02 | Production VPS: Odoo và Kafka phải có Docker restart policy = `always`                          |\n| NFR-A03 | Kafka: single-broker setup (dev/portfolio) — không yêu cầu multi-broker HA                     |\n| NFR-A04 | Airflow DAG phải có retry = 2 với exponential backoff trước khi báo fail                       |\n| NFR-A05 | MinIO data phải được backup định kỳ (có thể dùng `mc mirror` sang cloud storage)               |",
+      "char_count": 767,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_082",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "5. Yêu cầu phi chức năng (Non-Functional Requirements) > 5.4. Khả năng mở rộng (Scalability Requirements)",
+      "content": "| Mã      | Yêu cầu                                                                                         |\n| ------- | ------------------------------------------------------------------------------------------------ |\n| NFR-SC01 | Pipeline architecture phải có khả năng handle ×10 data volume (880.000 SO) mà không cần re-architect — chỉ cần scale Kafka partitions và Snowflake warehouse size |\n| NFR-SC02 | Qdrant collection phải có khả năng thêm corpus mới (file JSON) mà không cần rebuild toàn bộ collection |\n| NFR-SC03 | dbt models phải dùng incremental strategy cho fact tables (không full refresh mỗi ngày sau backfill) |\n| NFR-SC04 | Data Generator live mode phải có thể chạy parallel cho nhiều ngày nếu có backlog                |",
+      "char_count": 742,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_083",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "5. Yêu cầu phi chức năng (Non-Functional Requirements) > 5.5. Chất lượng dữ liệu (Data Quality Requirements)",
+      "content": "| Mã      | Yêu cầu                                                                                         |\n| ------- | ------------------------------------------------------------------------------------------------ |\n| NFR-DQ01 | PK uniqueness: mỗi fact table PK phải unique (dbt test `unique`)                               |\n| NFR-DQ02 | Referential integrity: mọi `customer_id` trong `fact_sales` phải có trong `dim_customer`       |\n| NFR-DQ03 | Accounting invariant: SUM(debit) = SUM(credit) cho mỗi journal entry (dbt test)                |\n| NFR-DQ04 | Revenue phải > 0 cho mọi completed SO line (dbt test `assert_sales_positive`)                  |\n| NFR-DQ05 | Imperfection rates phải nằm trong tolerance ±1% so với catalog đã định nghĩa                   |\n| NFR-DQ06 | Không có NULL trên PK columns của fact tables và dimension tables                               |",
+      "char_count": 881,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_084",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "5. Yêu cầu phi chức năng (Non-Functional Requirements) > 5.6. Khả năng bảo trì (Maintainability Requirements)",
+      "content": "| Mã      | Yêu cầu                                                                                         |\n| ------- | ------------------------------------------------------------------------------------------------ |\n| NFR-M01 | Toàn bộ source code phải được version control trên Git với commit message rõ ràng               |\n| NFR-M02 | dbt models phải có `description` field trong YAML schema cho mỗi model và column quan trọng    |\n| NFR-M03 | Data Generator script phải có logging rõ ràng: số records tạo, errors, skip duplicates         |\n| NFR-M04 | Docker Compose files phải tách biệt dev vs production profile                                   |\n| NFR-M05 | Pipeline phải có minimal test coverage: ít nhất `dbt test` + basic pytest cho RAG API           |\n| NFR-M06 | README phải đủ để developer mới có thể setup môi trường từ đầu trong < 2 giờ                  |\n\n---",
+      "char_count": 881,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_085",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "6. Ma trận truy vết (Traceability Matrix) > 6.1. Business Objectives → System Features",
+      "content": "| Business Objective (BRD)                        | FRD Tham chiếu | System Feature (SRS)        |\n| ----------------------------------------------- | -------------- | --------------------------- |\n| BO-01: Vận hành O2C hiệu quả                    | FRD-01         | SF-01, SF-09, SF-11         |\n| BO-02: Marketing data-driven                    | FRD-02         | SF-02, SF-08, SF-09         |\n| BO-03: Quản lý chuỗi cung ứng                   | FRD-03, FRD-04 | SF-03, SF-04, SF-09         |\n| BO-04: Tối ưu sản xuất                          | FRD-05         | SF-05, SF-09                |\n| BO-05: Minh bạch tài chính                      | FRD-06         | SF-06, SF-08, SF-09         |\n| BO-06: Quản lý nhân sự                          | FRD-07         | SF-07, SF-09                |",
+      "char_count": 791,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_086",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "6. Ma trận truy vết (Traceability Matrix) > 6.1. Business Objectives → System Features",
+      "content": "| Business Objective (BRD)                        | FRD Tham chiếu | System Feature (SRS)        |\n| ----------------------------------------------- | -------------- | --------------------------- |\n| BO-07: BI & Analytics                           | FRD-08         | SF-08, SF-09                |\n| BO-08: AI-powered knowledge management          | FRD-08 (AI)    | SF-10                       |",
+      "char_count": 395,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_087",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "6. Ma trận truy vết (Traceability Matrix) > 6.2. System Features → Non-Functional Requirements",
+      "content": "| System Feature          | Performance  | Security     | Availability | Scalability  | Data Quality |\n| ----------------------- | ------------ | ------------ | ------------ | ------------ | ------------ |\n| SF-01 (Sales)           | NFR-P05      | NFR-S01, S05 | NFR-A02      | —            | NFR-DQ01–04  |\n| SF-09 (CDC Pipeline)    | NFR-P01, P02 | NFR-S02, S03 | NFR-A04      | NFR-SC01, 03 | NFR-DQ01–06  |\n| SF-08 (BI Dashboard)    | NFR-P03      | NFR-S04      | —            | NFR-SC01     | NFR-DQ01–04  |\n| SF-10 (RAG Chatbot)     | NFR-P04      | NFR-S06, S07 | NFR-A02      | NFR-SC02     | —            |\n| SF-11 (Data Generator)  | NFR-P06      | NFR-S08      | NFR-A04      | NFR-SC04     | NFR-DQ05     |",
+      "char_count": 720,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_088",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "6. Ma trận truy vết (Traceability Matrix) > 6.3. System Feature → Acceptance Criteria tóm tắt",
+      "content": "| SF  | Tên Feature          | Acceptance Criteria Key                                                   | Kiểm tra bằng          |\n| --- | -------------------- | ------------------------------------------------------------------------- | ---------------------- |\n| SF-01 | Sales & CRM        | O2C flow không lỗi; SO lock sau confirm                                   | Manual test Odoo       |\n| SF-02 | Marketing          | UTM ghi đúng; ROAS tính đúng                                              | Manual test + dbt mart |\n| SF-03 | Purchase           | PO → Receipt → Bill flow đúng                                             | Manual test Odoo       |\n| SF-04 | Inventory          | On-hand balance khớp stock_move                                           | SQL check              |",
+      "char_count": 791,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_089",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "6. Ma trận truy vết (Traceability Matrix) > 6.3. System Feature → Acceptance Criteria tóm tắt",
+      "content": "| SF  | Tên Feature          | Acceptance Criteria Key                                                   | Kiểm tra bằng          |\n| --- | -------------------- | ------------------------------------------------------------------------- | ---------------------- |\n| SF-05 | Manufacturing      | MO → WO → Finished goods flow đúng                                        | Manual test Odoo       |\n| SF-06 | Accounting         | Debit = Credit; AR aging đúng                                             | dbt test               |\n| SF-07 | HR                 | SCD2 dim_employee đúng lịch sử lương                                      | dbt query              |\n| SF-08 | BI Dashboard       | MTD/YTD đúng; load < 5s                                                   | Power BI Analyzer      |",
+      "char_count": 791,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_090",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "6. Ma trận truy vết (Traceability Matrix) > 6.3. System Feature → Acceptance Criteria tóm tắt",
+      "content": "| SF  | Tên Feature          | Acceptance Criteria Key                                                   | Kiểm tra bằng          |\n| --- | -------------------- | ------------------------------------------------------------------------- | ---------------------- |\n| SF-09 | CDC Pipeline       | End-to-end: Odoo → Kafka < 2s; dbt tests pass                             | Integration test       |\n| SF-10 | RAG Chatbot        | Trả lời đúng câu hỏi từ corpus; response < 5s                             | pytest RAG API         |\n| SF-11 | Data Generator     | ~176.000 SO sau backfill; imperfection rates đúng ±1%                     | SQL count + ratio check|",
+      "char_count": 659,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_091",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục A: Kiến trúc & Stack công nghệ > A.1. Stack công nghệ",
+      "content": "| Layer          | Công nghệ                  | Phiên bản     | Vai trò                                     |\n| -------------- | -------------------------- | ------------- | ------------------------------------------- |\n| ERP            | Odoo Community             | 18.0          | Phần mềm ERP nguồn mở                       |\n| OLTP Database  | PostgreSQL                 | 16            | Database của Odoo, nguồn CDC                |\n| CDC            | Debezium (Kafka Connect)   | Latest stable | Bắt WAL log PostgreSQL → Kafka              |\n| Message Queue  | Apache Kafka               | 3.x           | Trung chuyển CDC events                     |\n| Data Lake      | MinIO                      | Latest        | Object storage tương thích S3, Bronze layer |",
+      "char_count": 769,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_092",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục A: Kiến trúc & Stack công nghệ > A.1. Stack công nghệ",
+      "content": "| Layer          | Công nghệ                  | Phiên bản     | Vai trò                                     |\n| -------------- | -------------------------- | ------------- | ------------------------------------------- |\n| Orchestration  | Apache Airflow             | 2.x           | Lên lịch pipeline                           |\n| Transformation | dbt Core                   | 1.x           | Staging → Silver → Gold                     |\n| Data Warehouse | Snowflake                  | —             | OLAP, lưu Gold layer                        |\n| BI             | Power BI Desktop / Service | —             | Dashboard                                   |\n| RAG Vector DB  | Qdrant                     | —             | Embedding storage cho chatbot               |",
+      "char_count": 769,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_093",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục A: Kiến trúc & Stack công nghệ > A.1. Stack công nghệ",
+      "content": "| Layer          | Công nghệ                  | Phiên bản     | Vai trò                                     |\n| -------------- | -------------------------- | ------------- | ------------------------------------------- |\n| LLM            | Qwen 2.5 (via LM Studio)   | —             | LLM local cho RAG chatbot                   |\n| Embedding      | sentence-transformers      | —             | Dense embedding cho Qdrant                  |\n| Runtime (dev)  | MacBook Pro M-series       | —             | Môi trường phát triển                       |\n| Runtime (prod) | VPS Contabo / Cloud        | —             | Deployment                                  |",
+      "char_count": 659,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_094",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục A: Kiến trúc & Stack công nghệ > A.2. Network & Port Map (Dev Environment)",
+      "content": "| Service                  | Port | Ghi chú                     |\n| ------------------------ | ---- | --------------------------- |\n| Odoo Web                 | 8069 | `http://localhost:8069`     |\n| PostgreSQL               | 5432 | Odoo + DBeaver kết nối      |\n| Kafka Broker             | 9092 | Broker                      |\n| Kafka Connect (Debezium) | 8083 | REST API register connector |\n| MinIO Console            | 9001 | Web UI quản lý bucket       |\n| MinIO API                | 9000 | boto3/mc client             |\n| Airflow                  | 8080 | Web UI                      |\n| Qdrant                   | 6333 | REST API                    |\n| FastAPI (RAG)            | 8000 | Chatbot API endpoint        |\n| LM Studio                | 1234 | Local LLM server            |\n\n---",
+      "char_count": 796,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_095",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục B: Cấu hình Odoo (Configuration Spec) > B.1. Database khởi tạo",
+      "content": "```\nDatabase name : superstore_erp\nCountry       : United States\nCurrency      : USD  ← PHẢI thiết lập TRƯỚC KHI có journal entry nào\nLanguage      : English (US)\nAdmin email   : admin@superstore-inc.com\n```",
+      "char_count": 207,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_096",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục B: Cấu hình Odoo (Configuration Spec) > B.2. Modules cần cài (theo thứ tự dependency)",
+      "content": "```bash\npython odoo-bin -c odoo.conf -d superstore_erp \\\n  -i base,sale_management,crm,purchase,stock,mrp,account,hr,mass_mailing\n```",
+      "char_count": 133,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_097",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục B: Cấu hình Odoo (Configuration Spec) > B.2. Modules cần cài (theo thứ tự dependency)",
+      "content": "| Module          | Odoo Name                                          | SF Reference |\n| --------------- | -------------------------------------------------- | ------------ |\n| Base            | `base`                                             | All          |\n| Sales & CRM     | `sale_management`, `crm`                           | SF-01        |\n| Email Marketing | `mass_mailing`                                     | SF-02        |\n| Purchase        | `purchase`                                         | SF-03        |\n| Inventory       | `stock`                                            | SF-04        |\n| Manufacturing   | `mrp`                                              | SF-05        |\n| Accounting      | `account`                                          | SF-06        |\n| HR              | `hr`, `hr_contract`, `hr_attendance`, `hr_payroll` | SF-07        |",
+      "char_count": 879,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_098",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục B: Cấu hình Odoo (Configuration Spec) > B.3. Settings quan trọng sau khi cài",
+      "content": "**Inventory settings:**\n\n- Multi-Warehouse: ON → tạo 4 kho (WH-WEST, WH-EAST, WH-CENTRAL, WH-SOUTH)\n- Storage Locations: ON\n- Routes: ON\n- Units of Measure: ON\n\n**Sales settings:**\n\n- Discounts: ON (hiển thị cột discount trên order line)\n- Lock Confirmed Sales: ON (không sửa SO đã confirm)\n- Sales Warnings: ON\n\n**Manufacturing settings:**\n\n- Work Orders: ON (bật Work Center, Routing, Work Order)\n- Bill of Materials: ON\n\n**Accounting settings:**\n\n- Lock Posted Entries with Hash: ON\n- Fiscal Year: January → December",
+      "char_count": 519,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_099",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục B: Cấu hình Odoo (Configuration Spec) > B.4. Master Data cần tạo",
+      "content": "**Warehouses (4):**\n\n```\nWH-WEST:    Los Angeles, CA  — Short name: WEST\nWH-EAST:    Newark, NJ       — Short name: EAST\nWH-CENTRAL: Chicago, IL      — Short name: CNTL\nWH-SOUTH:   Houston, TX      — Short name: SOUT\n```\n\n**Work Centers (3, tại WH-WEST):**\n\n```\nWC-CUT:  Cutting Station   — Capacity: 2 workers, 480 min/day\nWC-ASM:  Assembly Line     — Capacity: 3 workers, 480 min/day\nWC-QC:   Quality Control   — Capacity: 1 inspector, 480 min/day\n```\n\n**UTM Sources & Mediums:**\n\n```\nSources : google, facebook, instagram, email, direct, referral, organic\nMediums : cpc, email, social, organic, referral, none\n```\n\n---",
+      "char_count": 621,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_100",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục C: Data Dictionary > C.1. Mapping Superstore Dataset → Odoo",
+      "content": "| Cột Superstore gốc | Bảng Odoo          | Cột Odoo                                  | Ghi chú                              |\n| ------------------ | ------------------ | ----------------------------------------- | ------------------------------------ |\n| Order ID           | `sale_order`       | `name`                                    | VD: S-2024-00001                     |\n| Order Date         | `sale_order`       | `date_order`                              | Dịch +9 năm (2014→2023)              |\n| Ship Date          | `stock_picking`    | `scheduled_date`                          | = date_order + SLA ngày              |\n| Ship Mode          | `stock_picking`    | `carrier_id` hoặc note                    | Standard=7d, Second=5d, First=2d, Same=0d |",
+      "char_count": 766,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_101",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục C: Data Dictionary > C.1. Mapping Superstore Dataset → Odoo",
+      "content": "| Cột Superstore gốc | Bảng Odoo          | Cột Odoo                                  | Ghi chú                              |\n| ------------------ | ------------------ | ----------------------------------------- | ------------------------------------ |\n| Customer ID        | `res_partner`      | `id`                                      | Unique per customer                  |\n| Customer Name      | `res_partner`      | `name`                                    |                                      |\n| Segment            | `res_partner`      | `category_id`                             | Consumer / Corporate / Home Office   |\n| Country/City/State | `res_partner`      | `country_id`, `city`, `state_id`          | US states                            |",
+      "char_count": 761,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_102",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục C: Data Dictionary > C.1. Mapping Superstore Dataset → Odoo",
+      "content": "| Cột Superstore gốc | Bảng Odoo          | Cột Odoo                                  | Ghi chú                              |\n| ------------------ | ------------------ | ----------------------------------------- | ------------------------------------ |\n| Postal Code        | `res_partner`      | `zip`                                     | 2% missing (imperfection)            |\n| Region             | `stock_warehouse`  | → Warehouse phục vụ vùng                  | West/East/Central/South              |\n| Product ID         | `product_product`  | `default_code`                            | SKU                                  |\n| Product Name       | `product_template` | `name`                                    |                                      |",
+      "char_count": 761,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_103",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục C: Data Dictionary > C.1. Mapping Superstore Dataset → Odoo",
+      "content": "| Cột Superstore gốc | Bảng Odoo          | Cột Odoo                                  | Ghi chú                              |\n| ------------------ | ------------------ | ----------------------------------------- | ------------------------------------ |\n| Category           | `product_category` | `name`                                    | Furniture/Technology/Office Supplies |\n| Sub-Category       | `product_category` | `name` (child)                            | 17 sub-categories                    |\n| Sales              | `sale_order_line`  | `price_subtotal`                          | Revenue                              |\n| Quantity           | `sale_order_line`  | `product_uom_qty`                         |                                      |",
+      "char_count": 761,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_104",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục C: Data Dictionary > C.1. Mapping Superstore Dataset → Odoo",
+      "content": "| Cột Superstore gốc | Bảng Odoo          | Cột Odoo                                  | Ghi chú                              |\n| ------------------ | ------------------ | ----------------------------------------- | ------------------------------------ |\n| Discount           | `sale_order_line`  | `discount`                                | %                                    |\n| Profit             | Tính toán          | `price_subtotal - (standard_price × qty)` | Profit = Revenue - COGS              |",
+      "char_count": 507,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_105",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục C: Data Dictionary > C.2. Dữ liệu thêm (không có trong Superstore gốc)",
+      "content": "| Dữ liệu         | Mô tả                      | Logic giả lập                                                                                |\n| --------------- | -------------------------- | -------------------------------------------------------------------------------------------- |\n| NCC (Suppliers) | 15–20 nhà cung cấp         | Mỗi sub-category có 1–3 NCC; NCC Furniture là NCC nguyên liệu                                |\n| Giá mua (Cost)  | Giá vốn thực tế            | `cost = Sales × (1 - target_margin)` → Furniture 30%, Tech 25%, Supplies 35%                 |\n| BOM             | Định mức NVL cho Furniture | 5 BOM mẫu × 3–6 components/BOM                                                               |",
+      "char_count": 719,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_106",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục C: Data Dictionary > C.2. Dữ liệu thêm (không có trong Superstore gốc)",
+      "content": "| Dữ liệu         | Mô tả                      | Logic giả lập                                                                                |\n| --------------- | -------------------------- | -------------------------------------------------------------------------------------------- |\n| Tồn kho đầu kỳ  | Tháng 1/2023               | safety_stock = 4 tuần tiêu thụ trung bình                                                    |\n| Nhân viên       | 45 hồ sơ                   | Tên giả lập US, phân theo phòng/kho                                                          |\n| Hợp đồng        | 45 + lịch sử tăng lương    | 1–2 tăng lương/người trong 4 năm                                                             |",
+      "char_count": 719,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_107",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục C: Data Dictionary > C.2. Dữ liệu thêm (không có trong Superstore gốc)",
+      "content": "| Dữ liệu         | Mô tả                      | Logic giả lập                                                                                |\n| --------------- | -------------------------- | -------------------------------------------------------------------------------------------- |\n| UTM campaigns   | Chiến dịch marketing       | 8–10 campaign/năm, 3 kênh: google/facebook/email                                             |\n| Ad spend        | Chi tiêu quảng cáo         | ~$8K–15K/tháng, biến động theo mùa                                                           |\n| Credit terms    | Điều khoản khách B2B       | Corporate: Net-30; Home Office: Net-15; Consumer: immediate                                  |",
+      "char_count": 719,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_108",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục E: Data Pipeline Spec > E.1. Debezium Connector Config",
+      "content": "```json\n{\n  \"name\": \"superstore-postgres-connector\",\n  \"config\": {\n    \"connector.class\": \"io.debezium.connector.postgresql.PostgresConnector\",\n    \"database.hostname\": \"localhost\",\n    \"database.port\": \"5432\",\n    \"database.user\": \"odoo\",\n    \"database.password\": \"\",\n    \"database.dbname\": \"superstore_erp\",\n    \"database.server.name\": \"superstore_erp\",\n    \"plugin.name\": \"pgoutput\",\n    \"table.include.list\": \"public.sale_order,public.sale_order_line,public.res_partner,public.product_product,public.stock_move,public.account_move,public.account_move_line,public.purchase_order,public.mrp_production\",\n    \"slot.name\": \"debezium_superstore\"\n  }\n}\n```",
+      "char_count": 654,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_109",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục E: Data Pipeline Spec > E.2. dbt Project Structure",
+      "content": "```\nsuperstore_dbt/\n├── models/\n│   ├── staging/          ← 1:1 với Odoo tables, cast types\n│   │   ├── stg_sale_order.sql\n│   │   ├── stg_sale_order_line.sql\n│   │   ├── stg_stock_move.sql\n│   │   ├── stg_account_move_line.sql\n│   │   └── stg_ad_spend.sql       ← external source\n│   ├── silver/           ← SCD2 snapshots\n│   │   ├── dim_customer.sql       ← snapshot res_partner\n│   │   ├── dim_product.sql        ← snapshot product_template\n│   │   └── dim_employee.sql       ← snapshot hr_contract\n│   └── gold/             ← Star Schema & Galaxy Schema\n│       ├── fact_sales.sql\n│       ├── fact_purchase.sql\n│       ├── fact_inventory_movement.sql\n│       ├── fact_manufacturing.sql\n│       ├── fact_journal_entries.sql\n│       ├── fact_ad_spend.sql\n│       └── mart_roas_by_channel.sql\n├── snapshots/\n│   ├── dim_customer_snapshot.sql\n│   ├── dim_product_snapshot.sql\n│   └── dim_employee_snapshot.sql\n└── tests/\n    ├── assert_sales_positive.sql\n    └── assert_debit_equals_credit.sql\n```",
+      "char_count": 998,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_110",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục E: Data Pipeline Spec > E.3. dbt Grain Definition",
+      "content": "| Fact Table                | Grain (1 row = )      | Primary Key              |\n| ------------------------- | --------------------- | ------------------------ |\n| `fact_sales`              | 1 sale_order_line     | `sale_order_line_id`     |\n| `fact_purchase`           | 1 purchase_order_line | `purchase_order_line_id` |\n| `fact_inventory_movement` | 1 stock_move (done)   | `stock_move_id`          |\n| `fact_manufacturing`      | 1 mrp_production      | `mrp_production_id`      |\n| `fact_journal_entries`    | 1 account_move_line   | `account_move_line_id`   |\n| `fact_ad_spend`           | 1 campaign × 1 ngày   | `campaign_id + date`     |\n\n---",
+      "char_count": 652,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_111",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục F: RAG Chatbot Spec",
+      "content": "**Mục tiêu:** Chatbot trả lời câu hỏi nội bộ về chính sách, quy trình, sản phẩm, nhân sự của Superstore Inc.",
+      "char_count": 108,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_112",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục F: RAG Chatbot Spec > F.1. Corpus (Nguồn tài liệu)",
+      "content": "| File JSON                        | Số chunks (ước tính) | Nội dung                  |\n| --------------------------------- | -------------------- | ------------------------- |\n| `superstore-ho-so-cong-ty-vi.json` | 17                 | Company profile, về chúng tôi |\n| `BRD-superstore.json`             | ~30                  | Business objectives, scope |\n| `FRD-01.json` → `FRD-08.json`    | ~20 each             | Functional requirements    |\n| `UC-superstore.json`             | ~25                  | Use cases                 |\n| `SRS-superstore.json`            | ~40                  | Technical spec (file này) |\n| `MASTER-PLAN.json`               | ~15                  | Project overview          |",
+      "char_count": 711,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_113",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục F: RAG Chatbot Spec > F.2. Qdrant Collection Config",
+      "content": "```python\ncollection_name = \"superstore_knowledge\"\nvector_size     = 768          # sentence-transformers/all-MiniLM-L6-v2\ndistance        = Cosine\nsparse_vectors  = True         # BM25 hybrid search\n```",
+      "char_count": 203,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_114",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục F: RAG Chatbot Spec > F.3. Chunk Strategy",
+      "content": "- Split theo heading `##` / `###`\n- Mỗi chunk: 200–600 characters\n- Metadata bắt buộc cho mỗi chunk: `doc_id`, `section`, `source_file`\n- Overlap: 50 characters (để không mất context tại ranh giới chunk)",
+      "char_count": 203,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_115",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục F: RAG Chatbot Spec > F.4. Query Pipeline",
+      "content": "```\nUser Question\n    │\n    ├─▶ Dense Embed (sentence-transformers/all-MiniLM-L6-v2, 768 dims)\n    │\n    ├─▶ Sparse BM25 Embed (không double-apply IDF)\n    │\n    └─▶ Qdrant Hybrid Search (RRF Fusion, top-20 candidates)\n            │\n            └─▶ CrossEncoder Reranking (top-5 selected)\n                    │\n                    └─▶ Qwen 2.5 (LM Studio, port 1234) → Final Response\n```",
+      "char_count": 387,
+      "source_file": "SRS-superstore.md"
+    },
+    {
+      "id": "SRS-superstore_116",
+      "doc_id": "SRS-superstore",
+      "doc_title": "SRS — ĐẶC TẢ YÊU CẦU HỆ THỐNG",
+      "section": "Phụ lục F: RAG Chatbot Spec > F.5. API Endpoints (FastAPI)",
+      "content": "| Endpoint        | Method | Mô tả                                     |\n| --------------- | ------ | ----------------------------------------- |\n| `/query`        | POST   | Nhận câu hỏi, trả về answer + sources    |\n| `/ingest`       | POST   | Nạp JSON corpus mới vào Qdrant            |\n| `/health`       | GET    | Health check                              |\n| `/collections`  | GET    | List Qdrant collections và stats          |\n\n---\n\n*Kết thúc tài liệu SRS — Superstore ERP & Data Platform v2.0*",
+      "char_count": 504,
+      "source_file": "SRS-superstore.md"
+    }
+  ]
+}

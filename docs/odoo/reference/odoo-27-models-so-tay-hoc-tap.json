@@ -1,0 +1,267 @@
+{
+  "document": "odoo-27-models-so-tay-hoc-tap.md",
+  "total_chunks": 29,
+  "chunks": [
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_001",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "Tài liệu học tập: định nghĩa · mục đích · fields · quan hệ · ví dụ",
+      "content": "Tài liệu học tập: định nghĩa · mục đích · fields · quan hệ · ví dụ\n\n> **Cách đọc tài liệu này:**\n> - Mỗi model có: định nghĩa 1 câu → vì sao tồn tại → fields quan trọng → quan hệ → ví dụ dữ liệu thật\n> - Ký hiệu: 🔑 = Primary Key · 🔗 = Foreign Key · ⭐ = model cốt lõi phải nắm chắc\n> - Quy ước tên: model Odoo dùng dấu chấm (`sale.order`), bảng PostgreSQL dùng gạch dưới (`sale_order`)\n> - Thứ tự trình bày = thứ tự dependency = thứ tự build\n\n---\n\n# MODULE 1 — 🧱 FOUNDATION (base)\n\n**Vai trò:** Master data dùng chung. Mọi module khác đều trỏ về đây. Build ĐẦU TIÊN.\n\n---",
+      "char_count": 570,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_002",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "1.1. res.company — Công ty",
+      "content": "1.1. res.company — Công ty\n\n**Định nghĩa:** Pháp nhân đang vận hành hệ thống — chính là công ty của bạn.\n\n**Vì sao tồn tại:** Odoo hỗ trợ multi-company (1 database chạy nhiều công ty con). Mọi chứng từ đều phải biết nó thuộc công ty nào để tách sổ sách, tách kho, tách báo cáo.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Tên công ty (VD: \"Công ty TNHH ABC Trading\") |\n| currency_id 🔗 | → res_currency | Tiền tệ mặc định (VND) |\n| partner_id 🔗 | → res_partner | Công ty cũng là 1 partner (có địa chỉ, MST) |\n| parent_id 🔗 | → res_company | Công ty mẹ (nếu là công ty con) |\n\n**Quan hệ:** Gốc của tất cả — hầu hết bảng transaction đều có cột `company_id` trỏ về đây.\n\n**Ví dụ:** `(1, 'ABC Trading Co., Ltd', currency=VND)`\n\n---",
+      "char_count": 798,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_003",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "1.2. ⭐ res.partner — Đối tác (QUAN TRỌNG NHẤT HỆ THỐNG)",
+      "content": "1.2. ⭐ res.partner — Đối tác (QUAN TRỌNG NHẤT HỆ THỐNG)\n\n**Định nghĩa:** MỘT bảng duy nhất chứa TẤT CẢ các bên bạn làm việc cùng: khách hàng, nhà cung cấp, liên hệ cá nhân, và cả chính công ty bạn.\n\n**Vì sao tồn tại:** Thực tế một công ty có thể vừa mua của bạn vừa bán cho bạn. Nếu tách bảng `customer` và `supplier` riêng → phải lưu thông tin họ 2 lần → sửa địa chỉ ở bảng này quên bảng kia → dữ liệu mâu thuẫn. Giải pháp: 1 bảng + cờ phân vai trò.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Tên đối tác |\n| is_company | boolean | true = công ty, false = cá nhân |\n| customer_rank | integer | > 0 → là KHÁCH HÀNG (số càng cao = mua càng nhiều) |\n| supplier_rank | integer | > 0 → là NHÀ CUNG CẤP |\n| parent_id 🔗 | → res_partner | Nếu là contact cá nhân → trỏ về công ty của họ |\n| vat | varchar | Mã số thuế |\n| street / city / country_id | | Địa chỉ |\n| email / phone | | Liên hệ |\n\n**Cách đọc vai trò:**\n\n| customer_rank | supplier_rank | Nghĩa là |\n|---|---|---|\n| 5 | 0 | Khách hàng thuần |\n| 0 | 3 | Nhà cung cấp thuần |\n| 2 | 4 | Vừa là khách vừa là NCC |\n| 0 | 0 | Chỉ là contact (chưa giao dịch) |\n\n**Quan hệ:**\n- `sale_order.partner_id` → đây (với vai trò customer)\n- `purchase_order.partner_id` → đây (với vai trò supplier)\n- `account_move.partner_id` → đây (đối tượng công nợ)\n- `parent_id` → tự trỏ về chính nó (anh Tuấn là contact của công ty XYZ)\n\n**Ví dụ:**\n```\n(10, 'Công ty XYZ',       is_company=T, customer_rank=5, supplier_rank=0)\n(11, 'Nguyễn Văn Tuấn',   is_company=F, parent_id=10)   ← contact của XYZ\n(20, 'NCC Kim Long',      is_company=T, customer_rank=0, supplier_rank=8)\n```\n\n---",
+      "char_count": 1682,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_004",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "1.3. res.users — Người dùng hệ thống",
+      "content": "1.3. res.users — Người dùng hệ thống\n\n**Định nghĩa:** Tài khoản đăng nhập vào Odoo (nhân viên thao tác hệ thống).\n\n**Vì sao tồn tại:** Phân biệt AI LÀM GÌ. Mỗi đơn hàng ghi lại `user_id` — người tạo. Phục vụ phân quyền và audit.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| login | varchar | Tên đăng nhập |\n| partner_id 🔗 | → res_partner | User cũng là 1 partner (có tên, email) |\n| company_id 🔗 | → res_company | Thuộc công ty nào |\n\n**Quan hệ:** 1 user ↔ 1 partner. Các chứng từ có `user_id`/`create_uid` trỏ về đây.\n\n**Điểm hay:** Ngay cả user cũng là partner → thấy chưa, res.partner đúng nghĩa \"1 bảng cho mọi con người/tổ chức\".\n\n---",
+      "char_count": 694,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_005",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "1.4. res.currency — Tiền tệ",
+      "content": "1.4. res.currency — Tiền tệ\n\n**Định nghĩa:** Danh mục tiền tệ (VND, USD, EUR) kèm tỷ giá.\n\n**Vì sao tồn tại:** Công ty Trading có thể nhập hàng bằng USD, bán bằng VND. Mọi số tiền trong hệ thống phải biết nó đang ở tiền tệ nào để quy đổi.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Mã (VND, USD) |\n| symbol | varchar | Ký hiệu (₫, $) |\n| rate | numeric | Tỷ giá so với currency của company |\n\n**Quan hệ:** `res_company`, `sale_order`, `account_move`... đều có `currency_id` trỏ về đây.\n\n---\n\n# MODULE 2 — 📦 PRODUCT (product)\n\n**Vai trò:** Danh mục sản phẩm. Sales, Purchase, Inventory đều trỏ về đây. Điểm khó nhất: phân biệt **template vs variant**.\n\n---",
+      "char_count": 728,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_006",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "2.1. product.category — Nhóm sản phẩm",
+      "content": "2.1. product.category — Nhóm sản phẩm\n\n**Định nghĩa:** Cây phân loại sản phẩm nhiều cấp.\n\n**Vì sao tồn tại:** Để phân tích và quản lý theo nhóm (\"doanh thu ngành hàng Điện tử quý này?\"). Cấu trúc CÂY qua `parent_id` — giống thư mục máy tính.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Tên nhóm |\n| parent_id 🔗 | → product_category | Nhóm cha (NULL = nhóm gốc) |\n\n**Ví dụ cây:**\n```\n(1, 'All',       parent=NULL)\n(2, 'Điện tử',   parent=1)\n(3, 'Laptop',    parent=2)\n(4, 'Gaming',    parent=3)     ← All > Điện tử > Laptop > Gaming\n```\n\n**Liên hệ với bạn:** Đây chính là hierarchy mà nếu đưa vào warehouse dạng nhiều bảng → thành Snowflake Schema; flatten thành 1 bảng dim_product có cột category/sub_category → thành Star Schema (như Superstore của bạn).\n\n---",
+      "char_count": 832,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_007",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "2.2. ⭐ product.template — Sản phẩm mẫu (khái niệm)",
+      "content": "2.2. ⭐ product.template — Sản phẩm mẫu (khái niệm)\n\n**Định nghĩa:** Sản phẩm ở mức KHÁI NIỆM — chưa cụ thể hóa thuộc tính. \"Áo thun Basic\" là template; chưa nói màu gì size gì.\n\n**Vì sao tồn tại:** Thông tin chung (mô tả, nhóm, chính sách giá) chỉ nên lưu 1 lần cho cả họ sản phẩm, thay vì lặp lại cho từng biến thể màu/size.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Tên SP |\n| list_price | numeric | GIÁ BÁN niêm yết |\n| standard_price | numeric | GIÁ VỐN |\n| categ_id 🔗 | → product_category | Thuộc nhóm nào |\n| type | selection | 'consu' (hàng hóa) / 'service' (dịch vụ) |\n| uom_id 🔗 | → uom_uom | Đơn vị tính mặc định |\n\n**Quan hệ:** 1 template → N variant (product.product).\n\n---",
+      "char_count": 759,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_008",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "2.3. ⭐ product.product — Sản phẩm variant (SKU thật)",
+      "content": "2.3. ⭐ product.product — Sản phẩm variant (SKU thật)\n\n**Định nghĩa:** Sản phẩm CỤ THỂ có thể cầm nắm, đếm, bán được. \"Áo thun Basic - Đỏ - Size L\" là variant. **SKU nằm ở đây.**\n\n**Vì sao tồn tại:** Kho không thể đếm \"Áo thun Basic\" chung chung — kho đếm từng biến thể cụ thể. Đơn hàng cũng bán biến thể cụ thể.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| product_tmpl_id 🔗 | → product_template | Thuộc template nào |\n| default_code | varchar | **SKU** (mã hàng nội bộ) |\n| barcode | varchar | Mã vạch |\n\n**QUY TẮC VÀNG:** Mọi order line, stock move đều trỏ vào **product.product** (variant), KHÔNG BAO GIỜ trỏ vào template.\n\n**Ví dụ:**\n```\nTemplate: (1, 'Áo thun Basic', list_price=150000)\nVariants: (101, tmpl=1, sku='AT-DO-L')   ← Đỏ, L\n          (102, tmpl=1, sku='AT-DO-M')   ← Đỏ, M\n          (103, tmpl=1, sku='AT-XANH-L') ← Xanh, L\n```\nTồn kho của 101 = 50 cái, của 102 = 0 cái → phải quản ở mức variant mới biết hết size M.\n\n---",
+      "char_count": 992,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_009",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "2.4. uom.uom — Đơn vị tính",
+      "content": "2.4. uom.uom — Đơn vị tính\n\n**Định nghĩa:** Đơn vị đo lường (Cái, Thùng, Kg, Lít) + hệ số quy đổi.\n\n**Vì sao tồn tại:** Mua theo THÙNG (24 lon), bán theo LON. Hệ thống phải tự quy đổi: nhập 10 thùng = tồn 240 lon.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Tên đơn vị |\n| category_id 🔗 | → uom_category | Nhóm quy đổi (Đơn vị đếm / Khối lượng...) |\n| factor | numeric | Hệ số so với đơn vị chuẩn của nhóm |\n\n**Lưu ý:** Chỉ quy đổi được TRONG CÙNG category (Thùng ↔ Lon được; Kg ↔ Lít không).\n\n---\n\n# MODULE 3 — 🛍️ PURCHASE (purchase)\n\n**Vai trò:** Mua hàng từ NCC — điểm khởi đầu dòng chảy \"tiền ra, hàng vào\". Cấu trúc đơn giản: đúng 1 cặp Header/Line.\n\n---",
+      "char_count": 731,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_010",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "3.1. purchase.order — Đơn mua hàng (HEADER)",
+      "content": "3.1. purchase.order — Đơn mua hàng (HEADER)\n\n**Định nghĩa:** Chứng từ đặt mua hàng gửi cho nhà cung cấp. Phần HEADER: thông tin chung của cả đơn.\n\n**Vì sao tồn tại:** Cam kết mua chính thức — căn cứ để NCC giao hàng, để kho nhận hàng, để kế toán đối chiếu hóa đơn (3-way match: PO ↔ phiếu nhập ↔ hóa đơn NCC).\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Số PO (VD: P00001) |\n| partner_id 🔗 | → res_partner | NHÀ CUNG CẤP (supplier_rank > 0) |\n| date_order | timestamp | Ngày đặt |\n| state | selection | draft → sent → **purchase** → done / cancel |\n| amount_untaxed / amount_tax / amount_total | numeric | Tiền trước thuế / thuế / tổng |\n| currency_id 🔗 | → res_currency | Tiền tệ (nhập hàng có thể là USD) |\n\n**State machine:**\n```\ndraft (nháp) → sent (đã gửi NCC) → purchase (NCC xác nhận) → done (nhận đủ hàng)\n                                                            ↘ cancel\n```\n\n**Quan hệ:** 1 PO → N purchase_order_line. Khi confirm → hệ thống TỰ SINH stock_picking (phiếu nhận hàng) bên module Inventory.\n\n---",
+      "char_count": 1092,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_011",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "3.2. purchase.order.line — Dòng đơn mua (LINE)",
+      "content": "3.2. purchase.order.line — Dòng đơn mua (LINE)\n\n**Định nghĩa:** Chi tiết từng sản phẩm trong đơn mua: SP nào, bao nhiêu, giá nhập bao nhiêu.\n\n**Vì sao tồn tại:** (Xem lại pattern Header/Line) — 1 đơn mua nhiều SP, mỗi SP 1 dòng, tránh lặp thông tin header.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| order_id 🔗 | → purchase_order | Thuộc PO nào |\n| product_id 🔗 | → product_product | SP variant nào |\n| product_qty | numeric | Số lượng đặt |\n| qty_received | numeric | Số lượng ĐÃ NHẬN (so sánh để biết NCC giao thiếu) |\n| price_unit | numeric | GIÁ NHẬP đơn vị |\n| product_uom 🔗 | → uom_uom | Đơn vị tính |\n\n**Giá trị phân tích:** Đây là nguồn của `fact_purchase` — phân tích chi phí nhập theo NCC, theo SP, độ trễ giao hàng (`qty_received` vs `product_qty`).\n\n---\n\n# MODULE 4 — 🏪 INVENTORY (stock)\n\n**Vai trò:** Quản kho. Module PHỨC TẠP NHẤT vì triết lý: **tồn kho = kết quả của các chuyển động, không phải con số sửa tay.**\n\n---",
+      "char_count": 988,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_012",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "4.1. stock.warehouse — Kho hàng",
+      "content": "4.1. stock.warehouse — Kho hàng\n\n**Định nghĩa:** Kho VẬT LÝ — một tòa nhà/địa điểm chứa hàng.\n\n**Vì sao tồn tại:** Công ty có thể có nhiều kho (Kho HN, Kho HCM). Báo cáo tồn phải tách được theo kho.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Tên kho |\n| code | varchar | Mã ngắn (WH-HCM) |\n| company_id 🔗 | → res_company | Thuộc công ty nào |\n\n**Quan hệ:** 1 warehouse → N stock_location.\n\n---",
+      "char_count": 466,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_013",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "4.2. stock.location — Vị trí lưu trữ",
+      "content": "4.2. stock.location — Vị trí lưu trữ\n\n**Định nghĩa:** Vị trí LOGIC trong hệ thống kho — có thể là kệ thật trong kho, hoặc vị trí \"ảo\" đại diện cho thế giới bên ngoài.\n\n**Vì sao tồn tại:** Đây là thiết kế thông minh nhất của module: để MỌI di chuyển hàng đều mô tả được dưới dạng \"từ location A → location B\", Odoo tạo cả location ẢO:\n\n| usage | Nghĩa | Ví dụ |\n|---|---|---|\n| internal | Vị trí thật trong kho | WH-HCM/Kệ-A1 |\n| supplier | Ảo — \"thế giới NCC\" | Nhập hàng = move từ đây → internal |\n| customer | Ảo — \"thế giới khách\" | Xuất bán = move từ internal → đây |\n| inventory | Ảo — điều chỉnh kiểm kê | Hàng mất = move từ internal → đây |\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Tên vị trí |\n| usage | selection | internal / supplier / customer / inventory |\n| location_id 🔗 | → stock_location | Vị trí cha (cây phân cấp) |\n\n---",
+      "char_count": 913,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_014",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "4.3. stock.picking — Phiếu giao/nhận (HEADER)",
+      "content": "4.3. stock.picking — Phiếu giao/nhận (HEADER)\n\n**Định nghĩa:** Chứng từ gom một LẦN giao/nhận hàng — header của các move.\n\n**Vì sao tồn tại:** Một lần xe tải đến giao 5 SP = 1 picking chứa 5 move. Nhân viên kho làm việc theo phiếu, không theo từng move lẻ.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Số phiếu (WH/IN/00001, WH/OUT/00001) |\n| partner_id 🔗 | → res_partner | Giao cho ai / nhận từ ai |\n| picking_type_id 🔗 | | Loại: Receipt (nhận) / Delivery (giao) / Internal (chuyển kho) |\n| state | selection | draft → confirmed → assigned → **done** |\n| origin | varchar | Chứng từ nguồn (số SO/PO sinh ra phiếu này) |\n\n**Quan hệ:** Sinh TỰ ĐỘNG khi confirm SO/PO. Cột `origin` là sợi dây truy vết ngược về đơn gốc.\n\n---",
+      "char_count": 793,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_015",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "4.4. ⭐ stock.move — Chuyển động hàng hóa",
+      "content": "4.4. ⭐ stock.move — Chuyển động hàng hóa\n\n**Định nghĩa:** MỘT lần MỘT sản phẩm di chuyển từ location này sang location khác. Đơn vị nguyên tử của mọi biến động kho.\n\n**Vì sao tồn tại:** Triết lý \"ghi sự kiện, đừng ghi đè\". Nhập kho, xuất kho, chuyển kho, kiểm kê điều chỉnh — TẤT CẢ đều là move. Nhờ đó mọi biến động tồn kho đều truy vết được.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| picking_id 🔗 | → stock_picking | Thuộc phiếu nào |\n| product_id 🔗 | → product_product | SP variant nào |\n| product_uom_qty | numeric | Số lượng |\n| location_id 🔗 | → stock_location | Vị trí NGUỒN |\n| location_dest_id 🔗 | → stock_location | Vị trí ĐÍCH |\n| state | selection | draft → confirmed → assigned → **done** |\n| date | timestamp | Thời điểm thực hiện |\n\n**Đọc nghiệp vụ qua cặp location:**\n```\nsupplier → internal   = NHẬP HÀNG từ NCC\ninternal → customer   = XUẤT BÁN cho khách\ninternal → internal   = CHUYỂN KHO nội bộ\ninternal → inventory  = HÀNG MẤT/hỏng (kiểm kê)\n```\n\n**Giá trị phân tích:** Nguồn của `fact_inventory_movement`. Chỉ move `state='done'` mới tính vào tồn kho.\n\n---",
+      "char_count": 1134,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_016",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "4.5. ⭐ stock.quant — Tồn kho hiện tại",
+      "content": "4.5. ⭐ stock.quant — Tồn kho hiện tại\n\n**Định nghĩa:** \"Ảnh chụp\" số lượng THỰC TẾ của 1 SP tại 1 location NGAY LÚC NÀY.\n\n**Vì sao tồn tại:** Về lý thuyết, tồn kho = SUM tất cả move done. Nhưng query tổng hàng triệu move mỗi lần xem tồn thì quá chậm → Odoo duy trì bảng quant như một \"bộ đệm kết quả\", tự cập nhật mỗi khi move done.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| product_id 🔗 | → product_product | SP nào |\n| location_id 🔗 | → stock_location | Tại vị trí nào |\n| quantity | numeric | Đang có bao nhiêu |\n| reserved_quantity | numeric | Đã giữ chỗ cho đơn hàng (chưa xuất) |\n\n**Cặp khái niệm cần nắm:**\n- **stock.move** = SỔ NHẬT KÝ (lịch sử, immutable, ghi mãi)\n- **stock.quant** = SỐ DƯ (hiện tại, derived, tự tính lại)\n\n→ Giống hệt quan hệ sao kê ↔ số dư tài khoản ngân hàng. Và giống quan hệ **CDC event log ↔ current table** trong pipeline của bạn!\n\n---\n\n# MODULE 5 — 🛒 SALES & CRM (sale / crm)\n\n**Vai trò:** Bán hàng — nguồn doanh thu, nơi sinh `fact_sales`.\n\n---",
+      "char_count": 1037,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_017",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "5.1. crm.lead — Lead / Cơ hội bán hàng",
+      "content": "5.1. crm.lead — Lead / Cơ hội bán hàng\n\n**Định nghĩa:** Khách hàng TIỀM NĂNG — người quan tâm nhưng chưa mua.\n\n**Vì sao tồn tại:** Quản pipeline bán hàng TRƯỚC khi có đơn: ai đang quan tâm, ở giai đoạn nào, dự kiến bao nhiêu tiền, xác suất chốt.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Tên cơ hội (\"Công ty XYZ cần 500 laptop\") |\n| partner_id 🔗 | → res_partner | Đối tác (có thể NULL nếu lead mới) |\n| stage_id 🔗 | → crm_stage | Giai đoạn: New → Qualified → Proposition → **Won** |\n| expected_revenue | numeric | Doanh thu kỳ vọng |\n| probability | numeric | Xác suất chốt (%) |\n| user_id 🔗 | → res_users | Sale phụ trách |\n\n**Quan hệ:** Lead **Won** → chuyển đổi (convert) thành sale.order. Phân tích funnel: bao nhiêu lead → bao nhiêu đơn (conversion rate).\n\n---",
+      "char_count": 840,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_018",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "5.2. ⭐ sale.order — Đơn bán hàng (HEADER)",
+      "content": "5.2. ⭐ sale.order — Đơn bán hàng (HEADER)\n\n**Định nghĩa:** Chứng từ bán hàng — bắt đầu là BÁO GIÁ (quotation), khách đồng ý thì thành ĐƠN HÀNG. Cùng 1 record, chỉ đổi state.\n\n**Vì sao tồn tại:** Trung tâm của nghiệp vụ bán: cam kết với khách về SP, giá, thời hạn. Confirm nó = kích hoạt dây chuyền (xuất kho + hóa đơn).\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Số SO (S00001) |\n| partner_id 🔗 | → res_partner | KHÁCH HÀNG (customer_rank > 0) |\n| date_order | timestamp | Ngày đặt |\n| state | selection | **draft** (báo giá) → sent → **sale** (đơn) → done / cancel |\n| amount_untaxed / amount_tax / amount_total | numeric | Tiền hàng / thuế / tổng |\n| user_id 🔗 | → res_users | Nhân viên sale |\n| invoice_status | selection | no / to invoice / invoiced |\n\n**Điểm tinh tế:** Báo giá và đơn hàng là CÙNG MỘT BẢNG — `state='draft'` là báo giá, `state='sale'` là đơn. Đỡ phải copy dữ liệu giữa 2 bảng.\n\n**Dây chuyền khi Confirm (draft → sale):**\n```\n1. state đổi thành 'sale'\n2. TỰ SINH stock.picking (WH/OUT) + stock.move (internal → customer)\n3. Sẵn sàng tạo account.move (hóa đơn) khi giao xong\n```\n→ 1 cú click = events trên 4-5 bảng. Đây là \"chùm CDC event\" Debezium của bạn sẽ thấy.\n\n---",
+      "char_count": 1263,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_019",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "5.3. ⭐ sale.order.line — Dòng đơn bán (LINE)",
+      "content": "5.3. ⭐ sale.order.line — Dòng đơn bán (LINE)\n\n**Định nghĩa:** Chi tiết từng SP trong đơn bán: SP, số lượng, đơn giá, chiết khấu.\n\n**Vì sao tồn tại:** Pattern Header/Line. Và với BẠN: đây là bảng quan trọng nhất toàn hệ thống về mặt analytics — **nguồn trực tiếp của fact_sales**.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| order_id 🔗 | → sale_order | Thuộc SO nào |\n| product_id 🔗 | → product_product | SP variant |\n| product_uom_qty | numeric | Số lượng đặt |\n| qty_delivered | numeric | Đã giao |\n| qty_invoiced | numeric | Đã xuất hóa đơn |\n| price_unit | numeric | Đơn giá bán |\n| discount | numeric | % chiết khấu |\n| price_subtotal | numeric | Thành tiền (sau CK, trước thuế) |\n\n**Grain của fact table:** 1 row sale_order_line = 1 row fact_sales. Đếm số đơn phải `COUNT(DISTINCT order_id)` — đúng bài học DISTINCTCOUNT bạn đã gặp ở Superstore.\n\n**Margin analysis:** `price_subtotal` (từ đây) − `standard_price × qty` (từ product) = lợi nhuận gộp từng dòng.\n\n---\n\n# MODULE 6 — 💰 ACCOUNTING (account)\n\n**Vai trò:** Kế toán — điểm HỘI TỤ. Mọi nghiệp vụ đổ về đây thành bút toán Nợ/Có. Đây là thứ làm hệ thống xứng danh \"ERP\".\n\n---",
+      "char_count": 1189,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_020",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "6.1. account.account — Tài khoản kế toán (Chart of Accounts)",
+      "content": "6.1. account.account — Tài khoản kế toán (Chart of Accounts)\n\n**Định nghĩa:** Danh mục \"ngăn kéo\" phân loại tiền: mỗi tài khoản là 1 ngăn (Tiền mặt, Phải thu, Doanh thu, Chi phí...).\n\n**Vì sao tồn tại:** Kế toán không hỏi \"có bao nhiêu tiền\" mà hỏi \"tiền đang nằm ở dạng nào\": tiền mặt? khách nợ? hàng trong kho? Chart of Accounts (COA) là hệ thống ngăn kéo đó. VN dùng hệ thống tài khoản theo Thông tư 200.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| code | varchar | Mã TK ('111', '131', '511') |\n| name | varchar | Tên ('Tiền mặt', 'Phải thu KH', 'Doanh thu') |\n| account_type | selection | asset / liability / equity / income / expense |\n\n**Mã TK Việt Nam thường gặp (TT200):**\n```\n111 Tiền mặt          131 Phải thu khách hàng\n112 Tiền gửi NH       331 Phải trả người bán\n156 Hàng hóa          3331 Thuế GTGT phải nộp\n511 Doanh thu bán     632 Giá vốn hàng bán\n```\n\n---",
+      "char_count": 929,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_021",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "6.2. account.journal — Sổ nhật ký",
+      "content": "6.2. account.journal — Sổ nhật ký\n\n**Định nghĩa:** Kênh phân loại bút toán theo loại nghiệp vụ: sổ Bán hàng, sổ Mua hàng, sổ Ngân hàng, sổ Tiền mặt.\n\n**Vì sao tồn tại:** Kế toán viên làm việc theo sổ (\"hôm nay vào sổ bán hàng những HĐ nào?\"). Mỗi journal có bộ đánh số chứng từ riêng (INV/2024/0001, BILL/2024/0001).\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Tên sổ |\n| type | selection | sale / purchase / bank / cash / general |\n| code | varchar | Tiền tố số chứng từ (INV, BILL) |\n\n---",
+      "char_count": 562,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_022",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "6.3. ⭐ account.move — Bút toán / Hóa đơn (HEADER)",
+      "content": "6.3. ⭐ account.move — Bút toán / Hóa đơn (HEADER)\n\n**Định nghĩa:** Header của MỘT chứng từ kế toán. Hóa đơn bán, hóa đơn mua, bút toán điều chỉnh — TẤT CẢ đều là account.move, phân biệt bằng `move_type`.\n\n**Vì sao tồn tại:** Thống nhất mọi chứng từ tài chính về 1 cấu trúc (SAP S/4HANA cũng làm y hệt với bảng ACDOCA — \"universal journal\"). Đơn giản hóa: 1 bảng, 1 luật cân bằng, mọi nghiệp vụ.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Số chứng từ (INV/2024/0001) |\n| move_type | selection | **out_invoice** (HĐ bán) / **in_invoice** (HĐ mua) / out_refund / in_refund / **entry** (bút toán) |\n| partner_id 🔗 | → res_partner | Đối tượng công nợ |\n| invoice_date | date | Ngày hóa đơn |\n| state | selection | draft → **posted** (đã ghi sổ) → cancel |\n| journal_id 🔗 | → account_journal | Vào sổ nào |\n| amount_total / amount_residual | numeric | Tổng / CÒN NỢ (chưa thanh toán) |\n\n**`amount_residual` là field vàng cho phân tích công nợ:** = 0 là đã thu đủ, > 0 là khách còn nợ → báo cáo aging công nợ (nợ quá 30/60/90 ngày).\n\n---",
+      "char_count": 1103,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_023",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "6.4. ⭐⭐ account.move.line — Dòng bút toán (LINE) — TRÁI TIM DOUBLE-ENTRY",
+      "content": "6.4. ⭐⭐ account.move.line — Dòng bút toán (LINE) — TRÁI TIM DOUBLE-ENTRY\n\n**Định nghĩa:** Từng dòng Nợ (debit) / Có (credit) của một bút toán. **LUẬT SẮT: trong 1 move, tổng debit = tổng credit.**\n\n**Vì sao tồn tại:** Nguyên lý kế toán kép 500 năm tuổi: mỗi đồng tiền đi ra từ đâu thì phải đi vào đâu đó. Ghi 2 chiều → tự kiểm tra chéo → không thể \"mất tiền không dấu vết\".\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| move_id 🔗 | → account_move | Thuộc bút toán nào |\n| account_id 🔗 | → account_account | Ghi vào TK nào |\n| partner_id 🔗 | → res_partner | Đối tượng (cho TK công nợ) |\n| debit | numeric | Số tiền NỢ |\n| credit | numeric | Số tiền CÓ |\n| date | date | Ngày ghi sổ |\n\n**Ví dụ trọn vẹn — bán hàng 110tr (VAT 10%):**\n```\naccount.move (id=500, INV/2024/0001, out_invoice, partner=XYZ, total=110tr)\n  ├── line 1: TK 131 Phải thu KH    debit=110tr   credit=0\n  ├── line 2: TK 511 Doanh thu      debit=0       credit=100tr\n  └── line 3: TK 3331 Thuế GTGT     debit=0       credit=10tr\n                          Σ debit = 110tr = Σ credit ✓ CÂN\n```\nĐọc thành lời: \"Khách XYZ nợ ta 110tr (Nợ 131), vì ta đã bán hàng tạo doanh thu 100tr (Có 511) và thu hộ nhà nước 10tr thuế (Có 3331).\"\n\n**Khi generate data:** move nào không cân → dữ liệu \"giả\" ngay lập tức. Đây là ràng buộc khó nhất và giá trị nhất khi build bộ data 10,000 dòng.\n\n---",
+      "char_count": 1397,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_024",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "6.5. account.payment — Thanh toán",
+      "content": "6.5. account.payment — Thanh toán\n\n**Định nghĩa:** Ghi nhận một lần TIỀN THỰC SỰ di chuyển (khách trả tiền / ta trả NCC).\n\n**Vì sao tồn tại:** Hóa đơn ≠ tiền. Xuất HĐ là ghi nhận NỢ; payment là ghi nhận TIỀN VỀ. Hai sự kiện tách biệt về thời gian (bán tháng 1, thu tiền tháng 3). Payment đối trừ (reconcile) với hóa đơn → `amount_residual` của hóa đơn giảm dần về 0.\n\n**Fields quan trọng:**\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| partner_id 🔗 | → res_partner | Ai trả / trả cho ai |\n| amount | numeric | Số tiền |\n| payment_type | selection | inbound (thu) / outbound (chi) |\n| date | date | Ngày thanh toán |\n| journal_id 🔗 | → account_journal | Qua kênh nào (Bank/Cash) |\n\n**Giá trị phân tích:** So `invoice_date` với payment `date` → DSO (Days Sales Outstanding) — khách trung bình bao lâu mới trả tiền. KPI tài chính quan trọng của Trading company.\n\n---\n\n# MODULE 7 — 👥 HR (hr)\n\n**Vai trò:** Nhân sự. Độc lập với dòng chảy hàng hóa, chỉ chạm Accounting ở chi lương. Build CUỐI.\n\n---",
+      "char_count": 1022,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_025",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "7.1. hr.department — Phòng ban",
+      "content": "7.1. hr.department — Phòng ban\n\n**Định nghĩa:** Đơn vị tổ chức trong công ty, cấu trúc cây.\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Tên phòng ('Kinh doanh', 'Kho vận') |\n| parent_id 🔗 | → hr_department | Phòng cha |\n| manager_id 🔗 | → hr_employee | Trưởng phòng |\n\n**Điểm thú vị:** `manager_id` trỏ sang hr_employee, mà hr_employee lại có `department_id` trỏ ngược về đây — quan hệ vòng (circular). Khi generate data: tạo department với manager=NULL trước, tạo employee, rồi UPDATE lại manager.\n\n---",
+      "char_count": 551,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_026",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "7.2. hr.job — Chức danh",
+      "content": "7.2. hr.job — Chức danh\n\n**Định nghĩa:** Vị trí công việc ('NV Kinh doanh', 'Kế toán trưởng', 'Thủ kho').\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Tên chức danh |\n| department_id 🔗 | → hr_department | Thuộc phòng nào |\n\n---",
+      "char_count": 274,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_027",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "7.3. hr.employee — Nhân viên",
+      "content": "7.3. hr.employee — Nhân viên\n\n**Định nghĩa:** Hồ sơ nhân viên — con người thực làm việc trong công ty.\n\n**Vì sao tách khỏi res.users:** Không phải nhân viên nào cũng có tài khoản đăng nhập (công nhân kho không cần login). Employee = hồ sơ nhân sự; User = quyền vào hệ thống. Hai khái niệm khác nhau.\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| name | varchar | Họ tên |\n| department_id 🔗 | → hr_department | Phòng ban |\n| job_id 🔗 | → hr_job | Chức danh |\n| user_id 🔗 | → res_users | Tài khoản login (có thể NULL) |\n| work_email / work_phone | | Liên hệ công việc |\n\n---",
+      "char_count": 601,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_028",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "7.4. hr.contract — Hợp đồng lao động",
+      "content": "7.4. hr.contract — Hợp đồng lao động\n\n**Định nghĩa:** Hợp đồng ký với nhân viên, chứa MỨC LƯƠNG và thời hạn.\n\n**Vì sao tách khỏi employee:** 1 nhân viên có NHIỀU hợp đồng theo thời gian (thử việc → chính thức → tăng lương gia hạn). Lương nằm ở contract, không nằm ở employee — để giữ được LỊCH SỬ lương.\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| employee_id 🔗 | → hr_employee | Của nhân viên nào |\n| wage | numeric | Lương cơ bản |\n| date_start / date_end | date | Hiệu lực từ / đến |\n| state | selection | draft → **open** (hiệu lực) → close |\n\n**Liên hệ với bạn:** Chuỗi contract theo thời gian của 1 employee chính là dữ liệu SCD2 TỰ NHIÊN — mỗi lần tăng lương là 1 record mới với date_start/date_end. Nguồn luyện `dbt snapshot` tuyệt vời.\n\n---",
+      "char_count": 780,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    },
+    {
+      "id": "odoo-27-models-so-tay-hoc-tap_029",
+      "doc_id": "odoo-27-models-so-tay-hoc-tap",
+      "doc_title": "ODOO ERP — SỔ TAY 27 MODELS",
+      "section": "7.5. hr.payslip — Phiếu lương",
+      "content": "7.5. hr.payslip — Phiếu lương\n\n**Định nghĩa:** Bảng lương MỘT KỲ (thường 1 tháng) của 1 nhân viên, tính từ contract.\n\n| Field | Kiểu | Ý nghĩa |\n|---|---|---|\n| id 🔑 | integer | Định danh |\n| employee_id 🔗 | → hr_employee | Của ai |\n| contract_id 🔗 | → hr_contract | Theo hợp đồng nào |\n| date_from / date_to | date | Kỳ lương |\n| net_wage | numeric | Thực lãnh |\n| state | selection | draft → done → paid |\n\n**Chạm Accounting:** Payslip xác nhận → sinh account.move (Nợ 642 Chi phí lương / Có 334 Phải trả NLĐ).\n\n---\n\n# 🗺️ BẢN ĐỒ QUAN HỆ TỔNG THỂ\n\n```\n                        ┌─────────────┐\n                        │ res.company │\n                        └──────┬──────┘\n                               │\n        ┌──────────────────────┼──────────────────────┐\n        ▼                      ▼                      ▼\n┌──────────────┐      ┌───────────────┐      ┌──────────────┐\n│ ⭐res.partner │      │product.product│      │account.account│\n│ (KH+NCC)     │      │ (SKU) ▲       │      │ (COA)        │\n└──┬────┬────┬─┘      └───┬───┼───┬───┘      └──────┬───────┘\n   │    │    │            │   │   │                 │\n   │KH  │NCC │công nợ     │   │   │                 │\n   ▼    ▼    ▼            ▼   ▼   ▼                 ▼\n┌──────┐┌────────┐   ┌────────────────────┐  ┌────────────┐\n│sale. ││purchase│   │ sale.order.line    │  │account.move│\n│order ││.order  │   │ purchase.order.line│  │  (HĐ/BT)   │\n└──┬───┘└───┬────┘   │ stock.move         │  └─────┬──────┘\n   │1:N     │1:N     └────────────────────┘        │1:N\n   ▼        ▼                                      ▼\n lines    lines      confirm SO/PO sinh ra:   move.lines\n                     stock.picking → moves    (Σnợ = Σcó)\n                     → cập nhật stock.quant\n```\n\n**Dòng chảy 1 giao dịch trọn vẹn (để ôn):**\n```\n1. crm.lead (Won) \n2. → sale.order (draft→sale)           [Sales]\n3. → stock.picking + stock.move        [Inventory] xuất kho\n4. → stock.quant giảm                  [Inventory] tồn cập nhật\n5. → account.move (out_invoice)        [Accounting] hóa đơn\n6. → account.move.line (Nợ131=Có511+Có3331)  double-entry\n7. → account.payment (inbound)         [Accounting] khách trả tiền\n8. → amount_residual về 0              hết công nợ ✓\n```\n\n---\n\n# 📋 CHECKLIST TỰ KIỂM TRA (học xong tick từng câu)\n\n**Foundation:**\n- [ ] Vì sao khách hàng và NCC chung 1 bảng? Phân biệt bằng field nào?\n- [ ] parent_id trong res.partner dùng làm gì?\n\n**Product:**\n- [ ] Template khác Variant chỗ nào? SKU nằm ở đâu?\n- [ ] Order line trỏ vào template hay variant? Vì sao?\n\n**Purchase / Sales:**\n- [ ] Báo giá và đơn hàng là 1 bảng hay 2 bảng? Phân biệt ra sao?\n- [ ] Vì sao đếm số đơn phải COUNT(DISTINCT order_id) trên bảng line?\n- [ ] Confirm 1 SO thì những bảng nào bị ghi? (kể ít nhất 4)\n\n**Inventory:**\n- [ ] Vì sao không UPDATE thẳng tồn kho mà phải ghi move?\n- [ ] Location \"ảo\" supplier/customer dùng để làm gì?\n- [ ] stock.move vs stock.quant — cái nào là nhật ký, cái nào là số dư?\n\n**Accounting:**\n- [ ] Luật sắt của account.move.line là gì?\n- [ ] Viết bút toán bán hàng 220tr (VAT 10%): TK nào Nợ, TK nào Có, bao nhiêu?\n- [ ] amount_residual dùng phân tích gì?\n- [ ] Hóa đơn và thanh toán khác nhau chỗ nào?\n\n**HR:**\n- [ ] Vì sao lương nằm ở contract mà không nằm ở employee?\n- [ ] Employee khác User chỗ nào?\n\n**Tổng hợp:**\n- [ ] Vẽ lại dòng chảy 8 bước từ lead đến thu tiền (không nhìn tài liệu)\n- [ ] Kể 3 nơi trong Odoo áp dụng triết lý \"ghi sự kiện, đừng ghi đè\"\n- [ ] Thứ tự build 7 module và vì sao phải theo thứ tự đó?\n\n---\n\n*Trả lời trôi chảy hết checklist = đủ nền tảng để bắt đầu build DDL + generate data.*",
+      "char_count": 3593,
+      "source_file": "odoo-27-models-so-tay-hoc-tap.md"
+    }
+  ]
+}

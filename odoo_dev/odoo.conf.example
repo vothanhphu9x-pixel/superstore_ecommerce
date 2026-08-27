@@ -1,8 +1,17 @@
 [options]
+admin_passwd = CHANGE_ME_WITH_A_LONG_RANDOM_VALUE
+
 db_host = localhost
 db_port = 5432
 db_user = odoo
 db_password = CHANGE_ME
-addons_path = /absolute/path/to/E-commerce/odoo_dev/odoo/addons,/absolute/path/to/E-commerce/odoo_dev/custom-addons
+db_name = superstore_erp
+dbfilter = ^superstore_erp$
+
+addons_path = /ABSOLUTE/PATH/TO/NEW-PROJECT/odoo_dev/odoo/addons,/ABSOLUTE/PATH/TO/NEW-PROJECT/odoo_dev/custom-addons
+data_dir = /ABSOLUTE/PATH/TO/NEW-PROJECT/odoo_dev/.local-data
+
+http_interface = 127.0.0.1
 http_port = 8069
-admin_passwd = CHANGE_ME_WITH_A_LONG_RANDOM_VALUE
+list_db = False
+log_level = info
