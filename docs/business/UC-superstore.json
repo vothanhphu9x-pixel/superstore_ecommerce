@@ -1,0 +1,87 @@
+{
+  "document": "UC-superstore.md",
+  "total_chunks": 9,
+  "chunks": [
+    {
+      "id": "UC-superstore_001",
+      "doc_id": "UC-superstore",
+      "doc_title": "UC — USE CASES & USER STORIES",
+      "section": "Superstore ERP · Tất cả phòng ban · Phiên bản 1.0 · 2026",
+      "content": "Superstore ERP · Tất cả phòng ban · Phiên bản 1.0 · 2026\n\n> **Lưu ý kép:** Mỗi Use Case là (1) tài liệu kiểm thử hệ thống và (2) kịch bản mà **data generator phải mô phỏng** để sinh dữ liệu giống thật.\n\n---",
+      "char_count": 206,
+      "source_file": "UC-superstore.md"
+    },
+    {
+      "id": "UC-superstore_002",
+      "doc_id": "UC-superstore",
+      "doc_title": "UC — USE CASES & USER STORIES",
+      "section": "1. Danh mục Use Cases",
+      "content": "1. Danh mục Use Cases\n\n| Mã UC | Tên | Phòng ban | Value Stream | Trace về |\n|---|---|---|---|---|\n| UC-SAL-01 | Tạo lead từ chiến dịch marketing | Sales/CRM | O2C | FR-SAL-01, FR-MKT-01 |\n| UC-SAL-02 | Tạo và gửi báo giá cho khách B2B | Sales | O2C | FR-SAL-01, BR-SAL-01 |\n| UC-SAL-03 | Xin duyệt chiết khấu đặc biệt | Sales | O2C | BR-SAL-02, BR-SAL-03 |\n| UC-SAL-04 | Confirm đơn hàng B2C | Sales | O2C | FR-SAL-01 |\n| UC-SAL-05 | Xử lý đơn hủy sau confirm | Sales | O2C | Exception SAL-1 |\n| UC-SAL-06 | Theo dõi đơn hàng đang giao | Customer Service | O2C | FR-SAL-01 |\n| UC-MKT-01 | Tạo chiến dịch Google Ads có UTM | Marketing | — | FR-MKT-01 |\n| UC-MKT-02 | Gửi email campaign tháng | Marketing | — | FR-MKT-02 |\n| UC-MKT-03 | Phân tích ROAS cuối tháng | Marketing/Data | — | FR-MKT-02, FR-DATA-01 |\n| UC-PUR-01 | Tạo RFQ và gửi cho NCC | Purchasing | P2P | FR-PUR-01 |\n| UC-PUR-02 | Confirm PO và theo dõi giao hàng NCC | Purchasing | P2P | FR-PUR-01 |\n| UC-PUR-03 | Thực hiện 3-way match | Purchasing | P2P | BR-PUR-04 |\n| UC-WH-01 | Nhận hàng từ NCC vào kho | Warehouse | P2P | FR-WH-01 |\n| UC-WH-02 | Xuất hàng giao cho khách | Warehouse | O2C | FR-WH-01 |\n| UC-WH-03 | Chuyển hàng giữa kho vùng | Warehouse | — | FR-WH-02 |\n| UC-WH-04 | Thực hiện kiểm kê định kỳ | Warehouse | — | BR-WH-04 |\n| UC-MFG-01 | Lập kế hoạch sản xuất tháng | Manufacturing | P2P | FR-MFG-01 |\n| UC-MFG-02 | Tạo và vận hành Manufacturing Order | Manufacturing | P2P | FR-MFG-01, FR-MFG-02 |\n| UC-MFG-03 | Kiểm tra chất lượng và nhập kho thành phẩm | Manufacturing/QC | P2P | BR-MFG-04 |\n| UC-MFG-04 | Xử lý sản phẩm lỗi (scrap/rework) | Manufacturing | — | Exception MFG-2 |\n| UC-ACC-01 | Tạo và ghi sổ hóa đơn bán hàng | Accounting | O2C | FR-ACC-01 |\n| UC-ACC-02 | Ghi nhận thanh toán từ khách hàng | Accounting | O2C | FR-ACC-01 |\n| UC-ACC-03 | Theo dõi và xử lý công nợ quá hạn | Accounting | O2C | BR-ACC-04 |\n| UC-ACC-04 | Thanh toán hóa đơn nhà cung cấp | Accounting | P2P | FR-ACC-02 |\n| UC-ACC-05 | Đóng sổ kế toán cuối tháng | Accounting | — | SOP 5.3 |\n| UC-HR-01 | Onboard nhân viên mới | HR | — | FR-HR-01 |\n| UC-HR-02 | Cập nhật tăng lương | HR | — | BR-HR-01 |\n| UC-DATA-01 | Kiểm tra pipeline CDC hằng ngày | Data Ops | — | FR-DATA-01 |\n| UC-DATA-02 | Tạo báo cáo tháng cho ban lãnh đạo | Data Ops | — | FR-DATA-02 |\n| UC-DATA-03 | Xử lý data quality alert | Data Ops | — | BR-DATA-05 |\n\n---",
+      "char_count": 2397,
+      "source_file": "UC-superstore.md"
+    },
+    {
+      "id": "UC-superstore_003",
+      "doc_id": "UC-superstore",
+      "doc_title": "UC — USE CASES & USER STORIES",
+      "section": "2. Use Cases chi tiết > UC-SAL-02 — Tạo và gửi báo giá cho khách B2B",
+      "content": "UC-SAL-02 — Tạo và gửi báo giá cho khách B2B\n\n**Actor chính:** Inside Sales Representative\n**Actor phụ:** Sales Director (nếu cần duyệt), Khách hàng\n\n**Điều kiện trước (Precondition):**\n- Khách hàng đã tồn tại trong res.partner với customer_rank > 0\n- Opportunity đang ở stage \"Proposition\" trở lên\n- Sản phẩm có trong catalog với giá niêm yết\n\n**Luồng chính (Main Flow):**\n1. Sales Rep mở Opportunity trong CRM\n2. Bấm \"New Quotation\" → Odoo tạo sale.order (state=draft) liên kết với opportunity\n3. Thêm sản phẩm: chọn product, nhập qty, điều chỉnh price_unit nếu cần\n4. Áp dụng discount theo bậc: nhập % discount trên từng line\n5. Hệ thống tính tự động: price_subtotal = price_unit × qty × (1 - discount/100)\n6. Kiểm tra tổng đơn:\n   - Nếu tổng > $10K: Sales Rep ghi chú và gửi cho Sales Director duyệt (UC-SAL-03)\n   - Nếu tổng ≤ $10K: tiếp tục trực tiếp\n7. Bấm \"Send by Email\" → Odoo tạo PDF và gửi qua mail với template chuẩn\n8. SO chuyển state = \"sent\"\n\n**Luồng thay thế (Alternate Flow):**\n- 4a: Khách yêu cầu discount > 15% → xem UC-SAL-03\n- 7a: Khách yêu cầu gửi lại báo giá khác → điều chỉnh rồi gửi lại; tạo revision mới\n\n**Điều kiện sau (Postcondition):**\n- SO tồn tại với state=\"sent\", đầy đủ lines và discount\n- Khách đã nhận email báo giá với PDF đính kèm\n- Lịch sử gửi mail ghi trên chatter của SO\n\n**Acceptance Criteria (tiêu chí chấp nhận):**\n- ✓ SO tạo thành công với đúng partner_id và order_lines\n- ✓ Discount đúng theo bậc sản lượng (BR-SAL-01)\n- ✓ SO > $10K không gửi được khi chưa Director duyệt\n- ✓ Email đến mailbox khách trong 2 phút\n\n---",
+      "char_count": 1564,
+      "source_file": "UC-superstore.md"
+    },
+    {
+      "id": "UC-superstore_004",
+      "doc_id": "UC-superstore",
+      "doc_title": "UC — USE CASES & USER STORIES",
+      "section": "2. Use Cases chi tiết > UC-PUR-03 — Thực hiện 3-way match",
+      "content": "UC-PUR-03 — Thực hiện 3-way match\n\n**Actor:** AP Specialist, Purchasing Manager\n**Điều kiện trước:** PO ở state \"purchase\" (confirmed), Goods Receipt đã validated, Vendor Bill đã nhận từ NCC\n\n**Luồng chính:**\n1. AP Specialist nhận vendor bill từ NCC (email/mail)\n2. Mở PO liên quan trong Odoo (Purchase → Orders → tìm theo số PO)\n3. Bấm \"Create Bill\" → Odoo tạo account.move (in_invoice) prefill từ PO\n4. So sánh 3 chiều:\n   - PO: qty đặt, price đặt\n   - Goods Receipt: qty thực nhận (stock.move.done_qty)\n   - Vendor Bill: qty và price NCC ghi trên hóa đơn\n5. Nếu 3 chiều khớp nhau: AP báo Purchasing Mgr \"Match OK\"\n6. Purchasing Mgr xác nhận → Bill sẵn sàng Post\n7. AP Post bill → bút toán Nợ COGS/Có AP\n\n**Alternate Flow:**\n- 4a: Qty bill > qty received → Không Post → Liên hệ NCC → chờ credit note\n- 4b: Price bill ≠ price PO → Không Post → Purchasing điều tra → tạo PO amendment hoặc NCC gửi corrected invoice\n- 4c: Bill cho hàng chưa nhận → Từ chối; không tạo bill đến khi có goods receipt\n\n**Postcondition:** Bill posted, bút toán kế toán đúng, `amount_residual` = giá trị bill\n\n---",
+      "char_count": 1089,
+      "source_file": "UC-superstore.md"
+    },
+    {
+      "id": "UC-superstore_005",
+      "doc_id": "UC-superstore",
+      "doc_title": "UC — USE CASES & USER STORIES",
+      "section": "2. Use Cases chi tiết > UC-MFG-02 — Tạo và vận hành Manufacturing Order",
+      "content": "UC-MFG-02 — Tạo và vận hành Manufacturing Order\n\n**Actor:** Production Planner, Assembly Workers, QC Inspector\n**Điều kiện trước:** BOM cho sản phẩm đã được duyệt, tồn nguyên liệu đủ hoặc PO nguyên liệu đã confirmed\n\n**Luồng chính:**\n1. Production Planner vào Manufacturing → Manufacturing Orders → New\n2. Chọn product (ví dụ: Standard Desk), qty cần sản xuất, ngày cần hoàn thành\n3. Hệ thống tự load BOM → hiển thị danh sách components cần và Routing 3 Work Orders\n4. Check Availability → xác nhận NVL đủ\n5. Confirm MO → state = \"confirmed\"; Work Orders tạo: OP-01, OP-02, OP-03\n6. Operator WC-CUT: mở Work Order OP-01 → Set as Started → thực hiện cắt vật liệu → Mark as Done\n7. Hệ thống: xuất NVL từ WH-WEST/Stock → Production location (stock.move consume)\n8. Operator WC-ASM: mở OP-02 → lắp ráp → Mark as Done\n9. QC Inspector: mở OP-03 → kiểm tra → nếu đạt: Mark as Done; nếu không đạt: xem UC-MFG-04\n10. Production Planner: Produce → nhập qty produced → Validate Production\n11. Hệ thống: nhập thành phẩm vào WH-WEST/Stock (stock.move produce)\n12. MO state = \"done\"; tính giá thành thực tế\n\n**Postcondition:**\n- WH-WEST tồn kho tăng đúng qty sản phẩm\n- NVL giảm theo BOM thực tế\n- MO state = done với giá thành ghi nhận\n\n---",
+      "char_count": 1227,
+      "source_file": "UC-superstore.md"
+    },
+    {
+      "id": "UC-superstore_006",
+      "doc_id": "UC-superstore",
+      "doc_title": "UC — USE CASES & USER STORIES",
+      "section": "2. Use Cases chi tiết > UC-ACC-03 — Theo dõi và xử lý công nợ quá hạn",
+      "content": "UC-ACC-03 — Theo dõi và xử lý công nợ quá hạn\n\n**Actor:** AR Specialist, Sales Rep (thông báo), Khách hàng\n**Điều kiện trước:** Customer invoice đã posted, due date đã qua\n\n**Luồng chính:**\n1. AR Specialist chạy AR Aging Report hằng ngày sáng sớm\n2. Xác định HĐ quá hạn > 15 ngày (danh sách theo bucket: 15–30, 31–60, >60)\n3. Với HĐ 15–30 ngày: gửi email nhắc tự động (Odoo Follow-up)\n4. Với HĐ 31–60 ngày: AR Specialist gọi điện trực tiếp; ghi log cuộc gọi lên chatter\n5. Với HĐ > 60 ngày: báo CFO và Sales Director → cân nhắc credit hold\n6. Khi nhận được tiền: Register Payment → reconcile với HĐ → amount_residual = 0\n\n**Alternate Flow:**\n- 5a: Khách xin gia hạn thêm 15 ngày → Sales Director approve → ghi note, không credit hold ngay\n- 5b: Khách tranh chấp HĐ → Stop collection → AR + Sales làm việc với khách giải quyết → tạo Credit Note nếu cần\n\n---",
+      "char_count": 856,
+      "source_file": "UC-superstore.md"
+    },
+    {
+      "id": "UC-superstore_007",
+      "doc_id": "UC-superstore",
+      "doc_title": "UC — USE CASES & USER STORIES",
+      "section": "2. Use Cases chi tiết > UC-HR-02 — Cập nhật tăng lương",
+      "content": "UC-HR-02 — Cập nhật tăng lương\n\n**Actor:** HR Generalist, Department Manager (đề xuất)\n**Điều kiện trước:** Nhân viên đang có contract state=open, có quyết định tăng lương được Manager và CFO duyệt\n\n**Luồng chính:**\n1. HR nhận email đề xuất tăng lương từ Dept Manager (kèm approval CFO)\n2. Mở hr.contract hiện tại → đặt date_end = ngày hiệu lực tăng lương - 1 ngày → Save → state tự chuyển = close\n3. Tạo hr.contract mới cho cùng nhân viên: wage mới, date_start = ngày hiệu lực\n4. Confirm contract mới → state = open\n5. Ghi note lý do tăng lương trên chatter\n\n**Postcondition:**\n- Nhân viên có 2 contract trong lịch sử: contract cũ (close, date_end set) và contract mới (open)\n- Payslip tháng hiện tại tính theo contract mới\n- Đây là SCD2 Type 2 tự nhiên: lịch sử lương đầy đủ, không xóa\n\n---",
+      "char_count": 792,
+      "source_file": "UC-superstore.md"
+    },
+    {
+      "id": "UC-superstore_008",
+      "doc_id": "UC-superstore",
+      "doc_title": "UC — USE CASES & USER STORIES",
+      "section": "3. User Stories tổng hợp (Agile format)",
+      "content": "3. User Stories tổng hợp (Agile format)\n\n| Mã | As a... | I want to... | So that... |\n|---|---|---|---|\n| US-SAL-01 | Sales Rep | Tạo báo giá từ opportunity chỉ với vài click | Không phải nhập lại thông tin khách đã có |\n| US-SAL-02 | Sales Rep | Thấy cảnh báo ngay khi discount > 15% | Tôi không vô tình vi phạm chính sách |\n| US-SAL-03 | Sales Director | Duyệt hoặc từ chối SO lớn từ điện thoại | Không phải vào office mới duyệt được |\n| US-MKT-01 | Marketing Mgr | Thấy ROAS từng kênh trong 1 màn hình | Tôi cắt ngân sách kênh kém ngay trong tháng |\n| US-PUR-01 | Buyer | Hệ thống tự cảnh báo khi tồn NVL dưới reorder point | Tôi không bỏ sót việc mua hàng |\n| US-PUR-02 | Purchasing Mgr | Xem 3-way match status ngay trên PO | Không phải đối chiếu bằng tay Excel |\n| US-WH-01 | Warehouse Operator | Thấy danh sách picking cần làm ngay khi vào hệ thống | Ưu tiên đúng đơn gấp nhất |\n| US-WH-02 | Warehouse Supervisor | Biết tồn kho từng kho trong thời gian thực | Quyết định chuyển kho ngay khi thiếu |\n| US-MFG-01 | Production Planner | MRP tự tính cần mua thêm bao nhiêu NVL | Không phải tính tay từng sản phẩm |\n| US-ACC-01 | AR Specialist | Nhận alert tự động khi HĐ quá hạn 15 ngày | Tôi nhắc nợ đúng lúc, không bỏ sót |\n| US-ACC-02 | CFO | Xem P&L tháng ngay sau ngày 5 | Họp ban lãnh đạo có số liệu chính xác |\n| US-HR-01 | HR Generalist | Tạo hồ sơ nhân viên mới trong 10 phút | Nhân viên có thể đăng nhập hệ thống ngay ngày đầu |\n| US-DATA-01 | Data Analyst | Nhận Slack alert ngay khi pipeline fail | Tôi fix lỗi trước khi dashboard sai số |\n| US-DATA-02 | CEO | Dashboard đã có số liệu mới mỗi sáng | Ra quyết định với dữ liệu hôm nay, không phải tuần trước |\n\n---",
+      "char_count": 1678,
+      "source_file": "UC-superstore.md"
+    },
+    {
+      "id": "UC-superstore_009",
+      "doc_id": "UC-superstore",
+      "doc_title": "UC — USE CASES & USER STORIES",
+      "section": "4. Kịch bản test tích hợp (Integration Test Scenarios)",
+      "content": "4. Kịch bản test tích hợp (Integration Test Scenarios)\n\n**Kịch bản IT-01 — Full O2C B2B:**\nLead (campaign Google) → Opportunity → Quotation (chiết khấu 10%) → SO confirm → Delivery (WH-EAST giao cho khách East) → Invoice post (Dr 1200 / Cr 4010) → Payment sau 25 ngày → amount_residual = 0 → Data: fact_sales có 1 record đúng UTM campaign_id.\n\n**Kịch bản IT-02 — Full P2P với 3-way match:**\nReorder point trigger → RFQ gửi 2 NCC → Chọn NCC giá thấp → PO confirm → Goods Receipt validate (qty đủ) → Vendor Bill nhận → 3-way match OK → Bill post (Dr 5010 / Có 2000) → Payment ngày 28 (Net-30) → amount_residual = 0.\n\n**Kịch bản IT-03 — Manufacturing → Inventory:**\nMO created (Standard Desk × 50) → Check availability (NVL đủ) → OP-01 done → OP-02 done → OP-03 QC passed → Validate Production → WH-WEST tồn Standard Desk +50 → MO done với giá thành thực tế.\n\n**Kịch bản IT-04 — Exception: giao thiếu + return:**\nSO confirm 10 chairs → Kho chỉ còn 7 → Giao 7 (partial) → Backorder 3 → SX thêm (MO) → Giao 3 còn lại → Invoice tạo sau khi giao đủ.\n\n**Kịch bản IT-05 — Marketing attribution:**\nLead tạo với utm_source=google, utm_campaign=back-to-school-2026 → Lead converted → SO confirm → Invoice paid → fact_sales.campaign_id = back-to-school-2026 → mart_roas: revenue attributed đúng campaign.",
+      "char_count": 1291,
+      "source_file": "UC-superstore.md"
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "document": "BRD-superstore.md",
+  "total_chunks": 11,
+  "chunks": [
+    {
+      "id": "BRD-superstore_001",
+      "doc_id": "BRD-superstore",
+      "doc_title": "BRD — TÀI LIỆU YÊU CẦU KINH DOANH",
+      "section": "1. Thông tin dự án",
+      "content": "1. Thông tin dự án\n\n| Thuộc tính | Giá trị |\n|---|---|\n| Tên dự án | Superstore ERP & Data Platform |\n| Phiên bản | 1.0 |\n| Ngày tạo | 2026 |\n| Người tạo | BA/Data Analyst — IT & Data Dept. |\n| Đối tượng đọc | Ban lãnh đạo, trưởng phòng, đội triển khai |\n| Trạng thái | Đã duyệt |\n\n**Mô tả ngắn:** Dự án này triển khai hệ thống ERP (Enterprise Resource Planning — Hoạch định nguồn lực doanh nghiệp) trên nền Odoo 18 Community tích hợp toàn bộ hoạt động kinh doanh của Superstore Inc. — bao gồm bán hàng, marketing, mua hàng, kho vận, sản xuất, kế toán, nhân sự — đồng thời xây dựng nền tảng dữ liệu (data platform) phục vụ phân tích và báo cáo quản trị.\n\n---",
+      "char_count": 658,
+      "source_file": "BRD-superstore.md"
+    },
+    {
+      "id": "BRD-superstore_002",
+      "doc_id": "BRD-superstore",
+      "doc_title": "BRD — TÀI LIỆU YÊU CẦU KINH DOANH",
+      "section": "2. Bối cảnh & Vấn đề kinh doanh",
+      "content": "2. Bối cảnh & Vấn đề kinh doanh\n\nSuperstore Inc. là công ty phân phối và sản xuất nội thất văn phòng tại Mỹ, hoạt động qua 4 kho vùng và 1 nhà máy. Trong giai đoạn tăng trưởng từ $15M lên $28,7M doanh thu (2021–2026), công ty gặp phải một loạt vấn đề vận hành do thiếu hệ thống quản lý tích hợp:\n\n**Vấn đề 1 — Dữ liệu phân mảnh:** mỗi phòng dùng bảng tính Excel riêng → không có \"single source of truth\" (nguồn thông tin duy nhất tin cậy). Số liệu tồn kho, đơn hàng, công nợ thường xuyên không khớp giữa phòng ban.\n\n**Vấn đề 2 — Thiếu khả năng phân tích:** ban lãnh đạo ra quyết định dựa trên báo cáo tổng hợp thủ công, chậm 5–7 ngày sau thực tế. Không thể phân tích nhanh \"ngành hàng nào đang lỗ?\" hay \"kho nào giao trễ nhiều nhất?\"\n\n**Vấn đề 3 — Quy trình mua hàng & kho yếu:** thiếu 3-way match (đối chiếu 3 chứng từ trước khi thanh toán), dẫn đến thanh toán nhầm/thừa cho nhà cung cấp. Tồn kho không chính xác gây thiếu hàng hoặc tồn đọng vốn.\n\n**Vấn đề 4 — Không theo dõi được hiệu quả marketing:** chi tiêu quảng cáo $X/tháng nhưng không biết kênh nào tạo ra đơn hàng, ROAS (Return on Ad Spend — doanh thu trên chi phí quảng cáo) bao nhiêu.\n\n**Vấn đề 5 — Sản xuất không có kế hoạch chính xác:** lập kế hoạch sản xuất bằng cảm tính → thường xuyên thiếu nguyên vật liệu giữa chừng hoặc sản xuất dư gây tồn kho.\n\n---",
+      "char_count": 1319,
+      "source_file": "BRD-superstore.md"
+    },
+    {
+      "id": "BRD-superstore_003",
+      "doc_id": "BRD-superstore",
+      "doc_title": "BRD — TÀI LIỆU YÊU CẦU KINH DOANH",
+      "section": "3. Mục tiêu kinh doanh (Business Objectives)",
+      "content": "3. Mục tiêu kinh doanh (Business Objectives)\n\n| Mã | Mục tiêu | Đo bằng | Thời hạn |\n|---|---|---|---|\n| BO-01 | Có một nguồn dữ liệu duy nhất (single source of truth) cho toàn công ty | Không còn báo cáo mâu thuẫn giữa phòng ban | Đợt 0–1 |\n| BO-02 | Theo dõi dòng chảy đơn hàng từ đầu đến cuối (Order-to-Cash) trong thời gian thực | Dashboard O2C refresh hằng ngày | Đợt 3 |\n| BO-03 | Kiểm soát tồn kho chính xác theo từng kho, từng SKU | Sai lệch kiểm kê < 2% | Đợt 2 |\n| BO-04 | Thực hiện 3-way match tự động trong quy trình mua hàng | 100% hóa đơn NCC qua 3-way match trước thanh toán | Đợt 2 |\n| BO-05 | Đo lường hiệu quả marketing theo kênh (ROAS, CAC) | Báo cáo ROAS/CAC hằng tháng có sẵn | Đợt 3 |\n| BO-06 | Lập và theo dõi kế hoạch sản xuất tự động dựa trên BOM | Tỷ lệ đạt kế hoạch sản xuất ≥ 95% | Đợt 2 |\n| BO-07 | Quản lý công nợ khách hàng và nhà cung cấp tự động | DSO < 38 ngày; không quá hạn NCC | Đợt 2 |\n| BO-08 | Xây dựng nền tảng dữ liệu (data platform) phục vụ phân tích chiến lược | Dashboard Power BI cho ban lãnh đạo, refresh hàng ngày | Đợt 4–5 |\n\n---",
+      "char_count": 1078,
+      "source_file": "BRD-superstore.md"
+    },
+    {
+      "id": "BRD-superstore_004",
+      "doc_id": "BRD-superstore",
+      "doc_title": "BRD — TÀI LIỆU YÊU CẦU KINH DOANH",
+      "section": "4. Bản đồ Stakeholder (Stakeholder Map)",
+      "content": "4. Bản đồ Stakeholder (Stakeholder Map)\n\n| Nhóm | Đại diện | Vai trò trong dự án | Mức quan tâm |\n|---|---|---|---|\n| **Chủ sở hữu** | CEO Michael Tran | Sponsor chính, phê duyệt ngân sách, quyết định cuối | Rất cao |\n| **Tài chính** | CFO Sarah Whitman | Yêu cầu báo cáo tài chính US GAAP, phê duyệt P&L mô hình | Rất cao |\n| **Kinh doanh** | Sales Director David Okafor | Định nghĩa quy trình bán, nhận diện yêu cầu CRM | Cao |\n| **Marketing** | Anna Kowalski | Định nghĩa tracking chiến dịch, UTM, ROAS | Cao |\n| **Kho vận** | James Park | Quy trình nhận/xuất/chuyển kho, 4 location | Cao |\n| **Sản xuất** | Plant Manager Elena Rodriguez | BOM, routing, work center, kế hoạch sản xuất | Cao |\n| **Mua hàng** | Priya Sharma | Quy trình RFQ → PO → 3-way match | Cao |\n| **Kế toán** | Robert Hayes | Chart of accounts, journal, đóng sổ tháng | Cao |\n| **Nhân sự** | HR Generalist | Hồ sơ nhân viên, hợp đồng | Trung bình |\n| **IT/Data** | Data Analyst (bạn) | Triển khai, pipeline, BI — người thực thi chính | Rất cao |\n| **Nhân viên vận hành** | 45 nhân viên | Người dùng cuối hàng ngày | Trung bình |\n\n---",
+      "char_count": 1107,
+      "source_file": "BRD-superstore.md"
+    },
+    {
+      "id": "BRD-superstore_005",
+      "doc_id": "BRD-superstore",
+      "doc_title": "BRD — TÀI LIỆU YÊU CẦU KINH DOANH",
+      "section": "5. Phạm vi dự án (Scope) > 5.1. Trong phạm vi (In-scope)",
+      "content": "5.1. Trong phạm vi (In-scope)\n\n- Triển khai Odoo 18 Community cho 8 phòng ban: Sales/CRM, Marketing, Purchasing, Warehouse (4 kho), Manufacturing, Accounting, HR, Data Ops\n- 3 value stream chính: Order-to-Cash (O2C), Procure-to-Pay (P2P), Plan-to-Produce\n- Dataset Superstore (2023–2026, scale ×50) + live simulator 2027 làm nguồn dữ liệu\n- Digital marketing: UTM tracking trong Odoo + external ad-spend data (multi-source)\n- Data platform: CDC Debezium → Kafka → MinIO → dbt → Snowflake → Power BI\n- Bộ tài liệu BA đầy đủ (BRD, FRD ×8, SRS, Use Cases) bằng tiếng Việt\n- RAG chatbot cho knowledge base nội bộ (dùng Qdrant + LLM)",
+      "char_count": 628,
+      "source_file": "BRD-superstore.md"
+    },
+    {
+      "id": "BRD-superstore_006",
+      "doc_id": "BRD-superstore",
+      "doc_title": "BRD — TÀI LIỆU YÊU CẦU KINH DOANH",
+      "section": "5. Phạm vi dự án (Scope) > 5.2. Ngoài phạm vi (Out-scope)",
+      "content": "5.2. Ngoài phạm vi (Out-scope)\n\n- Website thương mại điện tử (e-commerce frontend)\n- Tích hợp trực tiếp với hệ thống bên ngoài (API hãng vận chuyển, cổng thanh toán)\n- Payroll chi tiết (thuế thu nhập, bảo hiểm — chỉ đến mức hợp đồng + lương cơ bản)\n- Module Enterprise (Studio, Quality, Subscriptions) — dùng bản Community\n- Đào tạo nhân viên cuối (end-user training) — ngoài phạm vi tài liệu kỹ thuật\n\n---",
+      "char_count": 406,
+      "source_file": "BRD-superstore.md"
+    },
+    {
+      "id": "BRD-superstore_007",
+      "doc_id": "BRD-superstore",
+      "doc_title": "BRD — TÀI LIỆU YÊU CẦU KINH DOANH",
+      "section": "6. Yêu cầu chức năng cấp cao (High-level Functional Requirements)",
+      "content": "6. Yêu cầu chức năng cấp cao (High-level Functional Requirements)\n\n| Mã | Mô tả | Phòng ban | Trace về |\n|---|---|---|---|\n| FR-GEN-01 | Hệ thống phải hoạt động với currency USD, country = US, multiple warehouses | Tất cả | BO-01 |\n| FR-GEN-02 | Mọi chứng từ phải có chuỗi audit (ai tạo, ai sửa, khi nào) | Tất cả | BO-01 |\n| FR-SAL-01 | Hệ thống quản lý lead → opportunity → quotation → sales order trong một luồng | Sales/CRM | BO-02 |\n| FR-SAL-02 | Hỗ trợ chiết khấu theo bậc sản lượng B2B (5/10/15/20%) | Sales | BO-02 |\n| FR-SAL-03 | Đơn > $10K phải có Sales Director approval trước khi confirm | Sales | BO-02 |\n| FR-MKT-01 | Mọi lead và SO phải gắn được UTM campaign/source/medium | Marketing | BO-05 |\n| FR-MKT-02 | Hệ thống nhận và lưu external ad-spend data theo ngày, chiến dịch, kênh | Marketing | BO-05 |\n| FR-PUR-01 | Quy trình mua: yêu cầu → RFQ → PO → goods receipt → 3-way match → thanh toán | Purchasing | BO-04 |\n| FR-PUR-02 | Đơn mua > $5.000 phải có ít nhất 2 RFQ | Purchasing | BO-04 |\n| FR-WH-01 | Hệ thống quản lý 4 kho độc lập với tồn kho riêng từng SKU từng kho | Warehouse | BO-03 |\n| FR-WH-02 | Hỗ trợ chuyển kho liên vùng (inter-warehouse transfer) | Warehouse | BO-03 |\n| FR-MFG-01 | BOM đa cấp (2–3 cấp) cho dòng Furniture; routing qua 3 work center | Manufacturing | BO-06 |\n| FR-MFG-02 | Lệnh sản xuất (MO) sinh ra tự động từ kế hoạch hoặc đơn hàng thiếu tồn | Manufacturing | BO-06 |\n| FR-ACC-01 | Hóa đơn bán/mua được ghi sổ theo double-entry (Nợ = Có) | Accounting | BO-07 |\n| FR-ACC-02 | Quản lý công nợ phải thu (AR) và phải trả (AP) với cảnh báo quá hạn | Accounting | BO-07 |\n| FR-HR-01 | Hồ sơ nhân viên với phòng ban, chức danh, hợp đồng, mức lương | HR | BO-01 |\n| FR-DATA-01 | CDC pipeline: Debezium → Kafka → MinIO → dbt → Snowflake | Data Ops | BO-08 |\n| FR-DATA-02 | Dashboard Power BI phân tích Sales/Inventory/Finance/Manufacturing/Marketing | Data Ops | BO-08 |\n\n---",
+      "char_count": 1916,
+      "source_file": "BRD-superstore.md"
+    },
+    {
+      "id": "BRD-superstore_008",
+      "doc_id": "BRD-superstore",
+      "doc_title": "BRD — TÀI LIỆU YÊU CẦU KINH DOANH",
+      "section": "7. Yêu cầu phi chức năng (Non-functional Requirements)",
+      "content": "7. Yêu cầu phi chức năng (Non-functional Requirements)\n\n- **Hiệu năng:** web server Odoo response < 2 giây cho thao tác thông thường; batch import 10.000 records < 5 phút\n- **Độ sẵn sàng:** môi trường dev (MacBook) uptime khi cần; môi trường prod (VPS) target 99% trong giờ hành chính\n- **Bảo mật:** phân quyền theo phòng ban (user chỉ thấy menu của phòng mình); admin login bảo vệ password mạnh\n- **Dữ liệu:** backup database hằng ngày; logs lưu tối thiểu 90 ngày\n- **Khả năng mở rộng:** schema database và pipeline thiết kế để thêm nguồn dữ liệu mới (marketing API, ERP module mới)\n\n---",
+      "char_count": 588,
+      "source_file": "BRD-superstore.md"
+    },
+    {
+      "id": "BRD-superstore_009",
+      "doc_id": "BRD-superstore",
+      "doc_title": "BRD — TÀI LIỆU YÊU CẦU KINH DOANH",
+      "section": "8. Tiêu chí thành công (Success Criteria)",
+      "content": "8. Tiêu chí thành công (Success Criteria)\n\n| Tiêu chí | Đo bằng | Mục tiêu |\n|---|---|---|\n| Toàn bộ 8 phòng ban vận hành trên Odoo | % phòng ban đã go-live | 100% |\n| Tồn kho ERP khớp kiểm kê thực tế | Sai lệch % | < 2% |\n| Báo cáo ban lãnh đạo từ Power BI | Độ trễ dữ liệu | < 24 giờ |\n| Không còn mâu thuẫn số liệu giữa phòng | Số incident báo cáo sai | 0/tháng sau 3 tháng |\n| Chatbot nội bộ trả lời được câu hỏi về chính sách, quy trình | Độ chính xác trả lời | ≥ 80% câu hỏi test |\n\n---",
+      "char_count": 492,
+      "source_file": "BRD-superstore.md"
+    },
+    {
+      "id": "BRD-superstore_010",
+      "doc_id": "BRD-superstore",
+      "doc_title": "BRD — TÀI LIỆU YÊU CẦU KINH DOANH",
+      "section": "9. Rủi ro & Biện pháp giảm thiểu",
+      "content": "9. Rủi ro & Biện pháp giảm thiểu\n\n| Rủi ro | Xác suất | Tác động | Biện pháp |\n|---|---|---|---|\n| Dữ liệu giả lập không đủ thực tế → insight kém | Trung bình | Cao | Imperfection catalog (10 loại \"bệnh\" có chủ đích), kiểm tra phân phối Pareto |\n| Full MRP (work center/routing) phức tạp quá → sa lầy | Cao | Trung bình | Giới hạn 3 work center, 2–3 công đoạn/sản phẩm, 3 sản phẩm mẫu |\n| Live simulator 2027 cần chạy 24/7 | Trung bình | Thấp | Chạy bù theo phiên; đưa lên VPS khi deploy |\n| Pipeline CDC lỗi khi schema Odoo thay đổi | Thấp | Cao | dbt schema tests + alerts; không upgrade Odoo khi đang chạy pipeline |\n\n---",
+      "char_count": 624,
+      "source_file": "BRD-superstore.md"
+    },
+    {
+      "id": "BRD-superstore_011",
+      "doc_id": "BRD-superstore",
+      "doc_title": "BRD — TÀI LIỆU YÊU CẦU KINH DOANH",
+      "section": "10. Tài liệu liên quan",
+      "content": "10. Tài liệu liên quan\n\n- Hồ sơ công ty: `superstore-ho-so-cong-ty-vi.md`\n- Master Plan: `master-plan-superstore-erp-v2.md`\n- FRD-01 Sales & CRM: `FRD-01-sales-crm.md`\n- FRD-02 Marketing: `FRD-02-marketing.md`\n- FRD-03 Purchasing: `FRD-03-purchasing.md`\n- FRD-04 Warehouse: `FRD-04-warehouse.md`\n- FRD-05 Manufacturing: `FRD-05-manufacturing.md`\n- FRD-06 Accounting: `FRD-06-accounting.md`\n- FRD-07 HR: `FRD-07-hr.md`\n- FRD-08 Data Ops: `FRD-08-data-ops.md`\n- SRS: `SRS-superstore.md`\n- Use Cases: `UC-superstore.md`",
+      "char_count": 516,
+      "source_file": "BRD-superstore.md"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "document": "FRD-03-purchasing.md",
+  "total_chunks": 7,
+  "chunks": [
+    {
+      "id": "FRD-03-purchasing_001",
+      "doc_id": "FRD-03-purchasing",
+      "doc_title": "FRD-03 — YÊU CẦU CHỨC NĂNG: MUA HÀNG (PURCHASING)",
+      "section": "1. Tổng quan phòng ban",
+      "content": "1. Tổng quan phòng ban\n\n**Sứ mệnh:** Đảm bảo nguyên vật liệu cho nhà máy và hàng thương mại cho 4 kho luôn đủ, đúng chất lượng, đúng giá — mua từ nhà cung cấp được duyệt, thanh toán sau khi đối chiếu 3 chứng từ.\n\n**Nhân sự:**\n- 1 Purchasing Manager (Priya Sharma) — chiến lược NCC, duyệt PO > $5.000, quan hệ NCC\n- 2 Buyer — xử lý RFQ, PO, theo dõi giao hàng, đối chiếu hóa đơn\n\n**Hai loại mua hàng:**\n- **Mua nguyên vật liệu (Raw Materials):** phục vụ nhà máy sản xuất Furniture. Trigger từ MRP (kế hoạch sản xuất) hoặc reorder point tồn kho nguyên liệu.\n- **Mua hàng thương mại (Finished Goods):** Technology và Office Supplies phân phối lại. Trigger từ reorder point tồn thành phẩm tại các kho.\n\n**KPI phòng:**\n\n| KPI | Mục tiêu | Chu kỳ |\n|---|---|---|\n| Purchase Order fill rate (NCC giao đủ) | ≥ 95% | Tháng |\n| On-time delivery từ NCC | ≥ 90% đơn giao đúng hạn | Tháng |\n| 3-way match rate | 100% hóa đơn NCC phải qua 3-way match | Tháng |\n| Cost saving vs last price | ≥ 2% reduction hằng năm qua đàm phán | Năm |\n| Số NCC active trên approved list | Duy trì 15–25 NCC hoạt động | Quý |\n| Thời gian xử lý PO (từ request đến PO sent) | ≤ 2 ngày làm việc | Tháng |\n\n---",
+      "char_count": 1175,
+      "source_file": "FRD-03-purchasing.md"
+    },
+    {
+      "id": "FRD-03-purchasing_002",
+      "doc_id": "FRD-03-purchasing",
+      "doc_title": "FRD-03 — YÊU CẦU CHỨC NĂNG: MUA HÀNG (PURCHASING)",
+      "section": "2. Sơ đồ luồng nghiệp vụ (Procure-to-Pay)",
+      "content": "2. Sơ đồ luồng nghiệp vụ (Procure-to-Pay)\n\n```mermaid\nflowchart TD\n    A([Nhu cầu mua phát sinh]) --> B{Nguồn phát sinh}\n    B -->|Reorder point\\ntồn dưới mức tối thiểu| C[Hệ thống tạo\\nPurchase Request tự động]\n    B -->|MRP — sản xuất\\ncần nguyên liệu| D[MRP đề xuất PO\\ncho từng nguyên liệu]\n    B -->|Mua đột xuất| E[Buyer tạo\\nPurchase Request thủ công]\n    C --> F[Buyer xem xét & xác nhận\\nnhu cầu]\n    D --> F\n    E --> F\n    F --> G{Đơn > $5K?}\n    G -->|Có| H[Gửi RFQ ít nhất 2 NCC]\n    G -->|Không| I[Gửi RFQ 1 NCC\\ntrên approved list]\n    H --> J[Nhận báo giá từ NCC]\n    J --> K[So sánh, chọn NCC tốt nhất]\n    I --> L\n    K --> L[Tạo Purchase Order PO]\n    L --> M{PO > $5K?}\n    M -->|Có| N[Purchasing Mgr duyệt PO]\n    M -->|Không| O[Buyer tự duyệt]\n    N --> P[Gửi PO cho NCC]\n    O --> P\n    P --> Q([NCC xác nhận & giao hàng])\n    Q --> R[Kho nhận hàng\\nGoods Receipt]\n    R --> S[3-Way Match:\\nPO ↔ Receipt ↔ Vendor Bill]\n    S --> T{Khớp?}\n    T -->|Có| U[Gửi Accounting\\nchờ thanh toán]\n    T -->|Không| V[Điều tra sai lệch\\nLiên hệ NCC]\n    V --> S\n    U --> W([Kế toán thanh toán Net-30])\n```\n\n---",
+      "char_count": 1121,
+      "source_file": "FRD-03-purchasing.md"
+    },
+    {
+      "id": "FRD-03-purchasing_003",
+      "doc_id": "FRD-03-purchasing",
+      "doc_title": "FRD-03 — YÊU CẦU CHỨC NĂNG: MUA HÀNG (PURCHASING)",
+      "section": "3. SOP — Quy trình chuẩn từng bước",
+      "content": "3. SOP — Quy trình chuẩn từng bước\n\n| Bước | Ai | Hành động | Trên Odoo | Bảng DB ghi | Kết quả |\n|---|---|---|---|---|---|\n| 1 | Hệ thống / Buyer | Phát sinh nhu cầu mua | Purchase → Replenishment hoặc MRP → Scheduler | `purchase_requisition` / `stock_warehouse_orderpoint` | Nhu cầu ghi nhận |\n| 2 | Buyer | Tạo RFQ (Request for Quotation) | Purchase → Orders → Requests for Quotation → New | `purchase_order` INSERT (state=draft) | RFQ số PO-xxx |\n| 3 | Buyer | Thêm sản phẩm, số lượng, ngày cần | RFQ → Add Product line | `purchase_order_line` INSERT | Lines tạo |\n| 4 | Buyer | Gửi RFQ cho NCC | RFQ → Send by Email | `mail_message` | Email gửi NCC |\n| 5 | Buyer | Nhận báo giá, cập nhật giá | RFQ → Update price_unit | `purchase_order_line.price_unit` UPDATE | Giá cập nhật |\n| 6 | Purchasing Mgr (nếu > $5K) | Duyệt PO | PO → Approve | `purchase_order.state` UPDATE | state = `purchase` |\n| 7 | Buyer | Confirm PO, gửi NCC | PO → Confirm | `purchase_order.state` = `purchase` | Tự sinh `stock_picking` (Receipt) |\n| 8 | Warehouse | Nhận hàng, scan/đếm | Inventory → Receipts → Validate | `stock_move.state` = `done` | `stock_quant` tăng; `qty_received` cập nhật |\n| 9 | Buyer | Tạo vendor bill từ PO | PO → Create Bill | `account_move` INSERT (in_invoice, draft) | Hóa đơn NCC draft |\n| 10 | Buyer | 3-way match: PO vs Receipt vs Bill | So sánh qty/price trong PO, Receipt và Bill | — | Xác nhận khớp |\n| 11 | Purchasing Mgr | Xác nhận match OK, chuyển Accounting | Bill → Approve for payment | `account_move.state` = checked | Chờ thanh toán |\n| 12 | Accounting | Ghi sổ và thanh toán | Invoice → Post → Register Payment | `account_payment`, `account_move_line` | Nợ 331 / Có 112 |\n\n---",
+      "char_count": 1694,
+      "source_file": "FRD-03-purchasing.md"
+    },
+    {
+      "id": "FRD-03-purchasing_004",
+      "doc_id": "FRD-03-purchasing",
+      "doc_title": "FRD-03 — YÊU CẦU CHỨC NĂNG: MUA HÀNG (PURCHASING)",
+      "section": "4. Quy tắc nghiệp vụ",
+      "content": "4. Quy tắc nghiệp vụ\n\n| Mã | Quy tắc | Chi tiết |\n|---|---|---|\n| BR-PUR-01 | Approved supplier list | Chỉ mua từ NCC trong danh sách approved. NCC mới phải qua vetting: chất lượng + tài chính |\n| BR-PUR-02 | Yêu cầu RFQ nhiều NCC | PO > $5.000 → ít nhất 2 RFQ trước khi chọn NCC |\n| BR-PUR-03 | Duyệt PO | Buyer tự duyệt đến $5.000; Mgr duyệt > $5.000 |\n| BR-PUR-04 | 3-way match bắt buộc | 100% vendor bill phải so khớp với PO và goods receipt trước khi chuyển sang thanh toán |\n| BR-PUR-05 | Điều khoản thanh toán NCC | Mặc định Net-30; tận dụng early payment discount (2/10 Net 30) khi cash flow cho phép |\n| BR-PUR-06 | Tồn an toàn nguyên liệu | Reorder point = 3 tuần tiêu thụ dự báo cho nhà máy; thành phẩm theo SKU từng kho |\n| BR-PUR-07 | Không thanh toán trước receipt | Tuyệt đối không tạo vendor bill / payment trước khi kho đã validate goods receipt |\n\n---",
+      "char_count": 869,
+      "source_file": "FRD-03-purchasing.md"
+    },
+    {
+      "id": "FRD-03-purchasing_005",
+      "doc_id": "FRD-03-purchasing",
+      "doc_title": "FRD-03 — YÊU CẦU CHỨC NĂNG: MUA HÀNG (PURCHASING)",
+      "section": "5. Handoff Matrix",
+      "content": "5. Handoff Matrix\n\n| Nhận từ | Giao cho | Trigger | Dữ liệu chuyển |\n|---|---|---|---|\n| Manufacturing (MRP) | Purchasing | Kế hoạch SX cần nguyên liệu | Danh sách nguyên liệu + qty + ngày cần |\n| Inventory (reorder) | Purchasing | Tồn dưới reorder point | Product, qty thiếu, kho cần |\n| NCC | Purchasing | Hàng đến cổng kho | Packing list, số PO |\n| Purchasing | Warehouse | PO confirmed | `stock_picking` (Receipt) tự sinh |\n| Purchasing | Accounting | 3-way match OK | `account_move` (in_invoice) ready to pay |\n\n---",
+      "char_count": 520,
+      "source_file": "FRD-03-purchasing.md"
+    },
+    {
+      "id": "FRD-03-purchasing_006",
+      "doc_id": "FRD-03-purchasing",
+      "doc_title": "FRD-03 — YÊU CẦU CHỨC NĂNG: MUA HÀNG (PURCHASING)",
+      "section": "6. Exception Flows",
+      "content": "6. Exception Flows\n\n**Ngoại lệ 1 — NCC giao thiếu số lượng:**\n`qty_received` < `product_qty` trên PO line → Tạo backorder (giao lại lần sau) hoặc liên hệ NCC yêu cầu giao bổ sung → 3-way match chỉ khớp phần đã nhận → tách vendor bill theo phần đã nhận.\n\n**Ngoại lệ 2 — NCC giao hàng lỗi/sai sản phẩm:**\nKho ghi nhận hàng nhưng đánh dấu chất lượng không đạt → Tạo Return picking → Hàng trả về NCC → Liên hệ NCC yêu cầu giao lại hoặc credit note → Không thanh toán vendor bill cho phần hàng lỗi.\n\n**Ngoại lệ 3 — Giá hóa đơn NCC khác PO:**\n3-way match phát hiện price mismatch → Buyer liên hệ NCC giải thích → Nếu NCC sai: yêu cầu credit note → Nếu PO sai (giá tăng đã thỏa thuận): tạo PO amendment → Purchasing Mgr duyệt lại.\n\n**Ngoại lệ 4 — NCC giao trễ hạn:**\nNgày giao thực tế > `date_planned` trên PO → Nhà máy thiếu nguyên liệu → Mua khẩn cấp (emergency purchase) từ NCC thay thế → Ghi nhận lead time thực tế để điều chỉnh reorder point.\n\n---",
+      "char_count": 945,
+      "source_file": "FRD-03-purchasing.md"
+    },
+    {
+      "id": "FRD-03-purchasing_007",
+      "doc_id": "FRD-03-purchasing",
+      "doc_title": "FRD-03 — YÊU CẦU CHỨC NĂNG: MUA HÀNG (PURCHASING)",
+      "section": "7. Data Footprint",
+      "content": "7. Data Footprint\n\n| Bảng DB | Vai trò | Loại |\n|---|---|---|\n| `purchase_order` | Đơn mua (header) | Transaction |\n| `purchase_order_line` | Chi tiết đơn mua | Transaction → **fact_purchase** |\n| `res_partner` | Nhà cung cấp (supplier_rank) | Master → **dim_supplier** |\n| `stock_picking` | Phiếu nhận hàng (Receipt) | Transaction |\n| `stock_move` | Chuyển động nhận nguyên liệu/hàng | Transaction |\n| `account_move` | Hóa đơn NCC (in_invoice) | Transaction |\n\n**Phân tích downstream:**\n- `purchase_order_line` → `fact_purchase` (chi phí theo NCC, sản phẩm, ngày)\n- Phân tích: On-time delivery NCC, giá mua trend, chi phí nguyên liệu theo lô SX\n- 3-way match audit: `purchase_order_line.qty_received` vs `account_move_line.quantity`",
+      "char_count": 733,
+      "source_file": "FRD-03-purchasing.md"
+    }
+  ]
+}

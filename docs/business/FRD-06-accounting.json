@@ -1,0 +1,105 @@
+{
+  "document": "FRD-06-accounting.md",
+  "total_chunks": 11,
+  "chunks": [
+    {
+      "id": "FRD-06-accounting_001",
+      "doc_id": "FRD-06-accounting",
+      "doc_title": "FRD-06 — YÊU CẦU CHỨC NĂNG: KẾ TOÁN (ACCOUNTING)",
+      "section": "1. Tổng quan phòng ban",
+      "content": "1. Tổng quan phòng ban\n\n**Sứ mệnh:** Ghi nhận chính xác mọi giao dịch tài chính theo nguyên tắc kế toán kép (double-entry), quản lý công nợ phải thu và phải trả, đóng sổ đúng hạn và cung cấp báo cáo tài chính chính xác cho ban lãnh đạo.\n\n**Nhân sự:**\n- 1 Chief Accountant (Robert Hayes) — giám sát sổ sách, đóng sổ tháng, báo cáo CFO\n- 1 AR Specialist (Accounts Receivable) — quản lý công nợ khách hàng, nhắc nợ, thu tiền\n- 1 AP Specialist (Accounts Payable) — quản lý công nợ NCC, 3-way match, thanh toán\n\n**Nguyên tắc kế toán áp dụng:** US GAAP (Generally Accepted Accounting Principles) mức cơ bản — accrual basis (ghi nhận khi phát sinh, không phải khi thu/chi tiền).\n\n**Nguyên tắc Double-Entry (Kế toán kép):** Mỗi bút toán phải có tổng Nợ (Debit) = tổng Có (Credit). Không có ngoại lệ.\n\n**KPI phòng:**\n\n| KPI | Mục tiêu | Chu kỳ |\n|---|---|---|\n| DSO — Days Sales Outstanding (số ngày thu tiền bình quân) | ≤ 38 ngày | Tháng |\n| Tỷ lệ hóa đơn quá hạn > 30 ngày / tổng AR | ≤ 10% | Tháng |\n| DPO — Days Payable Outstanding (số ngày trả NCC bình quân) | 28–35 ngày (đúng Net-30) | Tháng |\n| Đóng sổ tháng | Trước ngày 5 tháng sau | Tháng |\n| 3-way match rate | 100% | Tháng |\n\n---",
+      "char_count": 1184,
+      "source_file": "FRD-06-accounting.md"
+    },
+    {
+      "id": "FRD-06-accounting_002",
+      "doc_id": "FRD-06-accounting",
+      "doc_title": "FRD-06 — YÊU CẦU CHỨC NĂNG: KẾ TOÁN (ACCOUNTING)",
+      "section": "2. Hệ thống tài khoản (Chart of Accounts — COA)",
+      "content": "2. Hệ thống tài khoản (Chart of Accounts — COA)\n\n| Nhóm | Mã TK | Tên tài khoản | Loại |\n|---|---|---|---|\n| Tài sản | 1010 | Cash and Cash Equivalents | Asset |\n| Tài sản | 1200 | Accounts Receivable (Phải thu KH) | Asset |\n| Tài sản | 1300 | Inventory — Finished Goods | Asset |\n| Tài sản | 1310 | Inventory — Raw Materials | Asset |\n| Nợ phải trả | 2000 | Accounts Payable (Phải trả NCC) | Liability |\n| Nợ phải trả | 2100 | Accrued Liabilities | Liability |\n| Vốn chủ | 3000 | Owner's Equity | Equity |\n| Doanh thu | 4000 | Sales Revenue — Furniture | Income |\n| Doanh thu | 4010 | Sales Revenue — Technology | Income |\n| Doanh thu | 4020 | Sales Revenue — Office Supplies | Income |\n| Chi phí | 5000 | COGS — Furniture (Cost of Goods Sold) | COGS |\n| Chi phí | 5010 | COGS — Technology | COGS |\n| Chi phí | 5020 | COGS — Office Supplies | COGS |\n| Chi phí | 6000 | Payroll Expense | Expense |\n| Chi phí | 6100 | Rent & Utilities | Expense |\n| Chi phí | 6200 | Shipping & Freight | Expense |\n| Chi phí | 6300 | Marketing & Advertising | Expense |\n| Chi phí | 6900 | Other Operating Expenses | Expense |\n\n---",
+      "char_count": 1111,
+      "source_file": "FRD-06-accounting.md"
+    },
+    {
+      "id": "FRD-06-accounting_003",
+      "doc_id": "FRD-06-accounting",
+      "doc_title": "FRD-06 — YÊU CẦU CHỨC NĂNG: KẾ TOÁN (ACCOUNTING)",
+      "section": "3. Sơ đồ luồng nghiệp vụ",
+      "content": "3. Sơ đồ luồng nghiệp vụ\n\n```mermaid\nflowchart TD\n    subgraph AR[\"CÔNG NỢ PHẢI THU - AR\"]\n        A([Hàng đã giao → SO invoice_status = to invoice]) --> B[AR Specialist tạo\\nCustomer Invoice Draft]\n        B --> C[Chief Accountant review\\nPost Invoice]\n        C --> D[Bút toán: Nợ 1200 AR / Có 4000 Revenue]\n        D --> E{B2C hay B2B?}\n        E -->|B2C — thanh toán ngay| F[Register Payment ngay]\n        E -->|B2B — Net-30| G[Ghi nhận công nợ\\ntheo dõi đến hạn]\n        G --> H{Đến hạn chưa?}\n        H -->|Chưa| G\n        H -->|Đến hạn| I[AR gửi nhắc nợ tự động\\nhoặc gọi điện]\n        I --> J[Khách thanh toán]\n        F --> K[Register Payment\\nBút toán: Nợ 1010 Cash / Có 1200 AR]\n        J --> K\n        K --> L([amount_residual = 0 ✓])\n    end\n\n    subgraph AP[\"CÔNG NỢ PHẢI TRẢ - AP\"]\n        M([3-way match OK từ Purchasing]) --> N[AP tạo Vendor Bill từ PO]\n        N --> O[Post Vendor Bill\\nBút toán: Nợ 5000 COGS / Có 2000 AP]\n        O --> P{Đến hạn thanh toán?}\n        P -->|Chưa (Net-30)| Q[Chờ đến hạn]\n        Q --> P\n        P -->|Đến hạn| R{Early payment\\ndiscount có lợi?}\n        R -->|Có 2/10 Net30| S[Thanh toán sớm,\\nhưởng 2% discount]\n        R -->|Không| T[Thanh toán đúng hạn\\nNet-30]\n        S --> U[Register Payment\\nBút toán: Nợ 2000 AP / Có 1010 Cash]\n        T --> U\n    end\n```\n\n---",
+      "char_count": 1319,
+      "source_file": "FRD-06-accounting.md"
+    },
+    {
+      "id": "FRD-06-accounting_004",
+      "doc_id": "FRD-06-accounting",
+      "doc_title": "FRD-06 — YÊU CẦU CHỨC NĂNG: KẾ TOÁN (ACCOUNTING)",
+      "section": "4. Ví dụ bút toán mẫu (Journal Entries)",
+      "content": "4. Ví dụ bút toán mẫu (Journal Entries)\n\n**Bút toán 1 — Bán hàng B2B, chưa thu tiền:**\n```\nDr 1200 Accounts Receivable    $5,500    (khách nợ ta)\n   Cr 4000 Sales Revenue           $5,000    (doanh thu)\n   Cr 2100 Sales Tax Payable          $500    (thuế bán hàng thu hộ)\n```\n\n**Bút toán 2 — Ghi nhận COGS khi xuất kho:**\n```\nDr 5000 COGS — Technology      $3,200\n   Cr 1300 Inventory — Finished Goods    $3,200\n```\n\n**Bút toán 3 — Thu tiền từ khách B2B:**\n```\nDr 1010 Cash                    $5,500\n   Cr 1200 Accounts Receivable      $5,500\n```\n\n**Bút toán 4 — Nhận hóa đơn NCC:**\n```\nDr 1310 Inventory — Raw Materials   $8,000\nDr 5010 COGS — Technology          $12,000\n   Cr 2000 Accounts Payable            $20,000\n```\n\n**Bút toán 5 — Trả tiền NCC:**\n```\nDr 2000 Accounts Payable        $20,000\n   Cr 1010 Cash                     $20,000\n```\n\n---",
+      "char_count": 852,
+      "source_file": "FRD-06-accounting.md"
+    },
+    {
+      "id": "FRD-06-accounting_005",
+      "doc_id": "FRD-06-accounting",
+      "doc_title": "FRD-06 — YÊU CẦU CHỨC NĂNG: KẾ TOÁN (ACCOUNTING)",
+      "section": "5. SOP — Quy trình chuẩn từng bước > 5.1. Accounts Receivable (AR)",
+      "content": "5.1. Accounts Receivable (AR)\n\n| Bước | Ai | Hành động | Trên Odoo | Bảng DB ghi | Kết quả |\n|---|---|---|---|---|---|\n| 1 | AR Specialist | Tạo hóa đơn từ SO | Accounting → Customers → Invoices → Create from SO | `account_move` INSERT (out_invoice, draft) | HĐ draft |\n| 2 | Chief Accountant | Review và ghi sổ | Invoice → Confirm (Post) | `account_move.state` = `posted`; `account_move_line` INSERT | Bút toán Nợ/Có |\n| 3 | Hệ thống | Theo dõi công nợ đến hạn | AR Aging report tự động | — | Báo cáo aging |\n| 4 | AR Specialist | Gửi nhắc nợ | Accounting → Follow-up → Send Reminder | `mail_message` | Email nhắc khách |\n| 5 | AR Specialist | Ghi nhận thanh toán | Invoice → Register Payment | `account_payment`; reconcile với `account_move_line` | `amount_residual` → 0 |",
+      "char_count": 774,
+      "source_file": "FRD-06-accounting.md"
+    },
+    {
+      "id": "FRD-06-accounting_006",
+      "doc_id": "FRD-06-accounting",
+      "doc_title": "FRD-06 — YÊU CẦU CHỨC NĂNG: KẾ TOÁN (ACCOUNTING)",
+      "section": "5. SOP — Quy trình chuẩn từng bước > 5.2. Accounts Payable (AP)",
+      "content": "5.2. Accounts Payable (AP)\n\n| Bước | Ai | Hành động | Trên Odoo | Bảng DB ghi | Kết quả |\n|---|---|---|---|---|---|\n| 1 | AP Specialist | Tạo vendor bill từ PO (sau 3-way match OK) | Purchase → Bills → Create from PO | `account_move` INSERT (in_invoice, draft) | Vendor bill draft |\n| 2 | Chief Accountant | Review và ghi sổ | Bill → Confirm (Post) | `account_move_line` INSERT | Bút toán Nợ COGS / Có AP |\n| 3 | AP Specialist | Lên lịch thanh toán theo due date | Accounting → Bills → filter Due date | — | Payment schedule |\n| 4 | AP Specialist | Thanh toán khi đến hạn | Bill → Register Payment → Bank journal | `account_payment` | `amount_residual` → 0; NCC tất toán |",
+      "char_count": 672,
+      "source_file": "FRD-06-accounting.md"
+    },
+    {
+      "id": "FRD-06-accounting_007",
+      "doc_id": "FRD-06-accounting",
+      "doc_title": "FRD-06 — YÊU CẦU CHỨC NĂNG: KẾ TOÁN (ACCOUNTING)",
+      "section": "5. SOP — Quy trình chuẩn từng bước > 5.3. Đóng sổ tháng (Month-End Closing)",
+      "content": "5.3. Đóng sổ tháng (Month-End Closing)\n\n| Bước | Ai | Thời hạn | Hành động |\n|---|---|---|---|\n| 1 | AR Specialist | Ngày 1–2 tháng sau | Đảm bảo tất cả hóa đơn tháng đã post |\n| 2 | AP Specialist | Ngày 1–2 | Đảm bảo tất cả vendor bills tháng đã post |\n| 3 | Production Planner | Ngày 2 | Xác nhận MO tháng đã close, giá thành đã ghi |\n| 4 | Chief Accountant | Ngày 3–4 | Review P&L draft, kiểm tra bất thường |\n| 5 | Chief Accountant | Ngày 4–5 | Lock accounting period — không ai ghi sổ được vào tháng đã đóng |\n| 6 | Chief Accountant | Ngày 5 | Gửi báo cáo P&L, Balance Sheet cho CFO |\n| 7 | CFO | Ngày 7 | Review, approve, trình CEO |\n\n---",
+      "char_count": 644,
+      "source_file": "FRD-06-accounting.md"
+    },
+    {
+      "id": "FRD-06-accounting_008",
+      "doc_id": "FRD-06-accounting",
+      "doc_title": "FRD-06 — YÊU CẦU CHỨC NĂNG: KẾ TOÁN (ACCOUNTING)",
+      "section": "6. Quy tắc nghiệp vụ",
+      "content": "6. Quy tắc nghiệp vụ\n\n| Mã | Quy tắc | Chi tiết |\n|---|---|---|\n| BR-ACC-01 | Double-entry bắt buộc | Mọi account.move phải có Σdebit = Σcredit trước khi Post |\n| BR-ACC-02 | Không sửa sau khi Post | Hóa đơn đã Post không được xóa/sửa — chỉ tạo Credit Note nếu cần điều chỉnh |\n| BR-ACC-03 | Accrual basis | Doanh thu ghi nhận khi hàng giao (invoice date), không phải khi thu tiền |\n| BR-ACC-04 | Credit hold tự động | AR Aging alert: khách có HĐ > 30 ngày quá hạn → gửi cảnh báo Sales để credit hold |\n| BR-ACC-05 | Early payment | Tận dụng 2/10 Net 30 từ NCC khi cash flow tốt (tiết kiệm 2% trên AP) |\n| BR-ACC-06 | Khóa kỳ | Sau ngày 5 tháng sau → lock period; bút toán bổ sung (adjustment) phải có Chief Accountant duyệt |\n| BR-ACC-07 | 3-way match | Vendor bill chỉ Post sau khi Purchasing xác nhận 3-way match OK |\n\n---",
+      "char_count": 825,
+      "source_file": "FRD-06-accounting.md"
+    },
+    {
+      "id": "FRD-06-accounting_009",
+      "doc_id": "FRD-06-accounting",
+      "doc_title": "FRD-06 — YÊU CẦU CHỨC NĂNG: KẾ TOÁN (ACCOUNTING)",
+      "section": "7. Handoff Matrix",
+      "content": "7. Handoff Matrix\n\n| Nhận từ | Giao cho | Trigger | Dữ liệu chuyển |\n|---|---|---|---|\n| Sales | Accounting | SO `invoice_status` = `to invoice` | `sale_order` → tạo `account_move` |\n| Purchasing (3-way match OK) | Accounting | Vendor bill approved for payment | `purchase_order` → tạo `account_move` (in_invoice) |\n| Manufacturing | Accounting | MO done → giá thành ghi nhận | `mrp_production` cost → journal entry |\n| Accounting | Sales | HĐ quá hạn → credit hold | Thông báo AR aging report |\n| Accounting | Management | Month-end close | P&L, Balance Sheet, Cash Flow báo cáo |\n\n---",
+      "char_count": 586,
+      "source_file": "FRD-06-accounting.md"
+    },
+    {
+      "id": "FRD-06-accounting_010",
+      "doc_id": "FRD-06-accounting",
+      "doc_title": "FRD-06 — YÊU CẦU CHỨC NĂNG: KẾ TOÁN (ACCOUNTING)",
+      "section": "8. Exception Flows",
+      "content": "8. Exception Flows\n\n**Ngoại lệ 1 — Khách không trả đúng hạn:**\nDSO vượt 38 ngày → AR gửi nhắc tự động (email) → Nếu sau 7 ngày chưa trả: Sales gọi điện → Nếu sau 15 ngày: credit hold, đơn mới yêu cầu prepay → Nếu sau 60 ngày: CFO xem xét chuyển bad debt provision.\n\n**Ngoại lệ 2 — Hóa đơn đã Post bị sai:**\nPhát hiện sai sau Post → Không được xóa → Tạo Credit Note (hóa đơn đảo ngược) để hủy → Tạo lại hóa đơn đúng → Ghi chú lý do trên chatter.\n\n**Ngoại lệ 3 — Vendor bill không khớp PO:**\nAP phát hiện price/qty khác PO → Không Post bill → Gửi lại Purchasing điều tra → Purchasing liên hệ NCC → NCC gửi credit note hoặc corrected invoice.\n\n---",
+      "char_count": 644,
+      "source_file": "FRD-06-accounting.md"
+    },
+    {
+      "id": "FRD-06-accounting_011",
+      "doc_id": "FRD-06-accounting",
+      "doc_title": "FRD-06 — YÊU CẦU CHỨC NĂNG: KẾ TOÁN (ACCOUNTING)",
+      "section": "9. Data Footprint",
+      "content": "9. Data Footprint\n\n| Bảng DB | Vai trò | Loại |\n|---|---|---|\n| `account_account` | Chart of Accounts | Master |\n| `account_journal` | Sổ nhật ký (Sales/Purchase/Bank/Cash) | Master |\n| `account_move` | Hóa đơn & bút toán (header) | Transaction |\n| `account_move_line` | Dòng Nợ/Có (double-entry) | Transaction → **fact_journal_entries** |\n| `account_payment` | Thanh toán thu/chi | Transaction |\n| `account_reconcile` | Đối trừ HĐ với payment | Transaction |\n\n**Phân tích downstream:**\n- P&L (Lãi lỗ) theo tháng × category × region\n- Balance Sheet (Bảng cân đối kế toán) snapshot\n- AR Aging: công nợ 0–30, 31–60, 61–90, >90 ngày\n- DSO, DPO trend\n- Cash flow statement",
+      "char_count": 668,
+      "source_file": "FRD-06-accounting.md"
+    }
+  ]
+}

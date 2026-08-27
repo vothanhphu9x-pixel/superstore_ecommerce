@@ -1,9 +1,17 @@
 # Odoo vendor source — full clone từ github.com/odoo/odoo
 odoo_dev/odoo/
 
+# Odoo local runtime
+odoo_dev/.venv/
+odoo_dev/.local-data/
+odoo_dev/odoo.conf
+odoo_dev/.env
+odoo_dev/*.log
+
 # Secrets
 .env
 .env.*
+.venv/
 !.env.example
 !**/.env.example
 

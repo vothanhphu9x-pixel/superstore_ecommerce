@@ -1,0 +1,96 @@
+{
+  "document": "FRD-05-manufacturing.md",
+  "total_chunks": 10,
+  "chunks": [
+    {
+      "id": "FRD-05-manufacturing_001",
+      "doc_id": "FRD-05-manufacturing",
+      "doc_title": "FRD-05 — YÊU CẦU CHỨC NĂNG: SẢN XUẤT (MANUFACTURING)",
+      "section": "1. Tổng quan phòng ban",
+      "content": "1. Tổng quan phòng ban\n\n**Sứ mệnh:** Sản xuất dòng nội thất SS Workspace đúng chất lượng, đúng kế hoạch, với chi phí tối ưu — đảm bảo kho WH-WEST luôn có thành phẩm sẵn sàng cho Sales.\n\n**Nhân sự (9 người):**\n- 1 Plant Manager (Elena Rodriguez) — lập kế hoạch sản xuất, quản lý nhà máy\n- 1 Production Planner — lập MO, theo dõi tiến độ, điều phối với Purchasing\n- 6 Assembly Worker — vận hành 3 work center\n- 1 QC Inspector — kiểm tra chất lượng thành phẩm\n\n**Chiến lược sản xuất:** Make-to-Stock (MTS) — sản xuất theo dự báo nhu cầu tháng, lưu kho tại WH-WEST, không sản xuất theo từng đơn bán lẻ.\n\n**Sản phẩm sản xuất (SS Workspace Furniture line):**\n- Tables: Standard Desk, Standing Desk, Meeting Table\n- Chairs: Task Chair, Executive Chair, Visitor Chair\n- Bookcases: Open Bookcase, Cabinet Bookcase\n- Furnishings: Desk Lamp, Ergonomic Footrest\n\n---",
+      "char_count": 854,
+      "source_file": "FRD-05-manufacturing.md"
+    },
+    {
+      "id": "FRD-05-manufacturing_002",
+      "doc_id": "FRD-05-manufacturing",
+      "doc_title": "FRD-05 — YÊU CẦU CHỨC NĂNG: SẢN XUẤT (MANUFACTURING)",
+      "section": "2. Cấu trúc sản xuất (Manufacturing Structure) > 2.1. Work Centers (Trạm sản xuất)",
+      "content": "2.1. Work Centers (Trạm sản xuất)\n\n| Work Center | Mã | Chức năng | Công suất | Ca làm việc |\n|---|---|---|---|---|\n| Cutting Station | WC-CUT | Cắt tấm gỗ, cắt khung thép theo kích thước BOM | 2 công nhân | 1 ca, 8h/ngày, 5 ngày/tuần |\n| Assembly Line | WC-ASM | Lắp ráp các bộ phận thành thành phẩm | 3 công nhân | 1 ca, 8h/ngày |\n| Quality Control | WC-QC | Kiểm tra chất lượng, đóng gói, nhập kho thành phẩm | 1 QC Inspector | 1 ca, 8h/ngày |",
+      "char_count": 446,
+      "source_file": "FRD-05-manufacturing.md"
+    },
+    {
+      "id": "FRD-05-manufacturing_003",
+      "doc_id": "FRD-05-manufacturing",
+      "doc_title": "FRD-05 — YÊU CẦU CHỨC NĂNG: SẢN XUẤT (MANUFACTURING)",
+      "section": "2. Cấu trúc sản xuất (Manufacturing Structure) > 2.2. Routing (Quy trình sản xuất — áp dụng chung cho tất cả Furniture)",
+      "content": "2.2. Routing (Quy trình sản xuất — áp dụng chung cho tất cả Furniture)\n\n| Công đoạn (Operation) | Work Center | Thời gian chuẩn (Duration) | Mô tả |\n|---|---|---|---|\n| OP-01: Material Preparation | WC-CUT | 45 phút/lô | Cắt và chuẩn bị vật liệu theo BOM |\n| OP-02: Assembly | WC-ASM | 90–180 phút/sản phẩm (tùy loại) | Lắp ráp hoàn chỉnh |\n| OP-03: QC & Packaging | WC-QC | 30 phút/sản phẩm | Kiểm tra, đóng gói, gán nhãn |",
+      "char_count": 424,
+      "source_file": "FRD-05-manufacturing.md"
+    },
+    {
+      "id": "FRD-05-manufacturing_004",
+      "doc_id": "FRD-05-manufacturing",
+      "doc_title": "FRD-05 — YÊU CẦU CHỨC NĂNG: SẢN XUẤT (MANUFACTURING)",
+      "section": "2. Cấu trúc sản xuất (Manufacturing Structure) > 2.3. BOM (Bill of Materials — Định mức nguyên liệu)",
+      "content": "2.3. BOM (Bill of Materials — Định mức nguyên liệu)\n\n**Ví dụ BOM cho Standard Desk (1 sản phẩm):**\n\n| Thành phần | Mã NVL | Số lượng | Đơn vị | Loại |\n|---|---|---|---|---|\n| Tabletop Panel (72\"×30\") | RM-WOOD-001 | 1 | tấm | Raw Material |\n| Steel Frame Set | RM-STEEL-001 | 1 | bộ | Raw Material |\n| Hardware Kit (ốc, vít, linh kiện) | RM-HW-001 | 1 | bộ | Raw Material |\n| Edge Banding Strip | RM-EDGE-001 | 3.5 | mét | Raw Material |\n| Packaging Box | PKG-DESK-001 | 1 | hộp | Consumable |\n\n**Ví dụ BOM cho Task Chair (1 sản phẩm):**\n\n| Thành phần | Mã NVL | Số lượng | Đơn vị |\n|---|---|---|---|\n| Seat Cushion Assembly | RM-FOAM-001 | 1 | bộ |\n| Backrest Frame | RM-STEEL-002 | 1 | cái |\n| Armrest Set | RM-ARM-001 | 1 | cặp |\n| Pneumatic Cylinder | RM-PNEU-001 | 1 | cái |\n| Star Base (5-caster) | RM-BASE-001 | 1 | cái |\n| Upholstery Fabric (0.8m²) | RM-FABR-001 | 0.8 | m² |\n\n---",
+      "char_count": 888,
+      "source_file": "FRD-05-manufacturing.md"
+    },
+    {
+      "id": "FRD-05-manufacturing_005",
+      "doc_id": "FRD-05-manufacturing",
+      "doc_title": "FRD-05 — YÊU CẦU CHỨC NĂNG: SẢN XUẤT (MANUFACTURING)",
+      "section": "3. Sơ đồ luồng nghiệp vụ (Plan-to-Produce)",
+      "content": "3. Sơ đồ luồng nghiệp vụ (Plan-to-Produce)\n\n```mermaid\nflowchart TD\n    A([Dự báo nhu cầu tháng từ Sales]) --> B[Plant Mgr lập kế hoạch SX\\nMonthly Production Plan]\n    B --> C[MRP Scheduler chạy:\\nTính nhu cầu nguyên liệu]\n    C --> D{Đủ tồn nguyên liệu?}\n    D -->|Thiếu| E[MRP đề xuất PO\\n→ Purchasing xử lý]\n    D -->|Đủ| F[Tạo Manufacturing Order MO]\n    E --> G[Chờ nhận nguyên liệu]\n    G --> F\n    F --> H[MO xác nhận\\nstate = confirmed]\n    H --> I[OP-01: Xuất nguyên liệu\\ntừ kho → Work Center Cutting]\n    I --> J[WC-CUT: Cắt & chuẩn bị vật liệu]\n    J --> K[OP-02: Chuyển sang Assembly]\n    K --> L[WC-ASM: Lắp ráp sản phẩm]\n    L --> M[OP-03: Chuyển sang QC]\n    M --> N[WC-QC: Kiểm tra chất lượng]\n    N --> O{Đạt chuẩn?}\n    O -->|Có| P[Đóng gói & Nhập kho\\nNhập thành phẩm vào WH-WEST]\n    O -->|Không| Q{Sửa được?}\n    Q -->|Có| R[Rework: Gửi lại Assembly]\n    R --> N\n    Q -->|Không| S[Scrap: Hủy sản phẩm\\nGhi nhận chi phí hủy]\n    P --> T[MO Post Production\\nTính giá thành thực tế]\n    T --> U([Tồn kho WH-WEST tăng ✓])\n```\n\n---",
+      "char_count": 1050,
+      "source_file": "FRD-05-manufacturing.md"
+    },
+    {
+      "id": "FRD-05-manufacturing_006",
+      "doc_id": "FRD-05-manufacturing",
+      "doc_title": "FRD-05 — YÊU CẦU CHỨC NĂNG: SẢN XUẤT (MANUFACTURING)",
+      "section": "4. SOP — Quy trình chuẩn từng bước",
+      "content": "4. SOP — Quy trình chuẩn từng bước\n\n| Bước | Ai | Hành động | Trên Odoo | Bảng DB ghi | Kết quả |\n|---|---|---|---|---|---|\n| 1 | Plant Mgr | Lập kế hoạch SX tháng | Manufacturing → Planning | — | Plan file |\n| 2 | Production Planner | Chạy MRP Scheduler | Manufacturing → MRP → Run Scheduler | `mrp_production` (draft) đề xuất | Danh sách MO đề xuất |\n| 3 | Production Planner | Duyệt và tạo MO chính thức | MRP → Confirm Manufacturing Orders | `mrp_production.state` = `confirmed` | MO số MO-xxx |\n| 4 | Production Planner | Kiểm tra tồn nguyên liệu | MO → Check Availability | `stock_move` (component) check | Thiếu/đủ |\n| 5 | Purchasing | Mua nguyên liệu còn thiếu | (→ FRD-03 Purchasing) | `purchase_order` | NVL về kho |\n| 6 | Assembly Worker | Ghi nhận Work Order OP-01 bắt đầu | Manufacturing → Work Orders → WC-CUT → Set Done | `mrp_workorder.state` = `progress` | Công đoạn cắt bắt đầu |\n| 7 | Hệ thống | Xuất nguyên liệu từ kho theo BOM | MO → Produce → Component consumption | `stock_move` (WH-WEST/Stock → Production) | NVL rời kho |\n| 8 | Assembly Worker | Hoàn thành OP-01, chuyển OP-02 | Work Order → Mark Done | `mrp_workorder.state` = `done` | OP-01 xong |\n| 9 | Assembly Worker | Vận hành OP-02 Assembly | WC-ASM → Work Order | `mrp_workorder` | Lắp ráp |\n| 10 | QC Inspector | Kiểm tra chất lượng OP-03 | WC-QC → Work Order | `mrp_workorder` | Pass/Fail |\n| 11 | QC Inspector | Đóng gói và validate sản xuất | MO → Produce → Qty Produced → Validate | `stock_move` (Production → WH-WEST/Stock) | Thành phẩm vào kho |\n| 12 | Production Planner | Đóng MO, tính giá thành | MO → Mark as Done | `mrp_production.state` = `done` | Giá thành ghi nhận |\n\n---",
+      "char_count": 1669,
+      "source_file": "FRD-05-manufacturing.md"
+    },
+    {
+      "id": "FRD-05-manufacturing_007",
+      "doc_id": "FRD-05-manufacturing",
+      "doc_title": "FRD-05 — YÊU CẦU CHỨC NĂNG: SẢN XUẤT (MANUFACTURING)",
+      "section": "5. Quy tắc nghiệp vụ",
+      "content": "5. Quy tắc nghiệp vụ\n\n| Mã | Quy tắc | Chi tiết |\n|---|---|---|\n| BR-MFG-01 | Make-to-Stock | Sản xuất theo kế hoạch tháng, không theo từng SO. Sales không trigger trực tiếp MO |\n| BR-MFG-02 | BOM bắt buộc | Mọi Furniture SKU phải có BOM được duyệt trước khi tạo MO |\n| BR-MFG-03 | Routing 3 công đoạn | Mọi MO phải đi qua đủ 3 work order: Cutting → Assembly → QC |\n| BR-MFG-04 | QC 100% | Tất cả thành phẩm phải qua QC Inspector trước khi nhập kho; không skip |\n| BR-MFG-05 | Tỷ lệ lỗi | Mục tiêu defect rate < 1,5%. Tháng nào > 2% → Plant Mgr điều tra nguyên nhân |\n| BR-MFG-06 | Scrap tracking | Sản phẩm hủy (scrap) phải ghi nhận trong Odoo kèm lý do và chi phí nguyên liệu đã dùng |\n| BR-MFG-07 | Capacity planning | Nhà máy tối đa 1.100 sản phẩm/tháng (1 ca/ngày). MO vượt công suất → tăng ca hoặc dịch lịch |\n| BR-MFG-08 | Giá thành thực tế | Giá thành = NVL thực dùng × giá NVL + giờ công × labor rate. Ghi nhận sau khi MO done |\n\n---",
+      "char_count": 942,
+      "source_file": "FRD-05-manufacturing.md"
+    },
+    {
+      "id": "FRD-05-manufacturing_008",
+      "doc_id": "FRD-05-manufacturing",
+      "doc_title": "FRD-05 — YÊU CẦU CHỨC NĂNG: SẢN XUẤT (MANUFACTURING)",
+      "section": "6. Handoff Matrix",
+      "content": "6. Handoff Matrix\n\n| Nhận từ | Giao cho | Trigger | Dữ liệu chuyển |\n|---|---|---|---|\n| Sales (dự báo) | Manufacturing | Dự báo nhu cầu tháng | Qty dự báo theo SKU |\n| Purchasing | Manufacturing | Nguyên liệu về kho | `stock_quant` cập nhật → MO check availability OK |\n| Manufacturing | Warehouse (WH-WEST) | MO validated | `stock_move`: Production → WH-WEST/Stock |\n| Manufacturing | Purchasing | NVL thiếu (MRP đề xuất) | Danh sách nguyên liệu + qty + ngày cần |\n| Manufacturing | Accounting | MO done → tính giá thành | `mrp_production` giá thành → bút toán giá vốn |\n\n---",
+      "char_count": 577,
+      "source_file": "FRD-05-manufacturing.md"
+    },
+    {
+      "id": "FRD-05-manufacturing_009",
+      "doc_id": "FRD-05-manufacturing",
+      "doc_title": "FRD-05 — YÊU CẦU CHỨC NĂNG: SẢN XUẤT (MANUFACTURING)",
+      "section": "7. Exception Flows",
+      "content": "7. Exception Flows\n\n**Ngoại lệ 1 — Hết nguyên liệu giữa chừng MO:**\nWork Order bắt đầu → phát hiện NVL thiếu (BOM sai hoặc hao hụt cao hơn dự kiến) → Dừng Work Order → Production Planner tạo emergency PO → Chờ NVL về tiếp tục → Cập nhật BOM nếu hao hụt thực tế khác định mức.\n\n**Ngoại lệ 2 — Sản phẩm fail QC:**\nQC Inspector đánh fail → Đánh giá có sửa được không → Nếu sửa được (rework): gửi lại Assembly, tạo thêm Work Order rework → Chi phí lao động tăng → Nếu không sửa được: tạo Scrap từ MO, ghi nhận qty scrap và chi phí NVL đã dùng.\n\n**Ngoại lệ 3 — Máy móc hỏng tại Work Center:**\nWC-ASM down → Tất cả Work Order tại WC-ASM chờ → Production Planner đánh giá downtime → Báo Plant Mgr → Sắp xếp sửa chữa (ghi vào maintenance log) → Điều chỉnh kế hoạch sản xuất tháng.\n\n**Ngoại lệ 4 — Sản xuất dư kế hoạch:**\nMO complete với qty > kế hoạch → Toàn bộ nhập kho → Inventory turnover giảm → Điều chỉnh kế hoạch tháng sau.\n\n---",
+      "char_count": 926,
+      "source_file": "FRD-05-manufacturing.md"
+    },
+    {
+      "id": "FRD-05-manufacturing_010",
+      "doc_id": "FRD-05-manufacturing",
+      "doc_title": "FRD-05 — YÊU CẦU CHỨC NĂNG: SẢN XUẤT (MANUFACTURING)",
+      "section": "8. Data Footprint",
+      "content": "8. Data Footprint\n\n| Bảng DB | Vai trò | Loại |\n|---|---|---|\n| `mrp_production` | Lệnh sản xuất MO (header) | Transaction |\n| `mrp_workorder` | Công đoạn sản xuất Work Order | Transaction |\n| `mrp_bom` | Định mức nguyên liệu BOM | Master |\n| `mrp_bom_line` | Từng nguyên liệu trong BOM | Master |\n| `mrp_routing_workcenter` | Routing — Work Center mapping | Master |\n| `mrp_workcenter` | Work Center master | Master |\n| `stock_move` | Xuất NVL vào SX, nhập thành phẩm | Transaction → **fact_manufacturing** |\n| `mrp_scrap` | Sản phẩm hủy | Transaction |\n\n**Phân tích downstream:**\n- `mrp_production` → `fact_manufacturing` (sản lượng, giá thành, hiệu suất)\n- Phân tích: plan vs actual output, defect rate, scrap cost, work center utilization\n- Giá thành thực tế vs giá thành chuẩn (standard cost) → variance analysis",
+      "char_count": 817,
+      "source_file": "FRD-05-manufacturing.md"
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "document": "FRD-04-warehouse.md",
+  "total_chunks": 9,
+  "chunks": [
+    {
+      "id": "FRD-04-warehouse_001",
+      "doc_id": "FRD-04-warehouse",
+      "doc_title": "FRD-04 — YÊU CẦU CHỨC NĂNG: KHO VẬN & LOGISTICS",
+      "section": "1. Tổng quan phòng ban",
+      "content": "1. Tổng quan phòng ban\n\n**Sứ mệnh:** Biết chính xác hàng đang ở đâu, bao nhiêu, lúc nào — và di chuyển hàng đúng nơi đúng lúc với chi phí logistics thấp nhất.\n\n**Nhân sự (12 người, 4 kho):**\n- 4 Warehouse Supervisor (1/kho): điều hành vận hành kho, xử lý sự cố\n- 8 Warehouse Operator (2/kho): nhận, cất, soạn, đóng gói, giao\n\n**4 kho vùng:**\n\n| Kho | Vị trí | Vùng phục vụ | Diện tích | Đặc điểm |\n|---|---|---|---|---|\n| WH-WEST | Los Angeles, CA | West Region | 12.000 m² | Kết hợp nhà máy; kho chính |\n| WH-EAST | Newark, NJ | East Region | 6.500 m² | Kho phân phối thuần |\n| WH-CENTRAL | Chicago, IL | Central Region | 6.000 m² | Kho phân phối thuần |\n| WH-SOUTH | Houston, TX | South Region | 5.500 m² | Kho phân phối thuần |\n\n**Triết lý vận hành kho:** Tồn kho không phải số lưu sẵn — tồn kho là **kết quả tổng hợp của mọi stock move đã done**. Mọi biến động hàng hóa đều ghi thành move để truy vết đầy đủ.\n\n**KPI phòng:**\n\n| KPI | Mục tiêu | Chu kỳ |\n|---|---|---|\n| Order fill rate từ kho vùng | ≥ 95% | Tháng |\n| On-time delivery theo SLA ship mode | ≥ 92% | Tháng |\n| Inventory accuracy (kiểm kê) | Sai lệch < 2% | Quý |\n| Thời gian soạn đơn (pick & pack) | ≤ 4 giờ cho Standard; ≤ 1 giờ cho Same Day | Tháng |\n| Tỷ lệ giao sai / thiếu | < 0.5% | Tháng |\n| Inventory turnover | 6–8 lần/năm | Năm |\n\n---",
+      "char_count": 1312,
+      "source_file": "FRD-04-warehouse.md"
+    },
+    {
+      "id": "FRD-04-warehouse_002",
+      "doc_id": "FRD-04-warehouse",
+      "doc_title": "FRD-04 — YÊU CẦU CHỨC NĂNG: KHO VẬN & LOGISTICS",
+      "section": "2. Sơ đồ luồng nghiệp vụ",
+      "content": "2. Sơ đồ luồng nghiệp vụ\n\n```mermaid\nflowchart TD\n    subgraph IN[\"NHẬN HÀNG VÀO KHO\"]\n        A([Hàng đến cổng kho]) --> B[Đối chiếu Packing List vs PO]\n        B --> C{Đúng PO?}\n        C -->|Có| D[Validate Receipt\\nstock_move: Vendor → WH/Stock]\n        C -->|Không| E[Từ chối nhận / Báo Purchasing]\n        D --> F[Putaway: cất vào vị trí kệ]\n        F --> G[stock_quant cập nhật tự động]\n    end\n\n    subgraph OUT[\"XUẤT HÀNG ĐI\"]\n        H([SO confirmed → Delivery Order sinh ra]) --> I[Supervisor assign cho Operator]\n        I --> J[Pick: soạn hàng theo Delivery]\n        J --> K[Pack: đóng gói, dán nhãn]\n        K --> L[Validate Delivery\\nstock_move: WH/Stock → Customer]\n        L --> M[stock_quant giảm tự động]\n        M --> N[Giao cho carrier / Same Day courier]\n    end\n\n    subgraph TRANSFER[\"CHUYỂN KHO NỘI BỘ\"]\n        O([Kho A thiếu hàng, Kho B dư]) --> P[Tạo Internal Transfer]\n        P --> Q[Validate tại kho gửi\\nstock_move: WH-A/Stock → Transit]\n        Q --> R[Validate tại kho nhận\\nstock_move: Transit → WH-B/Stock]\n    end\n\n    subgraph COUNT[\"KIỂM KÊ ĐỊNH KỲ\"]\n        S([Lịch kiểm kê hàng quý]) --> T[Tạo Physical Inventory]\n        T --> U[Đếm thực tế từng vị trí]\n        U --> V{Khớp hệ thống?}\n        V -->|Có| W[Xác nhận không sai lệch]\n        V -->|Không| X[Tạo Inventory Adjustment\\nstock_move: WH/Stock → Inventory Loss]\n        X --> Y[Ghi nhận nguyên nhân sai lệch]\n    end\n```\n\n---",
+      "char_count": 1423,
+      "source_file": "FRD-04-warehouse.md"
+    },
+    {
+      "id": "FRD-04-warehouse_003",
+      "doc_id": "FRD-04-warehouse",
+      "doc_title": "FRD-04 — YÊU CẦU CHỨC NĂNG: KHO VẬN & LOGISTICS",
+      "section": "3. SOP — Quy trình chuẩn từng bước > 3.1. Nhận hàng (Goods Receipt)",
+      "content": "3.1. Nhận hàng (Goods Receipt)\n\n| Bước | Ai | Hành động | Trên Odoo | Bảng DB ghi | Kết quả |\n|---|---|---|---|---|---|\n| 1 | Operator | Nhận thông báo hàng đến từ Purchasing | Inventory → Receipts → filter PO | `stock_picking` đang waiting | Chuẩn bị nhận |\n| 2 | Operator | Kiểm đếm hàng, đối chiếu packing list | — | — | Phát hiện thiếu/thừa/hỏng |\n| 3 | Operator | Nhập số lượng thực nhận | Receipt → Done qty cột | `stock_move.quantity_done` | Qty done cập nhật |\n| 4 | Supervisor | Validate Receipt | Receipt → Validate | `stock_move.state` = `done` | `stock_quant` tăng |\n| 5 | Operator | Cất hàng vào vị trí kệ (putaway) | Inventory → Move → Put in location | `stock_move` internal | Đúng vị trí |",
+      "char_count": 705,
+      "source_file": "FRD-04-warehouse.md"
+    },
+    {
+      "id": "FRD-04-warehouse_004",
+      "doc_id": "FRD-04-warehouse",
+      "doc_title": "FRD-04 — YÊU CẦU CHỨC NĂNG: KHO VẬN & LOGISTICS",
+      "section": "3. SOP — Quy trình chuẩn từng bước > 3.2. Xuất hàng (Delivery)",
+      "content": "3.2. Xuất hàng (Delivery)\n\n| Bước | Ai | Hành động | Trên Odoo | Bảng DB ghi | Kết quả |\n|---|---|---|---|---|---|\n| 1 | Hệ thống | Delivery Order tự sinh khi SO confirm | — | `stock_picking` (OUT) | Lệnh xuất có sẵn |\n| 2 | Supervisor | Phân công Operator soạn hàng | Delivery → Assign | `stock_picking.user_id` | Có người phụ trách |\n| 3 | Operator | Soạn hàng theo Delivery Order | Inventory → Deliveries → chọn đơn | — | Hàng soạn xong |\n| 4 | Operator | Đóng gói, dán nhãn carrier | — | — | Sẵn sàng giao |\n| 5 | Supervisor | Validate Delivery | Delivery → Validate | `stock_move.state` = `done` | `stock_quant` giảm; SO `qty_delivered` tăng |\n| 6 | Operator | Bàn giao cho carrier | — | — | Hàng rời kho |",
+      "char_count": 711,
+      "source_file": "FRD-04-warehouse.md"
+    },
+    {
+      "id": "FRD-04-warehouse_005",
+      "doc_id": "FRD-04-warehouse",
+      "doc_title": "FRD-04 — YÊU CẦU CHỨC NĂNG: KHO VẬN & LOGISTICS",
+      "section": "3. SOP — Quy trình chuẩn từng bước > 3.3. Chuyển kho nội bộ",
+      "content": "3.3. Chuyển kho nội bộ\n\n| Bước | Ai | Hành động | Trên Odoo | Bảng DB ghi | Kết quả |\n|---|---|---|---|---|---|\n| 1 | Supervisor | Tạo Internal Transfer | Inventory → Transfers → New (Internal) | `stock_picking` (Internal) | Phiếu chuyển kho |\n| 2 | Operator kho gửi | Validate xuất | Transfer → Validate bên gửi | `stock_move`: WH-A → Transit | Tồn A giảm |\n| 3 | Operator kho nhận | Validate nhận | Transfer → Validate bên nhận | `stock_move`: Transit → WH-B | Tồn B tăng |\n\n---",
+      "char_count": 480,
+      "source_file": "FRD-04-warehouse.md"
+    },
+    {
+      "id": "FRD-04-warehouse_006",
+      "doc_id": "FRD-04-warehouse",
+      "doc_title": "FRD-04 — YÊU CẦU CHỨC NĂNG: KHO VẬN & LOGISTICS",
+      "section": "4. Quy tắc nghiệp vụ",
+      "content": "4. Quy tắc nghiệp vụ\n\n| Mã | Quy tắc | Chi tiết |\n|---|---|---|\n| BR-WH-01 | Không giao khi chưa có SO | Mọi xuất hàng cho khách phải có Delivery Order từ SO confirmed |\n| BR-WH-02 | Giao từ kho vùng khách | Delivery mặc định từ kho vùng gần khách nhất (West/East/Central/South theo địa chỉ giao) |\n| BR-WH-03 | Partial delivery | Nếu tồn không đủ: giao phần có, tạo backorder cho phần còn thiếu — thông báo Sales |\n| BR-WH-04 | Kiểm kê quý | Cycle count toàn bộ 4 kho mỗi quý; fast-movers (top 20% SKU) kiểm hàng tháng |\n| BR-WH-05 | FIFO (First In First Out) | Xuất hàng nhập trước trước. Đặc biệt quan trọng với hàng có hạn dùng |\n| BR-WH-06 | Transfer threshold | Chuyển kho khi sai lệch tồn giữa 2 kho > 30% và kho đích đang thiếu; phải có Supervisor approve |\n| BR-WH-07 | SLA cảnh báo | Same Day: soạn trong 1h; First Class: trong 4h; Standard: trong ngày làm việc |\n\n---",
+      "char_count": 878,
+      "source_file": "FRD-04-warehouse.md"
+    },
+    {
+      "id": "FRD-04-warehouse_007",
+      "doc_id": "FRD-04-warehouse",
+      "doc_title": "FRD-04 — YÊU CẦU CHỨC NĂNG: KHO VẬN & LOGISTICS",
+      "section": "5. Handoff Matrix",
+      "content": "5. Handoff Matrix\n\n| Nhận từ | Giao cho | Trigger | Dữ liệu chuyển |\n|---|---|---|---|\n| Purchasing | Warehouse | PO confirmed → Receipt sinh | `stock_picking` (IN) |\n| Sales | Warehouse | SO confirmed → Delivery sinh | `stock_picking` (OUT) |\n| Manufacturing | Warehouse | MO finished → Thành phẩm nhập kho | `stock_picking` (IN từ nhà máy) |\n| Warehouse | Sales | Delivery validated | `stock_picking.state` = `done` → SO cập nhật |\n| Warehouse | Accounting | Hàng đã giao → kích hoạt hóa đơn | `sale_order.invoice_status` = `to invoice` |\n\n---",
+      "char_count": 545,
+      "source_file": "FRD-04-warehouse.md"
+    },
+    {
+      "id": "FRD-04-warehouse_008",
+      "doc_id": "FRD-04-warehouse",
+      "doc_title": "FRD-04 — YÊU CẦU CHỨC NĂNG: KHO VẬN & LOGISTICS",
+      "section": "6. Exception Flows",
+      "content": "6. Exception Flows\n\n**Ngoại lệ 1 — Kho vùng hết hàng, kho khác còn:**\nDelivery Order created → `stock.move.state` = `waiting` (thiếu tồn) → Supervisor kiểm tra tồn 3 kho còn lại → Quyết định chuyển kho nội bộ hoặc giao thẳng từ kho có hàng (ship from different region, +$15–30 phí) → Thông báo Sales về ngày giao mới.\n\n**Ngoại lệ 2 — Hàng giao sai:**\nKhách báo sai hàng → CS tạo Return Order → Kho nhận hàng về, validate Return → Kiểm tra hàng → Nếu ok: nhập lại kho; nếu hỏng: điều chỉnh inventory loss → Giao đúng hàng bằng Delivery mới.\n\n**Ngoại lệ 3 — Sai lệch kiểm kê:**\nĐếm thực tế ≠ tồn kho Odoo → Tạo Inventory Adjustment → `stock_move` loại `inventory`: WH/Stock → WH/Inventory Loss (nếu thiếu) hoặc ngược lại (nếu dư) → Ghi nhận nguyên nhân (mất mát, ghi sai trước đó, hàng hỏng) → Báo cáo cho Accounting để điều chỉnh chi phí.\n\n---",
+      "char_count": 842,
+      "source_file": "FRD-04-warehouse.md"
+    },
+    {
+      "id": "FRD-04-warehouse_009",
+      "doc_id": "FRD-04-warehouse",
+      "doc_title": "FRD-04 — YÊU CẦU CHỨC NĂNG: KHO VẬN & LOGISTICS",
+      "section": "7. Data Footprint",
+      "content": "7. Data Footprint\n\n| Bảng DB | Vai trò | Loại |\n|---|---|---|\n| `stock_warehouse` | 4 kho (master) | Master |\n| `stock_location` | Vị trí trong kho (cây phân cấp) | Master |\n| `stock_picking` | Phiếu nhận/xuất/chuyển (header) | Transaction |\n| `stock_move` | Từng lần di chuyển hàng | Transaction → **fact_inventory_movement** |\n| `stock_quant` | Tồn kho thực tế hiện tại (derived) | Snapshot |\n| `stock_move_line` | Chi tiết move theo serial/lot | Transaction |\n\n**Phân tích downstream:**\n- `stock_move` (done) → `fact_inventory_movement`\n- Phân tích: tồn kho theo kho × SKU × ngày (historical), inventory turns, shrinkage rate\n- Delivery performance: ngày giao thực tế vs ngày hẹn (SLA breach analysis)\n- Inter-warehouse transfer frequency (kho nào thường xuyên thiếu/dư)",
+      "char_count": 773,
+      "source_file": "FRD-04-warehouse.md"
+    }
+  ]
+}
