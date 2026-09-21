@@ -17,11 +17,24 @@ Yêu cầu:
 
 Chạy:
   python superstore_data_generator.py
+  python superstore_data_generator.py --repair-crm  # chỉ repair CRM/SO cũ, không sinh thêm data
+  cd odoo_dev && make -f makefile repair-mart-data  # bổ sung UTM/carrier qua local ORM
 """
 
+import csv
+from pathlib import Path
+
 import psycopg2, psycopg2.extras, xmlrpc.client
-from faker import Faker
-import random, numpy as np, logging, time, sys
+try:
+    from faker import Faker
+except ModuleNotFoundError:  # Odoo runtime tối giản vẫn chạy được repair-only.
+    Faker = None
+try:
+    import numpy as np
+except ModuleNotFoundError:  # Full generator sẽ báo lỗi rõ ở run().
+    np = None
+import os
+import random, logging, time, sys
 from datetime import datetime, timedelta, date
 
 logging.basicConfig(
@@ -33,11 +46,17 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
-ODOO_URL  = "http://localhost:8069"
-ODOO_DB   = "superstore_erp"
-ODOO_USER = "admin"
-ODOO_PASS = "admin"
-DB_CFG    = dict(dbname="superstore_erp", user="odoo", host="localhost", port=5432)
+ODOO_URL  = os.getenv("ODOO_URL", "http://localhost:8069")
+ODOO_DB   = os.getenv("ODOO_DB", "superstore_erp")
+ODOO_USER = os.getenv("ODOO_USER", "admin")
+ODOO_PASS = os.getenv("ODOO_PASSWORD", "admin")
+DB_CFG    = dict(
+    dbname=os.getenv("PGDATABASE", "superstore_erp"),
+    user=os.getenv("PGUSER", "odoo"),
+    password=os.getenv("PGPASSWORD") or None,
+    host=os.getenv("PGHOST", "localhost"),
+    port=int(os.getenv("PGPORT", "5432")),
+)
 
 CFG = {
     "n_customers"   : 2000,
@@ -66,8 +85,10 @@ CFG = {
     "b_post"        : 100,
 }
 
-fake = Faker("en_US")
-random.seed(2024); np.random.seed(2024)
+fake = Faker("en_US") if Faker else None
+random.seed(2024)
+if np is not None:
+    np.random.seed(2024)
 
 # ─── SEED DATA ────────────────────────────────────────────────────────────────
 REGIONS = {
@@ -131,6 +152,38 @@ RAW_MATERIALS = [
     ("Shelf Board",       "RM-SHF-001",  15.0),
     ("Side Panel",        "RM-SIDE-001", 20.0),
 ]
+
+# Các channel dưới đây là business code dùng xuyên suốt CSV marketing -> Odoo UTM
+# -> dim_channel. Không dùng medium mặc định kiểu "Email"/"Social" vì chúng không
+# khớp key snake_case của dữ liệu marketing ngoài Odoo.
+PAID_CHANNEL_SOURCE = {
+    "email_marketing": "email",
+    "google_search": "google",
+    "google_display": "google",
+    "meta_facebook": "facebook",
+    "meta_instagram": "instagram",
+}
+NON_CAMPAIGN_CHANNEL_SOURCE = {
+    "direct": "direct",
+    "organic": "organic",
+    "referral": "referral",
+}
+DELIVERY_MODES = (
+    ("Same Day", 4, 35.0),
+    ("First Class", 16, 20.0),
+    ("Second Class", 20, 10.0),
+    ("Standard Class", 60, 5.0),
+)
+MARKETING_CAMPAIGN_MASTER = (
+    Path(__file__).resolve().parents[1]
+    / "CRM_Marketing_source"
+    / "marketing_campaigns_master.csv"
+)
+MARKETING_AD_DAILY = (
+    Path(__file__).resolve().parents[1]
+    / "CRM_Marketing_source"
+    / "ad_performance_daily.csv"
+)
 
 # ─── CONNECTIONS ─────────────────────────────────────────────────────────────
 class OdooAPI:
@@ -1030,6 +1083,62 @@ def p2b_crm_leads(api, pg, ctx, so_id_filter=None) -> int:
     sources = [r[0] for r in pg.all("SELECT id FROM utm_source")]
     mediums = [r[0] for r in pg.all("SELECT id FROM utm_medium")]
 
+    # Repair data do các bản generator cũ tạo: Won opportunity đã có nhưng
+    # sale_order.opportunity_id và crm_lead.date_conversion bị bỏ trống. Chỉ động
+    # tới record do generator nhận diện bằng tên "Opportunity — {SO name}".
+    linked_existing = pg.q("""
+        UPDATE sale_order so
+           SET opportunity_id = cl.id
+          FROM crm_lead cl
+         WHERE so.opportunity_id IS NULL
+           AND cl.type = 'opportunity'
+           AND cl.partner_id = so.partner_id
+           AND cl.name = 'Opportunity — ' || so.name
+    """).rowcount
+    converted_existing = pg.q("""
+        UPDATE crm_lead
+           SET date_conversion = COALESCE(date_conversion, date_open, create_date),
+               date_last_stage_update = COALESCE(date_closed, write_date, date_last_stage_update)
+         WHERE name LIKE 'Opportunity — %'
+           AND type = 'opportunity'
+           AND (date_conversion IS NULL OR date_last_stage_update IS NULL)
+    """).rowcount
+
+    # Lead bị mất sau khi đã qua Qualified/Proposition là lost opportunity,
+    # không còn là lead thuần. Bản cũ để tất cả type='lead' làm sai
+    # denominator của Win Rate. Chỉ repair record demo "Lead #...".
+    repaired_lost_opportunities = pg.q("""
+        UPDATE crm_lead cl
+           SET type = 'opportunity',
+               date_conversion = COALESCE(
+                   cl.date_conversion,
+                   cl.create_date + (COALESCE(cl.write_date, cl.create_date) - cl.create_date) / 2
+               ),
+               date_closed = COALESCE(cl.date_closed, cl.write_date),
+               date_last_stage_update = COALESCE(cl.write_date, cl.date_last_stage_update)
+          FROM crm_stage st
+         WHERE cl.stage_id = st.id
+           AND cl.active = false
+           AND cl.name LIKE 'Lead #%'
+           AND st.sequence >= 2
+           AND cl.type = 'lead'
+    """).rowcount
+    closed_existing_lost = pg.q("""
+        UPDATE crm_lead
+           SET date_closed = COALESCE(date_closed, write_date),
+               date_last_stage_update = COALESCE(write_date, date_last_stage_update)
+         WHERE active = false
+           AND name LIKE 'Lead #%'
+           AND (date_closed IS NULL OR date_last_stage_update IS NULL)
+    """).rowcount
+    pg.commit()
+    if linked_existing or converted_existing or repaired_lost_opportunities or closed_existing_lost:
+        log.info(
+            "  Repaired CRM links/history: %s SO links, %s conversion dates, "
+            "%s lost opportunities, %s lost close dates",
+            linked_existing, converted_existing, repaired_lost_opportunities, closed_existing_lost,
+        )
+
     # ── 1. WON leads — 1:1 với sale_order (chưa có lead, theo so_id_filter nếu có) ──
     extra = "AND so.id = ANY(%s)" if so_id_filter is not None else ""
     params = [so_id_filter] if so_id_filter is not None else []
@@ -1055,7 +1164,7 @@ def p2b_crm_leads(api, pg, ctx, so_id_filter=None) -> int:
             "campaign_id"     : int(camp_id) if camp_id else False,
             "company_id"      : cid,
         })
-        won_dates.append((open_dt, date_order))
+        won_dates.append((so_id, open_dt, date_order))
 
     won_ids = []
     total = 0
@@ -1071,10 +1180,16 @@ def p2b_crm_leads(api, pg, ctx, so_id_filter=None) -> int:
         except Exception as e:
             log.warning(f"  Won lead batch failed: {e}")
 
-    # Restore historical date_open/date_closed/create_date (Odoo stamps now() lúc create)
-    for lid, (open_dt, closed_dt) in won_ids:
-        pg.q("""UPDATE crm_lead SET date_open=%s, date_closed=%s, create_date=%s
-                WHERE id=%s""", [open_dt, closed_dt, open_dt, lid])
+    # Restore historical timestamps (Odoo stamps now() lúc create) và ghi FK có cấu trúc
+    # trên sale_order. date_conversion=open_dt vì demo tạo thẳng opportunity; không
+    # có sự kiện lead trung gian để suy ra một thời điểm khác.
+    for lid, (so_id, open_dt, closed_dt) in won_ids:
+        pg.q("""UPDATE crm_lead
+                   SET date_open=%s, date_conversion=%s, date_closed=%s,
+                       date_last_stage_update=%s, create_date=%s
+                 WHERE id=%s""",
+             [open_dt, open_dt, closed_dt, closed_dt, open_dt, lid])
+        pg.q("UPDATE sale_order SET opportunity_id=%s WHERE id=%s", [lid, so_id])
     pg.commit()
     log.info(f"  ✅ {len(won_ids)} Won leads created")
 
@@ -1091,12 +1206,17 @@ def p2b_crm_leads(api, pg, ctx, so_id_filter=None) -> int:
             seq = random.choices([1, 2, 3], weights=[0.5, 0.3, 0.2])[0]
             create_dt = CFG["start"] + timedelta(days=random.randint(0, days_span))
             lost_dt = create_dt + timedelta(days=random.randint(1, 30))
+            became_opportunity = seq >= 2
+            conversion_dt = (
+                create_dt + (lost_dt - create_dt) / 2
+                if became_opportunity else None
+            )
             lost_vals.append({
                 "name"          : f"Lead #{i+1}",
                 "contact_name"  : fake.name(),
                 "partner_name"  : fake.company(),
                 "email_from"    : fake.company_email(),
-                "type"          : "lead",
+                "type"          : "opportunity" if became_opportunity else "lead",
                 "stage_id"      : stage_ids.get(seq),
                 "probability"   : 0.0,
                 "active"        : False,
@@ -1106,7 +1226,7 @@ def p2b_crm_leads(api, pg, ctx, so_id_filter=None) -> int:
                 "medium_id"     : random.choice(mediums) if mediums and random.random() < 0.8 else False,
                 "company_id"    : cid,
             })
-            lost_dates.append((create_dt, lost_dt))
+            lost_dates.append((create_dt, conversion_dt, lost_dt))
 
         total = 0
         for chunk_vals, chunk_dates in zip(batches(lost_vals, 200), batches(lost_dates, 200)):
@@ -1121,9 +1241,12 @@ def p2b_crm_leads(api, pg, ctx, so_id_filter=None) -> int:
             except Exception as e:
                 log.warning(f"  Lost lead batch failed: {e}")
 
-        for lid, (create_dt, lost_dt) in lost_ids:
-            pg.q("""UPDATE crm_lead SET create_date=%s, date_open=%s, write_date=%s
-                    WHERE id=%s""", [create_dt, create_dt, lost_dt, lid])
+        for lid, (create_dt, conversion_dt, lost_dt) in lost_ids:
+            pg.q("""UPDATE crm_lead
+                       SET create_date=%s, date_open=%s, date_conversion=%s,
+                           date_closed=%s, date_last_stage_update=%s, write_date=%s
+                     WHERE id=%s""",
+                 [create_dt, create_dt, conversion_dt, lost_dt, lost_dt, lost_dt, lid])
         pg.commit()
         log.info(f"  ✅ {len(lost_ids)} Lost leads created")
     else:
@@ -1133,6 +1256,322 @@ def p2b_crm_leads(api, pg, ctx, so_id_filter=None) -> int:
     conv_rate = len(won_ids) / (len(won_ids) + len(lost_ids)) * 100 if (won_ids or lost_ids) else 0
     log.info(f"  ✅ Tổng {total_leads} lead mới — conversion rate lô này: {conv_rate:.1f}%")
     return total_leads
+
+
+def _load_campaign_channels():
+    """Đọc channel hợp lệ của từng campaign từ source marketing chính thức."""
+    if not MARKETING_CAMPAIGN_MASTER.exists():
+        raise FileNotFoundError(
+            f"Không tìm thấy campaign master: {MARKETING_CAMPAIGN_MASTER}"
+        )
+
+    result = {}
+    with MARKETING_CAMPAIGN_MASTER.open(encoding="utf-8-sig", newline="") as handle:
+        for row in csv.DictReader(handle):
+            channels = [
+                value.strip().lower()
+                for value in (row.get("channels") or "").split("|")
+                if value.strip()
+            ]
+            if channels:
+                result[int(row["campaign_id"])] = channels
+    return result
+
+
+def _load_daily_paid_attribution(campaign_channels):
+    """Map date -> campaign/channel có record spend thật trong CSV marketing."""
+    if not MARKETING_AD_DAILY.exists():
+        raise FileNotFoundError(f"Không tìm thấy ad performance: {MARKETING_AD_DAILY}")
+
+    result = {}
+    with MARKETING_AD_DAILY.open(encoding="utf-8-sig", newline="") as handle:
+        for row in csv.DictReader(handle):
+            campaign_id = int(row["campaign_id"])
+            channel = row["channel"].strip().lower()
+            if channel not in campaign_channels.get(campaign_id, []):
+                raise ValueError(
+                    f"Ad row dùng channel ngoài campaign master: "
+                    f"campaign_id={campaign_id}, channel={channel}"
+                )
+            result.setdefault(row["date"], []).append((campaign_id, channel))
+    return result
+
+
+def _ensure_named_records(api, pg, model, table, names):
+    """Tạo master record còn thiếu qua ORM và trả mapping lower(name) -> id."""
+    mapping = {
+        str(name).strip().lower(): record_id
+        for record_id, name in pg.all(f"SELECT id, name FROM {table}")
+        if name
+    }
+    for name in names:
+        key = name.lower()
+        if key not in mapping:
+            mapping[key] = api.create(model, {"name": name})
+    return mapping
+
+
+def _delivery_mode_for_id(record_id):
+    """Phân bổ deterministic 4/16/20/60; chạy lại không đổi carrier của cùng order."""
+    bucket = int(record_id) % 100
+    upper = 0
+    for name, weight, _price in DELIVERY_MODES:
+        upper += weight
+        if bucket < upper:
+            return name
+    return DELIVERY_MODES[-1][0]
+
+
+def _write_batches(api, model, ids, values, batch_size=1000):
+    written = 0
+    for chunk in batches(ids, batch_size):
+        api.write(model, chunk, values)
+        written += len(chunk)
+    return written
+
+
+def p2c_repair_mart_source_data(api, pg, ctx):
+    """
+    Bổ sung các field nghiệp vụ mà Mart cần nhưng generator cũ để trống:
+
+    - sale_order/crm_lead: source_id + medium_id theo campaign master;
+    - đơn không campaign: direct/organic/referral (không giả làm paid campaign);
+    - sale_order/stock_picking: carrier_id theo 4 ship mode cố định.
+
+    Toàn bộ business write đi qua Odoo ORM. Quy tắc phân bổ deterministic và chỉ
+    dùng key nguồn đã kiểm soát nên hàm có thể chạy lại an toàn.
+    """
+    log.info("Phase 2c — Repair Mart source coverage (UTM + delivery carrier)")
+    cid = ctx["cid"]
+    campaign_channels = _load_campaign_channels()
+    daily_paid_attribution = _load_daily_paid_attribution(campaign_channels)
+
+    channel_to_source = {
+        **PAID_CHANNEL_SOURCE,
+        **NON_CAMPAIGN_CHANNEL_SOURCE,
+    }
+    medium_ids = _ensure_named_records(
+        api,
+        pg,
+        "utm.medium",
+        "utm_medium",
+        sorted(channel_to_source),
+    )
+    source_ids = _ensure_named_records(
+        api,
+        pg,
+        "utm.source",
+        "utm_source",
+        sorted(set(channel_to_source.values())),
+    )
+
+    # delivery.carrier.name là translated JSONB trong Odoo 18.
+    carrier_rows = pg.all("""
+        SELECT id, COALESCE(name->>'en_US', name->>'vi_VN'), product_id
+        FROM delivery_carrier
+        WHERE company_id = %s OR company_id IS NULL
+    """, [cid])
+    carrier_ids = {
+        name: record_id
+        for record_id, name, _product_id in carrier_rows
+        if name
+    }
+    delivery_product_id = next(
+        (product_id for _record_id, _name, product_id in carrier_rows if product_id),
+        None,
+    )
+    if not delivery_product_id:
+        row = pg.one("""
+            SELECT pp.id
+            FROM product_product pp
+            JOIN product_template pt ON pt.id = pp.product_tmpl_id
+            WHERE pt.type = 'service'
+            ORDER BY pp.id
+            LIMIT 1
+        """)
+        delivery_product_id = row[0] if row else None
+    if not delivery_product_id:
+        raise RuntimeError("Không có service product để tạo delivery carrier")
+
+    for name, _weight, fixed_price in DELIVERY_MODES:
+        if name not in carrier_ids:
+            carrier_ids[name] = api.create("delivery.carrier", {
+                "name": name,
+                "delivery_type": "fixed",
+                "product_id": int(delivery_product_id),
+                "fixed_price": fixed_price,
+                "company_id": cid,
+            })
+
+    order_rows = pg.all("""
+        SELECT so.id,
+               so.campaign_id,
+               so.opportunity_id,
+               so.medium_id,
+               so.source_id,
+               so.carrier_id,
+               cl.medium_id,
+               cl.source_id,
+               cl.campaign_id,
+               so.date_order::date
+        FROM sale_order so
+        LEFT JOIN crm_lead cl ON cl.id = so.opportunity_id
+        WHERE so.company_id = %s
+        ORDER BY so.id
+    """, [cid])
+
+    order_groups = {}
+    opportunity_groups = {}
+    carrier_by_order = {}
+    owned_channels = sorted(NON_CAMPAIGN_CHANNEL_SOURCE)
+
+    for (
+        order_id,
+        campaign_id,
+        opportunity_id,
+        current_medium_id,
+        current_source_id,
+        current_carrier_id,
+        opportunity_medium_id,
+        opportunity_source_id,
+        opportunity_campaign_id,
+        order_date,
+    ) in order_rows:
+        if campaign_id and daily_paid_attribution.get(order_date.isoformat()):
+            paid_options = daily_paid_attribution[order_date.isoformat()]
+            desired_campaign_id, channel = paid_options[
+                int(order_id) % len(paid_options)
+            ]
+        else:
+            desired_campaign_id = False
+            channel = owned_channels[int(order_id) % len(owned_channels)]
+        source = channel_to_source[channel]
+        carrier_name = _delivery_mode_for_id(order_id)
+        carrier_id = carrier_ids[carrier_name]
+        key = (
+            medium_ids[channel],
+            source_ids[source],
+            carrier_id,
+            desired_campaign_id,
+        )
+        if (
+            current_medium_id,
+            current_source_id,
+            current_carrier_id,
+            campaign_id,
+        ) != (
+            medium_ids[channel],
+            source_ids[source],
+            carrier_id,
+            desired_campaign_id or None,
+        ):
+            order_groups.setdefault(key, []).append(order_id)
+        carrier_by_order[order_id] = carrier_id
+        if opportunity_id and (
+            opportunity_medium_id,
+            opportunity_source_id,
+            opportunity_campaign_id,
+        ) != (
+            medium_ids[channel],
+            source_ids[source],
+            desired_campaign_id or None,
+        ):
+            opportunity_groups.setdefault(
+                (medium_ids[channel], source_ids[source], desired_campaign_id), []
+            ).append(opportunity_id)
+
+    order_written = 0
+    for (medium_id, source_id, carrier_id, campaign_id), ids in order_groups.items():
+        order_written += _write_batches(api, "sale.order", ids, {
+            "medium_id": medium_id,
+            "source_id": source_id,
+            "carrier_id": carrier_id,
+            "campaign_id": campaign_id,
+        })
+
+    opportunity_written = 0
+    for (medium_id, source_id, campaign_id), ids in opportunity_groups.items():
+        opportunity_written += _write_batches(api, "crm.lead", ids, {
+            "medium_id": medium_id,
+            "source_id": source_id,
+            "campaign_id": campaign_id,
+        })
+
+    # Lost/demo leads không có sale_order: vẫn cần channel để phân tích funnel.
+    lead_groups = {}
+    lead_rows = pg.all("""
+        SELECT id, campaign_id, medium_id, source_id, create_date::date
+        FROM crm_lead
+        WHERE company_id = %s
+          AND name LIKE 'Lead #%%'
+        ORDER BY id
+    """, [cid])
+    for (
+        lead_id,
+        campaign_id,
+        current_medium_id,
+        current_source_id,
+        lead_date,
+    ) in lead_rows:
+        if campaign_id and daily_paid_attribution.get(lead_date.isoformat()):
+            paid_options = daily_paid_attribution[lead_date.isoformat()]
+            desired_campaign_id, channel = paid_options[
+                int(lead_id) % len(paid_options)
+            ]
+        else:
+            desired_campaign_id = False
+            channel = owned_channels[int(lead_id) % len(owned_channels)]
+        source = channel_to_source[channel]
+        key = (medium_ids[channel], source_ids[source], desired_campaign_id)
+        if (current_medium_id, current_source_id, campaign_id) != (
+            medium_ids[channel],
+            source_ids[source],
+            desired_campaign_id or None,
+        ):
+            lead_groups.setdefault(key, []).append(lead_id)
+
+    lost_lead_written = 0
+    for (medium_id, source_id, campaign_id), ids in lead_groups.items():
+        lost_lead_written += _write_batches(api, "crm.lead", ids, {
+            "medium_id": medium_id,
+            "source_id": source_id,
+            "campaign_id": campaign_id,
+        })
+
+    picking_groups = {}
+    for picking_id, sale_id, current_carrier_id in pg.all("""
+        SELECT id, sale_id, carrier_id
+        FROM stock_picking
+        WHERE company_id = %s
+          AND sale_id IS NOT NULL
+    """, [cid]):
+        carrier_id = carrier_by_order.get(sale_id)
+        if carrier_id and current_carrier_id != carrier_id:
+            picking_groups.setdefault(carrier_id, []).append(picking_id)
+
+    picking_written = 0
+    for carrier_id, ids in picking_groups.items():
+        picking_written += _write_batches(
+            api,
+            "stock.picking",
+            ids,
+            {"carrier_id": carrier_id},
+        )
+
+    log.info(
+        "  ✅ Mart coverage repaired: %s SO, %s linked opportunities, "
+        "%s standalone leads, %s delivery pickings",
+        order_written,
+        opportunity_written,
+        lost_lead_written,
+        picking_written,
+    )
+    return {
+        "orders": order_written,
+        "opportunities": opportunity_written,
+        "standalone_leads": lost_lead_written,
+        "pickings": picking_written,
+    }
 
 # ─── PHASE 0.3: OPENING INVENTORY BALANCE ────────────────────────────────────
 def p0_opening_inventory(pg, api, ctx, prod_ids) -> int:
@@ -1898,6 +2337,11 @@ def verify_all(pg, ctx):
 
 # ─── MAIN ────────────────────────────────────────────────────────────────────
 def run():
+    if fake is None or np is None:
+        raise RuntimeError(
+            "Full generator cần faker và numpy. Cài requirements hoặc dùng "
+            "target repair-mart-data của odoo_dev/makefile cho nhánh repair."
+        )
     log.info("═══ SUPERSTORE DATA GENERATOR v3 — FULL WORKFLOW ═══")
     t0 = time.time()
     api = OdooAPI()
@@ -1935,6 +2379,11 @@ def run():
         log.info("\n══ PHASE 2b: CRM Leads (XML-RPC) ══")
         p2b_crm_leads(api, pg, ctx)
 
+        # Phase 2c: enrich các khóa phân tích mà dữ liệu mô phỏng cũ để trống.
+        # Chạy sau CRM để sale_order và opportunity nhận cùng một attribution.
+        log.info("\n══ PHASE 2c: Mart Source Coverage (XML-RPC) ══")
+        p2c_repair_mart_source_data(api, pg, ctx)
+
         # Phase 3: P2P demand-driven replenishment (needs Phase 2's sale_order_line data)
         log.info("\n══ PHASE 3: P2P Workflow (XML-RPC, demand-driven) ══")
         p3_purchasing(api, pg, ctx, partners, prod_ids)
@@ -1969,5 +2418,45 @@ def run():
     finally:
         pg.close()
 
+
+def repair_crm_only():
+    """Backfill link/ngày CRM do generator cũ bỏ trống, không sinh record mới."""
+    log.info("═══ CRM REPAIR ONLY ═══")
+    pg = PG()
+    try:
+        # Nhánh repair chỉ chạy các UPDATE có điều kiện ở đầu p2b_crm_leads;
+        # không gọi Odoo ORM và không tạo thêm lead/opportunity.
+        ctx = load_context(pg, api=None)
+        # Empty scope: phần repair ở đầu p2b vẫn chạy; phần create Won/Lost = 0.
+        p2b_crm_leads(api=None, pg=pg, ctx=ctx, so_id_filter=[])
+        log.info("✅ CRM repair hoàn tất; không tạo thêm lead/opportunity")
+    except Exception:
+        pg.rollback()
+        raise
+    finally:
+        pg.close()
+
+
+def repair_mart_data_only():
+    """Backfill UTM/channel/carrier qua Odoo ORM, không sinh order/lead mới."""
+    log.info("═══ MART SOURCE DATA REPAIR ONLY ═══")
+    api = OdooAPI()
+    pg = PG()
+    try:
+        ctx = load_context(pg, api)
+        result = p2c_repair_mart_source_data(api, pg, ctx)
+        log.info("✅ Mart source repair hoàn tất: %s", result)
+    except Exception:
+        pg.rollback()
+        raise
+    finally:
+        pg.close()
+
+
 if __name__ == "__main__":
-    run()
+    if "--repair-crm" in sys.argv:
+        repair_crm_only()
+    elif "--repair-mart-data" in sys.argv:
+        repair_mart_data_only()
+    else:
+        run()

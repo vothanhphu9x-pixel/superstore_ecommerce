@@ -19,6 +19,22 @@
 
 **Mô tả ngắn:** Dự án này triển khai hệ thống ERP (Enterprise Resource Planning — Hoạch định nguồn lực doanh nghiệp) trên nền Odoo 18 Community tích hợp toàn bộ hoạt động kinh doanh của Superstore Inc. — bao gồm bán hàng, marketing, mua hàng, kho vận, sản xuất, kế toán, nhân sự — đồng thời xây dựng nền tảng dữ liệu (data platform) phục vụ phân tích và báo cáo quản trị.
 
+```mermaid
+flowchart LR
+    MKT[Marketing] --> CRM[CRM]
+    CRM --> SALES[Sales]
+    SALES --> WH[Warehouse]
+    PUR[Purchasing] --> WH
+    MFG[Manufacturing] <--> WH
+    SALES --> ACC[Accounting]
+    PUR --> ACC
+    HR[HR] --> ODOO[(Odoo)]
+    CRM & SALES & WH & PUR & MFG & ACC --> ODOO
+    ODOO --> DATA[Data Platform]
+    CSV[4 Marketing CSV] --> DATA
+    DATA --> BI[BI / KPI]
+```
+
 ---
 
 ## 2. Bối cảnh & Vấn đề kinh doanh
@@ -158,7 +174,6 @@ Superstore Inc. là công ty phân phối và sản xuất nội thất văn ph�
 - FRD-04 Warehouse: `FRD-04-warehouse.md`
 - FRD-05 Manufacturing: `FRD-05-manufacturing.md`
 - FRD-06 Accounting: `FRD-06-accounting.md`
-- FRD-07 HR: `FRD-07-hr.md`
-- FRD-08 Data Ops: `FRD-08-data-ops.md`
+- FRD-07/08 HR & Data Ops: `FRD-07-08-hr-dataops.md`
 - SRS: `SRS-superstore.md`
 - Use Cases: `UC-superstore.md`

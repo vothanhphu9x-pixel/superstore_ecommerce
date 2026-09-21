@@ -1,0 +1,69 @@
+version: 2
+
+sources:
+  - name: bronze
+    database: SUPERSTORE_DB
+    schema: BRONZE_LAYER
+    description: >
+      Tầng Bronze — mỗi bảng chỉ có 1 cột raw_data (VARIANT). 44 bảng Odoo core
+      nạp qua Debezium/Kafka/MinIO (mỗi row = 1 CDC event; có thêm key
+      cdc_status/is_deleted/ingested_at/record_hash) và 4 bảng marketing CSV raw
+      nạp batch qua csv_loader/loader.py (không có cdc_status/is_deleted; có
+      source_batch_id/source_file_hash/source_loaded_at, ingested_at và record_hash).
+    tables:
+      # SALES & REVENUE
+      - name: sale_order
+      - name: sale_order_line
+      # FINANCE
+      - name: account_move
+      - name: account_move_line
+      - name: account_account
+      - name: account_journal
+      - name: account_payment
+      - name: account_partial_reconcile
+      # PROCUREMENT
+      - name: purchase_order
+      - name: purchase_order_line
+      # INVENTORY & WAREHOUSE
+      - name: stock_move
+      - name: stock_picking
+      - name: delivery_carrier
+      - name: stock_location
+      - name: stock_valuation_layer
+      - name: stock_quant
+      # MANUFACTURING
+      - name: mrp_production
+      - name: mrp_workorder
+      - name: stock_scrap
+      - name: mrp_workcenter_productivity
+      - name: mrp_workcenter
+      - name: mrp_workcenter_productivity_loss
+      - name: mrp_bom
+      # CRM & MARKETING (CDC)
+      - name: crm_lead
+      - name: crm_stage
+      - name: crm_lost_reason
+      - name: utm_campaign
+      - name: utm_source
+      - name: utm_medium
+      # REFERENCE DIMENSIONS
+      - name: res_partner
+      - name: res_partner_category
+      - name: res_partner_res_partner_category_rel
+      - name: res_country
+      - name: res_country_state
+      - name: product_template
+      - name: product_product
+      - name: product_category
+      - name: uom_uom
+      - name: hr_employee
+      - name: hr_contract
+      - name: hr_department
+      - name: hr_job
+      - name: res_users
+      - name: stock_warehouse
+      # MARKETING (CSV — batch, không qua Debezium/Kafka)
+      - name: email_campaigns
+      - name: ad_performance_daily
+      - name: ab_test
+      - name: marketing_campaigns_master

@@ -17,6 +17,7 @@ WITH expected(domain_name, table_name) AS (
 
         ('inventory', 'stock_move'),
         ('inventory', 'stock_picking'),
+        ('inventory', 'delivery_carrier'),
         ('inventory', 'stock_location'),
         ('inventory', 'stock_valuation_layer'),
         ('inventory', 'stock_quant'),

@@ -3,6 +3,19 @@
 
 > **Lưu ý kép:** Mỗi Use Case là (1) tài liệu kiểm thử hệ thống và (2) kịch bản mà **data generator phải mô phỏng** để sinh dữ liệu giống thật.
 
+```mermaid
+flowchart LR
+    MKT[Marketing] --> CRM[Lead / Opportunity]
+    CRM --> SALES[Quotation / Sales Order]
+    SALES --> WH[Delivery]
+    SALES --> ACC[Invoice / Payment]
+    PUR[Purchase Order] --> WH
+    PUR --> ACC
+    MFG[Manufacturing] <--> WH
+    HR[HR] --> DATA[Data Platform]
+    CRM & SALES & PUR & WH & MFG & ACC --> DATA
+```
+
 ---
 
 ## 1. Danh mục Use Cases
@@ -209,4 +222,6 @@ MO created (Standard Desk × 50) → Check availability (NVL đủ) → OP-01 do
 SO confirm 10 chairs → Kho chỉ còn 7 → Giao 7 (partial) → Backorder 3 → SX thêm (MO) → Giao 3 còn lại → Invoice tạo sau khi giao đủ.
 
 **Kịch bản IT-05 — Marketing attribution:**
-Lead tạo với utm_source=google, utm_campaign=back-to-school-2026 → Lead converted → SO confirm → Invoice paid → fact_sales.campaign_id = back-to-school-2026 → mart_roas: revenue attributed đúng campaign.
+Lead tạo với UTM Google và campaign ID hợp lệ → Lead converted → SO confirm với
+`sale_order.opportunity_id` → `fact_sales.campaign_sk`/`channel_sk` được resolve →
+`mart_roas_by_channel` ghi nhận đúng doanh thu attributed theo kênh.

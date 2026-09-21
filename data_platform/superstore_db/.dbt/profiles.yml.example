@@ -6,7 +6,7 @@ superstore_db:
       account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
       user: "{{ env_var('SNOWFLAKE_USER') }}"
       password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
-      role: "{{ env_var('SNOWFLAKE_ROLE', 'ACCOUNTADMIN') }}"
+      role: "{{ env_var('SNOWFLAKE_DBT_ROLE', 'SUPERSTORE_DBT_ROLE') }}"
       database: "{{ env_var('SNOWFLAKE_DB', 'SUPERSTORE_DB') }}"
       warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'COMPUTE_WH') }}"
       schema: "{{ env_var('DBT_SCHEMA', 'ANALYTIC_LAYER') }}"

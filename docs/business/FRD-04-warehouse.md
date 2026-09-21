@@ -83,7 +83,7 @@ flowchart TD
 |---|---|---|---|---|---|
 | 1 | Operator | Nhận thông báo hàng đến từ Purchasing | Inventory → Receipts → filter PO | `stock_picking` đang waiting | Chuẩn bị nhận |
 | 2 | Operator | Kiểm đếm hàng, đối chiếu packing list | — | — | Phát hiện thiếu/thừa/hỏng |
-| 3 | Operator | Nhập số lượng thực nhận | Receipt → Done qty cột | `stock_move.quantity_done` | Qty done cập nhật |
+| 3 | Operator | Nhập số lượng thực nhận | Receipt → Quantity/Done | `stock_move.quantity` | Số lượng thực hiện cập nhật |
 | 4 | Supervisor | Validate Receipt | Receipt → Validate | `stock_move.state` = `done` | `stock_quant` tăng |
 | 5 | Operator | Cất hàng vào vị trí kệ (putaway) | Inventory → Move → Put in location | `stock_move` internal | Đúng vị trí |
 
@@ -156,10 +156,13 @@ Khách báo sai hàng → CS tạo Return Order → Kho nhận hàng về, valid
 | `stock_picking` | Phiếu nhận/xuất/chuyển (header) | Transaction |
 | `stock_move` | Từng lần di chuyển hàng | Transaction → **fact_inventory_movement** |
 | `stock_quant` | Tồn kho thực tế hiện tại (derived) | Snapshot |
-| `stock_move_line` | Chi tiết move theo serial/lot | Transaction |
+| `stock_valuation_layer` | Số lượng và giá trị tồn theo valuation layer | Transaction → **fact_inventory_valuation** |
+| `delivery_carrier` | Phương thức/carrier của phiếu giao | Master → enrich **fact_inventory_movement** |
 
 **Phân tích downstream:**
 - `stock_move` (done) → `fact_inventory_movement`
-- Phân tích: tồn kho theo kho × SKU × ngày (historical), inventory turns, shrinkage rate
+- `stock_quant` → snapshot hằng ngày `fact_inventory_balance`
+- `stock_valuation_layer` → `fact_inventory_valuation`
+- Phân tích: tồn kho theo kho × SKU × ngày, giá trị tồn còn lại và biến động kho
 - Delivery performance: ngày giao thực tế vs ngày hẹn (SLA breach analysis)
 - Inter-warehouse transfer frequency (kho nào thường xuyên thiếu/dư)

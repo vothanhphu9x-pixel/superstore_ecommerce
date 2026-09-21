@@ -1,0 +1,17 @@
+# Airflow runtime dependencies.
+# Keep these compatible with apache/airflow:2.9.3 (Python 3.12).
+# dbt is isolated in requirements-dbt.txt.
+
+# CDC
+python-dotenv==1.0.1
+requests==2.32.3
+
+# Consumer
+boto3==1.34.131
+botocore==1.34.131
+fastparquet==2025.12.0
+pandas==2.1.4
+confluent-kafka==2.5.0
+
+# Snowflake runtime used by Airflow Python tasks
+snowflake-connector-python[pandas]==3.11.0

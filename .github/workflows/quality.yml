@@ -30,17 +30,29 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
+      - name: Detect implemented backend
+        id: backend
+        run: |
+          if [ -f RAG_CHATBOT/requirements.txt ] && [ -d RAG_CHATBOT/tests ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Backend not implemented; skipping its build and tests."
+          fi
       - uses: actions/setup-python@v6
+        if: steps.backend.outputs.available == 'true'
         with:
           python-version: "3.13"
           cache: pip
           cache-dependency-path: RAG_CHATBOT/requirements.txt
       - name: Install CPU-only Python dependencies
+        if: steps.backend.outputs.available == 'true'
         run: |
           python -m pip install --upgrade pip
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
           python -m pip install -r RAG_CHATBOT/requirements.txt
       - name: Run unit tests
+        if: steps.backend.outputs.available == 'true'
         working-directory: RAG_CHATBOT
         run: python -m pytest tests/ -q
 
@@ -54,18 +66,32 @@ jobs:
       NEXT_PUBLIC_PRODUCT_IMAGE_BASE: http://127.0.0.1:9000/product-images
     steps:
       - uses: actions/checkout@v6
+      - name: Detect implemented frontend
+        id: frontend
+        run: |
+          if [ -f RAG_CHATBOT/frontend/package.json ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Frontend not implemented; skipping its build and checks."
+          fi
       - uses: actions/setup-node@v6
+        if: steps.frontend.outputs.available == 'true'
         with:
           node-version: "24"
           cache: npm
           cache-dependency-path: RAG_CHATBOT/frontend/package-lock.json
       - working-directory: RAG_CHATBOT/frontend
+        if: steps.frontend.outputs.available == 'true'
         run: npm ci
       - working-directory: RAG_CHATBOT/frontend
+        if: steps.frontend.outputs.available == 'true'
         run: npm run lint
       - working-directory: RAG_CHATBOT/frontend
+        if: steps.frontend.outputs.available == 'true'
         run: npx tsc --noEmit
       - working-directory: RAG_CHATBOT/frontend
+        if: steps.frontend.outputs.available == 'true'
         run: npm run build
 
   configuration:
@@ -76,7 +102,7 @@ jobs:
       SNOWFLAKE_ACCOUNT: ci-placeholder
       SNOWFLAKE_USER: ci-placeholder
       SNOWFLAKE_PASSWORD: ci-placeholder
-      SNOWFLAKE_ROLE: ACCOUNTADMIN
+      SNOWFLAKE_DBT_ROLE: SUPERSTORE_DBT_ROLE
       SNOWFLAKE_DB: SUPERSTORE_DB
       SNOWFLAKE_WAREHOUSE: COMPUTE_WH
       DBT_SCHEMA: ANALYTIC_LAYER
@@ -93,6 +119,10 @@ jobs:
           cp RAG_CHATBOT/frontend/.env.example RAG_CHATBOT/frontend/.env.local
       - name: Validate Docker Compose
         run: docker compose --env-file data_platform/.env.example -f data_platform/docker-compose.yml config --quiet
+      - name: Validate Python and DE source contract
+        run: |
+          python -m compileall -q data_platform scripts
+          python scripts/check_de_pipeline_contract.py
       - name: Install dbt
         run: python -m pip install "dbt-snowflake==1.11.3"
       - name: Prepare secret-free dbt profile

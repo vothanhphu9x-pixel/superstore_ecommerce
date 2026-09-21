@@ -1,0 +1,973 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram name="Trang-1" id="5_-wM8BzXT1GXMNIAf7V">
+    <mxGraphModel dx="1058" dy="629" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="2336" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=13;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="Sơ đồ 4 lớp dbt — Staging → Silver → Gold → Mart: lineage theo TỪNG bảng" vertex="1">
+          <mxGeometry height="26" width="1160" x="20" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;align=left;verticalAlign=top;fillColor=none;strokeColor=none;fontColor=#5f5e5a;" value="v2.5 · 2026-09-15 · 44 bảng Odoo CDC + 4 CSV production. Bronze là vùng landing trước dbt; Snapshot là nhánh lịch sử thuộc Silver. Bốn lớp biến đổi: Layer 1 Staging → Layer 2 Silver/Snapshot → Layer 3 Gold → Layer 4 Mart." vertex="1">
+          <mxGeometry height="28" width="1160" x="20" y="46" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#5f5e5a;" value="LAYER 1 · STAGING (Nguồn/Bronze → typed)" vertex="1">
+          <mxGeometry height="16" width="190" x="180" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#5f5e5a;" value="LAYER 2A · SNAPSHOT (SCD2 helper)" vertex="1">
+          <mxGeometry height="16" width="190" x="390" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#5f5e5a;" value="LAYER 2B · SILVER (clean + enrich)" vertex="1">
+          <mxGeometry height="16" width="200" x="560" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-6" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#5f5e5a;" value="LAYER 3 · GOLD (dim / fact)" vertex="1">
+          <mxGeometry height="16" width="200" x="780" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-7" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#5f5e5a;" value="LAYER 4 · MART (KPI aggregate)" vertex="1">
+          <mxGeometry height="16" width="200" x="1000" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-8" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FBFBFA;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="118" width="1240" y="106" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-9" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="CUSTOMER" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="res_partner&lt;br&gt;↓ stg_res_partner" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=5.6;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=1;" value="res_partner_category · res_partner_res_partner_category_rel&lt;br&gt;res_country · res_country_state&lt;br&gt;↓ stg_res_partner_category · stg_res_partner_res_partner_category_rel&lt;br&gt;stg_res_country · stg_res_country_state" vertex="1">
+          <mxGeometry height="36" width="190" x="180" y="166" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#e6f1fb;strokeColor=#185FA5;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="snap_res_partner&lt;br&gt;(SCD2, key=partner_id)" vertex="1">
+          <mxGeometry height="32" width="150" x="390" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-13" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=7.8;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="sil_customer_enriched&lt;br&gt;partner_type từ customer_rank/supplier_rank&lt;br&gt;+ tags · country · state" vertex="1">
+          <mxGeometry height="32" width="200" x="560" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-14" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="dim_customer&lt;br&gt;(core, SCD2 + is_current)" vertex="1">
+          <mxGeometry height="32" width="200" x="780" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-15" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="SCD2 MERGE theo dbt_scd_id; partner thay đổi sẽ reload toàn bộ version để cập nhật version cũ vừa đóng" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="205" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-16" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2EF;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="156" width="1240" y="232" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-17" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="PRODUCT" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="236" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-18" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="product_template&lt;br&gt;↓ stg_product_template" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="254" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-19" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="product_product&lt;br&gt;↓ stg_product_product" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="292" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-20" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="product_category · uom_uom&lt;br&gt;↓ stg_product_category · stg_uom_uom" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-21" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#e6f1fb;strokeColor=#185FA5;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="snap_product_template&lt;br&gt;(SCD2 list_price/write_date)" vertex="1">
+          <mxGeometry height="32" width="150" x="390" y="254" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-22" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=7.8;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="sil_product_enriched&lt;br&gt;FK product_tmpl_id · categ_id · uom_id/uom_po_id" vertex="1">
+          <mxGeometry height="32" width="200" x="560" y="254" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-23" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="dim_product&lt;br&gt;(core, SCD2 + is_current)" vertex="1">
+          <mxGeometry height="32" width="200" x="780" y="254" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-24" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="product_version_id = hash(dbt_scd_id, product_id); standard_price là enrichment từ product_product hiện hành" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="369" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-25" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FBFBFA;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="194" width="1240" y="396" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-26" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="HR" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-27" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="hr_employee&lt;br&gt;↓ stg_hr_employee" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="418" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-28" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="hr_contract&lt;br&gt;↓ stg_hr_contract" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="456" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-29" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="hr_department · hr_job&lt;br&gt;↓ stg_hr_department · stg_hr_job" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="494" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-30" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#a68b1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="res_users&lt;br&gt;↓ stg_res_users" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="532" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-31" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#e6f1fb;strokeColor=#185FA5;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="snap_hr_contract&lt;br&gt;(SCD2 contract fields)" vertex="1">
+          <mxGeometry height="32" width="150" x="390" y="418" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-32" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=7.8;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="sil_employee_enriched&lt;br&gt;FK contract.employee_id; employee.department_id/job_id/user_id" vertex="1">
+          <mxGeometry height="32" width="200" x="560" y="418" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-33" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="dim_employee&lt;br&gt;(core, SCD2 contract)" vertex="1">
+          <mxGeometry height="32" width="200" x="780" y="418" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-34" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="[+] res_users: cầu nối sale_order.user_id → hr_employee.id ⇒ cứu dim_employee khỏi mồ côi" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="571" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-35" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2EF;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="64" width="1240" y="598" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-36" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="WAREHOUSE" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="602" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-37" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="stock_warehouse&lt;br&gt;↓ stg_stock_warehouse" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-38" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="dim_warehouse&lt;br&gt;(core, static)" vertex="1">
+          <mxGeometry height="32" width="200" x="780" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-400" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#F8F9FA;strokeColor=#CCCCCC;fontColor=#888888;fontStyle=2;spacing=3;" value="Không có Silver riêng&lt;br&gt;Staging → Gold (SCD1)" vertex="1">
+          <mxGeometry height="32" width="200" x="560" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-39" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FBFBFA;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="64" width="1240" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-40" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="MFG WORK CENTER" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="674" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-41" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="mrp_workcenter&lt;br&gt;↓ stg_mrp_workcenter" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="692" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-42" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="dim_workcenter&lt;br&gt;(core, static)" vertex="1">
+          <mxGeometry height="32" width="200" x="780" y="692" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-401" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#F8F9FA;strokeColor=#CCCCCC;fontColor=#888888;fontStyle=2;spacing=3;" value="Không có Silver riêng&lt;br&gt;Staging → Gold (SCD1)" vertex="1">
+          <mxGeometry height="32" width="200" x="560" y="692" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-43" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2EF;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="118" width="1240" y="742" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-44" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="MARKETING CAMPAIGN" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="746" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-45" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#a68b1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="utm_campaign&lt;br&gt;↓ stg_utm_campaign" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="764" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-46" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8.5;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="dim_campaign&lt;br&gt;NK: campaign_id = utm_campaign.id" vertex="1">
+          <mxGeometry height="32" width="200" x="780" y="764" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-300" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8.5;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#a68b1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="marketing_campaigns_master.csv&lt;br&gt;campaign_id → utm_campaign.id&lt;br&gt;↓ stg_marketing_campaigns_master" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="802" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-301" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=2.2;fontColor=#1a1a18;spacing=3;" value="[+] sil_campaign_enriched&lt;br&gt;CSV campaign_id = utm_campaign.id (không JOIN tên)" vertex="1">
+          <mxGeometry height="32" width="200" x="560" y="764" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-302" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="[~] dim_campaign dùng một NK hợp nhất: CSV campaign_id = Odoo utm_campaign.id; không JOIN theo campaign_name" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="841" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-303" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-45" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-301" value="CSV campaign_id = utm_campaign.id (KHÔNG join tên)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-304" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-300" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-301" value="batch import">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-305" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-301" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-46" value="conformed NK campaign_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-47" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FBFBFA;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="118" width="1240" y="868" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-48" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="MARKETING CHANNEL" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="872" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-49" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#a68b1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=3;" value="utm_medium · utm_source&lt;br&gt;↓ stg_utm_medium · stg_utm_source" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="890" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-50" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#a68b1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="marketing_campaigns_master.csv (cột channels)&lt;br&gt;chuẩn hóa qua stg_marketing_campaigns_master → sil_channel_enriched" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="928" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-51" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=2.2;fontColor=#1a1a18;spacing=3;" value="sil_channel_enriched&lt;br&gt;utm_medium + utm_source + CSV channel_code crosswalk" vertex="1">
+          <mxGeometry height="32" width="200" x="560" y="890" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-52" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="[+] dim_channel&lt;br&gt;(core) — conformed qua 6 fact&lt;br&gt;NK: channel_code varchar" vertex="1">
+          <mxGeometry height="32" width="200" x="780" y="890" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-53" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value=" " vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="967" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-54" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2EF;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="80" width="1240" y="994" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-55" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="CALENDAR" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="998" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-56" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="dim_date&lt;br&gt;(core, generate SQL macro 2020-2030)" vertex="1">
+          <mxGeometry height="32" width="200" x="780" y="1016" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-402" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#F8F9FA;strokeColor=#CCCCCC;fontColor=#888888;fontStyle=2;spacing=3;" value="Không có Silver riêng&lt;br&gt;dim_date được sinh tại Gold" vertex="1">
+          <mxGeometry height="32" width="200" x="560" y="1016" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-57" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="Không có bảng nguồn CDC" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="1055" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-58" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FBFBFA;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="118" width="1240" y="1082" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-59" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="SALES" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="1086" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-60" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="sale_order&lt;br&gt;↓ stg_sale_order" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="1104" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-61" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="sale_order_line&lt;br&gt;↓ stg_sale_order_line" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="1142" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-62" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="sil_order_lines_enriched&lt;br&gt;revenue_amount = qty×price×(1-disc%)&lt;br&gt;+ is_return, return_of_order_id" vertex="1">
+          <mxGeometry height="32" width="200" x="560" y="1104" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-63" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=7.4;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="fact_sales · grain=sale_order_line.id&lt;br&gt;line.order_id/product_id; order.partner_id/warehouse_id/user_id&lt;br&gt;order.campaign_id/medium_id/source_id → conformed dims" vertex="1">
+          <mxGeometry height="62" width="200" x="780" y="1089" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-64" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#f6e9c9;strokeColor=#8a6d1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="[+] mart_revenue_monthly&lt;br&gt;agg region×category×month&lt;br&gt;revenue, cogs, gross_profit (tử+mẫu, KHÔNG _pct)" vertex="1">
+          <mxGeometry height="60" width="200" x="1000" y="1089" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-65" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="[~] revenue_net → revenue_amount (§2.2) · gỡ gross_margin_pct khỏi fact, tính ở mart/DAX" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="1181" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-66" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2EF;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="64" width="1240" y="1208" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-67" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="CRM" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="1212" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-68" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=7.8;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="crm_lead · crm_stage · crm_lost_reason&lt;br&gt;↓ stg_crm_lead · stg_crm_stage · stg_crm_lost_reason" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="1230" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-403" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="sil_crm_lead_enriched&lt;br&gt;latest lead + source_version_key" vertex="1">
+          <mxGeometry height="32" width="200" x="560" y="1230" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-69" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=7.6;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="fact_crm_funnel · grain=crm_lead.id&lt;br&gt;FK stage_id/lost_reason_id/partner_id/campaign_id/medium_id/source_id&lt;br&gt;JOIN dim_customer·dim_date·dim_campaign·dim_channel" vertex="1">
+          <mxGeometry height="32" width="200" x="780" y="1230" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-70" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FBFBFA;strokeColor=none;" value=" " vertex="1">
+          <mxGeometry height="118" width="1240" y="1280" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-71" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="PURCHASING" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="1284" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-72" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="purchase_order&lt;br&gt;↓ stg_purchase_order" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="1302" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-73" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="purchase_order_line&lt;br&gt;↓ stg_purchase_order_line" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="1340" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-404" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="sil_purchase_order_lines_enriched&lt;br&gt;PO line + order header&lt;br&gt;+ source_version_key" vertex="1">
+          <mxGeometry height="50" width="200" x="560" y="1302" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-74" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=7.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="fact_purchase · grain=purchase_order_line.id&lt;br&gt;line.order_id/product_id; order.partner_id/user_id&lt;br&gt;warehouse qua stock_move.purchase_line_id→line.id + stock_move.warehouse_id" vertex="1">
+          <mxGeometry height="51" width="200" x="780" y="1293" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-75" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#f6e9c9;strokeColor=#8a6d1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="[+] mart_vendor_performance&lt;br&gt;agg vendor×month&lt;br&gt;qty_received/product_qty, late_count" vertex="1">
+          <mxGeometry height="50" width="200" x="1000" y="1293" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-76" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="[~] gỡ fill_rate khỏi fact → mart giữ qty_received + product_qty, fill_rate_pct tính ở mart" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="1379" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-77" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2EF;strokeColor=none;" value="&amp;nbsp;&amp;nbsp; " vertex="1">
+          <mxGeometry height="156" width="1240" y="1406" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-78" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="INVENTORY MOVEMENT" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="1410" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-79" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="stock_move&lt;br&gt;↓ stg_stock_move" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="1428" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-80" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8.5;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="stock_picking · delivery_carrier&lt;br&gt;↓ stg_stock_picking · stg_delivery_carrier" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="1466" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-81" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="stock_location&lt;br&gt;↓ stg_stock_location" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="1504" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-82" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=7.8;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="sil_stock_movement_enriched&lt;br&gt;FK picking_id · product_id · warehouse_id&lt;br&gt;location_id/location_dest_id; movement_type qua usage" vertex="1">
+          <mxGeometry height="32" width="200" x="560" y="1428" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-83" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8.5;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="fact_inventory_movement&lt;br&gt;grain=1 stock_move (done)&lt;br&gt;+ sale/purchase line IDs + picking SLA&lt;br&gt;JOIN dim_product·warehouse·location(×2)" vertex="1">
+          <mxGeometry height="46" width="200" x="780" y="1420" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-84" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#f6e9c9;strokeColor=#8a6d1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="mart_delivery_performance&lt;br&gt;agg picking×month×ship_mode&lt;br&gt;on_time_count + total (tử+mẫu)" vertex="1">
+          <mxGeometry height="46" width="200" x="1000" y="1421" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-85" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="[~] on_time_rate → giữ on_time_count + total_deliveries ở mart; on_time_pct là measure · [+] dim_location (src/dest) thay origin_location/dest_location degenerate" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="1543" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-86" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FBFBFA;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="80" width="1240" y="1570" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-87" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="INVENTORY VALUATION" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="1574" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-88" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="stock_valuation_layer&lt;br&gt;↓ stg_stock_valuation_layer" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="1592" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-350" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="sil_stock_valuation_enriched&lt;br&gt;+ stock_move src/dest location" vertex="1">
+          <mxGeometry height="32" width="200" x="560" y="1592" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-89" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="fact_inventory_valuation&lt;br&gt;grain=1 valuation event&lt;br&gt;running inventory value" vertex="1">
+          <mxGeometry height="32" width="200" x="780" y="1592" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-90" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="Giữ remaining_qty + remaining_value_amount; location nối qua stock_move.location_id/location_dest_id" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="1631" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-91" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2EF;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="118" width="1240" y="1658" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-92" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="INVENTORY BALANCE" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="1662" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-93" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="stock_quant&lt;br&gt;↓ stg_stock_quant" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="1680" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-94" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="fact_inventory_balance&lt;br&gt;grain=1 product×location×ngày&lt;br&gt;quantity − reserved = available&lt;br&gt;⚠️ incremental, KHÔNG full-refresh" vertex="1">
+          <mxGeometry height="48" width="200" x="780" y="1664" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-405" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#F8F9FA;strokeColor=#CCCCCC;fontColor=#888888;fontStyle=2;spacing=3;" value="Không có Silver riêng&lt;br&gt;stock_quant live → Gold daily snapshot" vertex="1">
+          <mxGeometry height="40" width="200" x="560" y="1680" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-95" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="[+] dim_location&lt;br&gt;location_sk, usage, warehouse_sk&lt;br&gt;(thay location_name degenerate)" vertex="1">
+          <mxGeometry height="46" width="200" x="780" y="1718" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-96" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="Rerun cùng ngày dùng delete+insert; quant biến mất được ghi balance=0, không giữ số dư stale" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="1757" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-97" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FBFBFA;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="194" width="1240" y="1784" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-98" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="ACCOUNTING JOURNAL" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="1788" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-249" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-99" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="hsMrwj-C6JGUcgIdwQ7A-112">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="1834.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-99" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="account_move&lt;br&gt;↓ stg_account_move" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="1806" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-100" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="account_move_line&lt;br&gt;↓ stg_account_move_line" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="1844" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-101" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#a68b1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="account_account&lt;br&gt;↓ stg_account_account" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="1882" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-102" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#a68b1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="account_journal&lt;br&gt;↓ stg_account_journal" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="1920" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-406" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="sil_journal_entries_enriched&lt;br&gt;+ sil_customer_invoices_enriched&lt;br&gt;move + line + account + journal" vertex="1">
+          <mxGeometry height="58" width="200" x="560" y="1806" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-103" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="fact_journal_entries · grain=1 account_move_line&lt;br&gt;fact_customer_invoice · grain=1 customer invoice&lt;br&gt;JOIN: dim_date · dim_customer · dim_account · dim_journal&lt;br&gt;test: Σdebit = Σcredit" vertex="1">
+          <mxGeometry height="54" width="200" x="780" y="1795" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-104" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="[+] dim_account&lt;br&gt;CoA: account_code, internal_group,&lt;br&gt;report_line (→ sinh P&amp;L / BS tự động)" vertex="1">
+          <mxGeometry height="32" width="200" x="780" y="1876" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-105" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="[+] dim_journal&lt;br&gt;journal_code, journal_type" vertex="1">
+          <mxGeometry height="32" width="200" x="780" y="1920" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-106" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#f6e9c9;strokeColor=#8a6d1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="[+] mart_pnl_monthly&lt;br&gt;agg report_line×month&lt;br&gt;Revenue / COGS / OpEx / Net Income" vertex="1">
+          <mxGeometry height="32" width="200" x="1020" y="1806" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-107" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="[+] dim_account.report_line là cột cho phép sinh Báo cáo KQKD / CĐKT tự động — điểm mạnh nền kế toán" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="1959" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-108" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2EF;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="118" width="1240" y="1986" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-109" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="ACCOUNTING PAYMENT" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="1990" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-110" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="account_payment&lt;br&gt;↓ stg_account_payment" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="2008" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-111" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="account_partial_reconcile&lt;br&gt;↓ stg_account_partial_reconcile" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="2046" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-112" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=7.7;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="sil_invoice_payment_status&lt;br&gt;APR debit_move_id/credit_move_id → AML.id&lt;br&gt;phân vai invoice/payment theo account_type + payment_id" vertex="1">
+          <mxGeometry height="32" width="200" x="560" y="2008" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-113" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=7.8;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="[~] fact_payment_allocation&lt;br&gt;grain=account_partial_reconcile.id&lt;br&gt;1 debit AML × 1 credit AML; hỗ trợ AR/AP&lt;br&gt;không giả định mọi reconcile đều là payment×invoice" vertex="1">
+          <mxGeometry height="56" width="200" x="780" y="2008" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-114" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#f6e9c9;strokeColor=#8a6d1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="mart_ar_aging&lt;br&gt;agg customer×snapshot_date&lt;br&gt;bucket 0-30/31-60/61-90/&amp;gt;90" vertex="1">
+          <mxGeometry height="32" width="200" x="1000" y="2008" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-115" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#f6e9c9;strokeColor=#8a6d1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="[+] mart_dso_monthly&lt;br&gt;agg customer×month&lt;br&gt;DSO weighted by allocated_amount" vertex="1">
+          <mxGeometry height="38" width="200" x="1000" y="2046" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-116" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="fact_payment_allocation giữ đúng grain 1 account_partial_reconcile; AR Aging đọc fact_customer_invoice, DSO đọc allocation" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="2085" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-117" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FBFBFA;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="80" width="1240" y="2112" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-118" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="MANUFACTURING PRODUCTION" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="2116" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-119" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="mrp_production · mrp_bom&lt;br&gt;↓ stg_mrp_production · stg_mrp_bom" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="2134" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-352" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="sil_manufacturing_enriched&lt;br&gt;+ workorder qty + scrap" vertex="1">
+          <mxGeometry height="32" width="200" x="560" y="2134" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-120" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=7.8;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="fact_manufacturing · grain=mrp_production.id (done)&lt;br&gt;FK product_id→product_product.id; bom_id→mrp_bom.id&lt;br&gt;JOIN dim_product·dim_date·dim_warehouse" vertex="1">
+          <mxGeometry height="52" width="200" x="780" y="2126" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-121" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="[~] gỡ yield_rate &amp; scrap_rate khỏi fact — chỉ giữ qty_produced + scrap_qty (additive)" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="2173" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-122" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2EF;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="156" width="1240" y="2200" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-123" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="MANUFACTURING OEE" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="2204" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-124" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="mrp_workorder&lt;br&gt;↓ stg_mrp_workorder" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="2222" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-125" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="stock_scrap&lt;br&gt;↓ stg_stock_scrap" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="2260" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-126" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=7.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=2;" value="mrp_workcenter_productivity · mrp_workcenter_productivity_loss&lt;br&gt;↓ stg_mrp_workcenter_productivity · stg_mrp_workcenter_productivity_loss" vertex="1">
+          <mxGeometry height="32" width="190" x="180" y="2298" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-127" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=7.5;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="sil_workorder_enriched&lt;br&gt;+ sil_oee_blocks_enriched&lt;br&gt;productivity ↔ workorder; OEE enrich từ sil_manufacturing" vertex="1">
+          <mxGeometry height="48" width="200" x="560" y="2222" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-128" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="fact_workorder&lt;br&gt;grain=1 mrp_workorder (done)&lt;br&gt;JOIN: dim_workcenter · dim_date&lt;br&gt;KHÔNG PHẢI fact OEE, xem fact bên dưới" vertex="1">
+          <mxGeometry height="50" width="200" x="780" y="2204" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-129" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=7.5;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="fact_manufacturing_oee · grain=productivity.id&lt;br&gt;FK workorder_id/loss_id/workcenter_id&lt;br&gt;qty MO lặp theo block; Mart khử lặp trước Quality" vertex="1">
+          <mxGeometry height="54" width="200" x="780" y="2260" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-130" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#f6e9c9;strokeColor=#8a6d1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="mart_oee_by_workcenter_monthly&lt;br&gt;agg workcenter×month&lt;br&gt;OEE = Availability × Performance × Quality&lt;br&gt;(Quality từ fact_manufacturing theo MO)" vertex="1">
+          <mxGeometry height="50" width="200" x="1010" y="2204" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-131" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="sil_workorder_enriched + sil_oee_blocks_enriched; Mart khử lặp quantity theo MO trước khi tính Quality" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="2337" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-132" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FBFBFA;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="80" width="1240" y="2364" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-133" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="MARKETING AD SPEND" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="2368" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-134" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="ad_performance_daily.csv&lt;br&gt;3.315 dòng · date×campaign_id×channel&lt;br&gt;↓ stg_ad_performance_daily" vertex="1">
+          <mxGeometry height="54" width="190" x="180" y="2371" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-407" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="sil_ad_performance_daily_enriched&lt;br&gt;latest full batch" vertex="1">
+          <mxGeometry height="42" width="200" x="560" y="2377" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-135" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="fact_ad_spend&lt;br&gt;grain=1 campaign×date×channel&lt;br&gt;JOIN dim_campaign (campaign_id) + dim_channel&lt;br&gt;spend_amount, impressions, clicks (KHÔNG ctr)" vertex="1">
+          <mxGeometry height="70" width="200" x="780" y="2367" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-136" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#f6e9c9;strokeColor=#8a6d1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="mart_roas_by_channel&lt;br&gt;agg channel×month&lt;br&gt;revenue + spend + new_customers (tử+mẫu)" vertex="1">
+          <mxGeometry height="32" width="200" x="1000" y="2374" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-137" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="stg_ad_performance_daily giữ grain daily; Fact giữ measures cộng được, Mart tính lại ratio từ tổng" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="2425" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-138" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2EF;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="80" width="1240" y="2452" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-139" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="MARKETING EMAIL" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="2456" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-140" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="email_campaigns.csv&lt;br&gt;400 dòng · 1 row=email_id&lt;br&gt;↓ stg_email_campaigns" vertex="1">
+          <mxGeometry height="42" width="190" x="180" y="2464" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-408" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="sil_email_campaigns_enriched&lt;br&gt;latest full batch" vertex="1">
+          <mxGeometry height="42" width="200" x="560" y="2464" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-141" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="[~] fact_email_campaign&lt;br&gt;grain=1 email (email_id) — KHÔNG aggregate&lt;br&gt;⇒ bản chất là fact, không phải mart" vertex="1">
+          <mxGeometry height="32" width="200" x="780" y="2474" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-142" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#f6e9c9;strokeColor=#8a6d1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="mart_email_performance&lt;br&gt;agg channel×month&lt;br&gt;sent/open/click/bounce count (tử+mẫu)" vertex="1">
+          <mxGeometry height="42" width="200" x="1000" y="2469" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-143" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="email_campaigns.csv → fact_email_campaign → mart_email_performance; nguồn email độc lập với module Odoo Mail Marketing" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="2513" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-144" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FBFBFA;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="80" width="1240" y="2540" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-145" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="CUSTOMER ACQUISITION" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="2544" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-146" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8.5;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="customer_acquisition_source.csv&lt;br&gt;(legacy — giữ trên sơ đồ, KHÔNG ingest)&lt;br&gt;Nguồn thật: fact_sales + dim_customer + fact_ad_spend" vertex="1">
+          <mxGeometry height="40" width="190" x="180" y="2554" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-409" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#F8F9FA;strokeColor=#CCCCCC;fontColor=#888888;fontStyle=2;spacing=3;" value="Không có Silver riêng&lt;br&gt;derive từ Gold facts" vertex="1">
+          <mxGeometry height="40" width="200" x="560" y="2554" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-147" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="fact_customer_acquisition&lt;br&gt;grain=1 commercial customer&lt;br&gt;first order + CAC + LTV thực tế" vertex="1">
+          <mxGeometry height="32" width="200" x="780" y="2562" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-148" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#f6e9c9;strokeColor=#8a6d1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="mart_customer_acquisition&lt;br&gt;agg channel×month&lt;br&gt;SUM(ltv) + SUM(cac) → ltv_cac_ratio" vertex="1">
+          <mxGeometry height="32" width="200" x="1000" y="2562" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-149" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="First confirmed order quyết định acquisition cohort/channel; Mart tính SUM(LTV)/SUM(CAC), không AVG ratio" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="2601" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-150" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2EF;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="80" width="1240" y="2628" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-151" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="A/B TEST" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="2632" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-152" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="ab_test_results.csv&lt;br&gt;85 dòng · 1 row=variant_id&lt;br&gt;↓ stg_ab_test" vertex="1">
+          <mxGeometry height="38" width="190" x="180" y="2644" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-410" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=1.1;fontColor=#1a1a18;spacing=3;" value="sil_ab_test_enriched&lt;br&gt;latest full batch" vertex="1">
+          <mxGeometry height="38" width="200" x="560" y="2644" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-153" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="fact_ab_test&lt;br&gt;grain=1 test×variant&lt;br&gt;is_winner, conversion_count, spend_amount&lt;br&gt;JOIN: dim_date(×2)·dim_channel·dim_campaign" vertex="1">
+          <mxGeometry height="32" width="200" x="780" y="2650" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-154" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="is_winner = cờ có sẵn trong CSV, KHÔNG tự tính lại significance · [~] cpa_usd → cpa_amount" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="2689" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-155" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FBFBFA;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="80" width="1240" y="2716" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-156" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="MARKETING FUNNEL" vertex="1">
+          <mxGeometry height="18" width="150" x="20" y="2720" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-157" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="Ads + CRM + linked Sales + Customer Acquisition&lt;br&gt;marketing_funnel_monthly.csv = legacy, KHÔNG ingest" vertex="1">
+          <mxGeometry height="46" width="190" x="180" y="2724" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-411" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8;align=center;verticalAlign=middle;fillColor=#F8F9FA;strokeColor=#CCCCCC;fontColor=#888888;fontStyle=2;spacing=3;" value="Không có Silver riêng&lt;br&gt;derive từ Gold facts" vertex="1">
+          <mxGeometry height="40" width="200" x="560" y="2727" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-158" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9.2;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="fact_marketing_funnel&lt;br&gt;grain=month×channel&lt;br&gt;platform metrics + Odoo CRM/Sales actuals" vertex="1">
+          <mxGeometry height="46" width="200" x="780" y="2724" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-159" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="Không ingest CSV funnel synthetic · conversions/revenue chỉ từ sale_order có opportunity_id nối đúng crm_lead.id" vertex="1">
+          <mxGeometry height="14" width="1150" x="20" y="2777" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-160" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-12" value="SCD2 unique_key=id · updated_at=write_date">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-161" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-13" value="SCD2 history">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-162" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-13" value="rel.partner_id/category_id; partner.country_id/state_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-163" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-14" value="MERGE dbt_scd_id · full history">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-164" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-21" value="SCD2 unique_key=id · updated_at=write_date">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-165" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-22" value="SCD2 history">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-166" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-22" value="product_product.product_tmpl_id → product_template.id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-167" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-22" value="template.categ_id; template.uom_id/uom_po_id → lookup.id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-168" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-23" value="MERGE product_version_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-169" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-31" value="employee/wage/dates/state">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-170" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-31" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-32" value="SCD2 history">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-171" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-32" value="hr_contract.employee_id → hr_employee.id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-172" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-29" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-32" value="employee.department_id/job_id → lookup.id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-173" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-30" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-32" value="hr_employee.user_id → res_users.id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-174" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-32" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-33" value="current contract">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-175" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-37" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-38" value="NK warehouse_id = stock_warehouse.id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-176" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-41" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-42" value="NK workcenter_id = mrp_workcenter.id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-178" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-49" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-51" value="Odoo medium_id/source_id → UTM id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-179" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-50" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-51" value="crosswalk channel_code chuẩn hóa">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-180" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-51" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-52" value="conformed dim">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-181" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-60" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-62" value="sale_order_line.order_id → sale_order.id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-182" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-62" value="grain=line.id; product_id → product_product.id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-183" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-62" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;exitX=0.619;exitY=1.049;exitDx=0;exitDy=0;exitPerimeter=0;" target="hsMrwj-C6JGUcgIdwQ7A-63" value="join core dims">
+          <mxGeometry relative="1" x="0.0376" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="683.83" y="1174.03" />
+              <mxPoint x="860" y="1174.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-184" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-63" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-64" value="GROUP BY month, region, category">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="880" y="1174.03" />
+              <mxPoint x="1100" y="1174.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-185" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-68" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-69" value="stg_crm_stage/lost_reason → Gold lookup">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-186" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-72" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-404" value="order header">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-187" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-73" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-404" value="grain=line.id; line.order_id→order.id">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="640" y="1356.03" />
+              <mxPoint x="640" y="1318.49" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-188" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-74" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-75" value="GROUP BY vendor, month">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="880" y="1374.03" />
+              <mxPoint x="1100" y="1374.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-189" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-79" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-82" value="grain=stock_move.id; product_id/warehouse_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-190" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-80" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-82" value="move.picking_id→picking.id; picking.carrier_id→carrier.id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-191" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-81" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-82" value="move.location_id/location_dest_id → location.id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-192" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-82" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-83" value="join core dims">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="670" y="1484.03" />
+              <mxPoint x="880" y="1484.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-193" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-83" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-84" value="GROUP BY month, warehouse">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="900" y="1484.03" />
+              <mxPoint x="1100" y="1484.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-194" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-88" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-350" value="stock_move_id→stock_move.id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-195" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-93" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-94" value="quant.product_id/location_id → dimension NK; daily snapshot">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-196" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-81" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-95" value="JOIN location_id (cross-lane)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="710" y="1520.03" />
+              <mxPoint x="710" y="1741" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-197" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-95" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-94" value="FK location_sk">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1030" y="1744.03" />
+              <mxPoint x="1030" y="1688.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-198" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-99" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-406" value="move header / invoice">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-199" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-100" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-406" value="grain=aml.id">
+          <mxGeometry relative="1" x="-0.0268" y="-2" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="620" y="1860.03" />
+              <mxPoint x="620" y="1822.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-200" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-101" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-104" value="+ seed CoA mapping">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-201" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-102" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-105" value="NK journal_id=id; business key=code">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-202" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-104" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-103" value="FK account_sk">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="790" y="1864.03" />
+              <mxPoint x="880" y="1864.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-203" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-105" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-103" value="FK journal_sk">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1010" y="1936.03" />
+              <mxPoint x="1010" y="1822.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-204" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-103" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-106" value="GROUP BY report_line, month">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="950" y="1864.03" />
+              <mxPoint x="1120" y="1864.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-205" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-111" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-112" value="apr.debit_move_id/credit_move_id → account_move_line.id">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="520" y="2064.0299999999997" />
+              <mxPoint x="520" y="2024.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-206" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-100" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-112" value="aml.move_id→account_move.id; aml.payment_id→payment.id">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="1874.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-207" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-110" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="hsMrwj-C6JGUcgIdwQ7A-112" value="account_payment.move_id → account_move.id">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-208" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-112" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-113" value="JOIN invoice_date, invoice_amount">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="680" y="2084.0299999999997" />
+              <mxPoint x="880" y="2084.0299999999997" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-209" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-103" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-114" value="fact_customer_invoice outstanding_amount &amp;gt; 0">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="880" y="1994.03" />
+              <mxPoint x="1090" y="1994.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-210" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-113" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-115" value="SUM(dso×amount)/SUM(amount)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="910" y="2094.0299999999997" />
+              <mxPoint x="1090" y="2094.0299999999997" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-211" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-119" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-352" value="production.id + workorder.production_id + scrap.production_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-212" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-124" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-127" value="workorder.production_id/workcenter_id → parent.id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-213" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-126" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-127" value="productivity/loss → workorder block">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-214" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-125" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-352" value="scrap.production_id → MO">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-215" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-127" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-128" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-216" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-127" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-129" value="sil_oee_blocks_enriched → fact block grain">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="880" y="2324.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-217" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-352" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-127" value="MO qty/scrap enrich OEE blocks">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="410" y="2238.03" />
+              <mxPoint x="410" y="2304.03" />
+              <mxPoint x="880" y="2304.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-218" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-129" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-130" value="GROUP BY workcenter_id, month, loss_type">
+          <mxGeometry relative="1" x="0.1765" y="-7" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="1180" y="2284.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-219" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-120" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-130" value="JOIN qty_produced ở grain MO (Quality)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-220" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-134" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-407" value="latest full-file batch">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-221" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-135" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-136" value="GROUP BY channel_sk, month">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1110" y="2424.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-223" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-140" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-408" value="latest full-file batch">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-224" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-141" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#a68b1f;strokeWidth=1.3;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="hsMrwj-C6JGUcgIdwQ7A-142" value="GROUP BY channel_sk, month">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="880" y="2524.03" />
+              <mxPoint x="1100" y="2524.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-225" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-146" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-409" value="không có source/staging riêng">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-226" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-147" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="hsMrwj-C6JGUcgIdwQ7A-148" value="GROUP BY channel_sk, month">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="880" y="2614.03" />
+              <mxPoint x="1100" y="2614.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-227" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-152" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-410" value="latest full-file batch">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-228" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-157" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-411" value="không ingest CSV legacy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-229" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#a68b1f;" value="CORE DIMS (dùng chung — mọi fact JOIN vào theo domain, xem chữ trong box GOLD)" vertex="1">
+          <mxGeometry height="32" width="380" x="1260" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-230" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="dim_date" vertex="1">
+          <mxGeometry height="30" width="180" x="1260" y="122" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-231" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="dim_customer" vertex="1">
+          <mxGeometry height="30" width="180" x="1260" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-232" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="dim_product" vertex="1">
+          <mxGeometry height="30" width="180" x="1260" y="198" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-233" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="dim_employee" vertex="1">
+          <mxGeometry height="30" width="180" x="1260" y="236" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-234" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="dim_warehouse" vertex="1">
+          <mxGeometry height="30" width="180" x="1260" y="274" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-235" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="dim_workcenter" vertex="1">
+          <mxGeometry height="30" width="180" x="1260" y="312" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-236" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="dim_campaign" vertex="1">
+          <mxGeometry height="30" width="180" x="1260" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-237" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=9;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=2.2;fontColor=#1a1a18;spacing=4;" value="[+] dim_channel" vertex="1">
+          <mxGeometry height="30" width="180" x="1260" y="388" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-238" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#8a8880;" value="Đường nối trong lưu đồ bên trái = tham chiếu tới 1 trong 8 dim này, không lặp lại toàn bộ cạnh để tránh rối hình. dim_account / dim_journal / dim_location là dim theo domain, không conformed." vertex="1">
+          <mxGeometry height="66" width="380" x="1260" y="436" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-239" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="Nguyên tắc từng lớp (SRS Phụ lục E.1b)" vertex="1">
+          <mxGeometry height="20" width="380" x="1260" y="516" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-240" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8.5;align=center;verticalAlign=middle;fillColor=#F5F4F0;strokeColor=#8A8880;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="Bronze/Staging&lt;br&gt;Cast type + rename — 1:1 grain, KHÔNG JOIN" vertex="1">
+          <mxGeometry height="40" width="380" x="1260" y="542" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-241" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8.5;align=center;verticalAlign=middle;fillColor=#e6f1fb;strokeColor=#185FA5;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="Snapshot&lt;br&gt;SCD2 — partner, product template, HR contract&lt;br&gt;invalidate_hard_deletes=true" vertex="1">
+          <mxGeometry height="40" width="380" x="1260" y="588" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-242" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8.5;align=center;verticalAlign=middle;fillColor=#eeece7;strokeColor=#5f5e5a;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="Silver&lt;br&gt;JOIN + enrich, KHÔNG aggregate" vertex="1">
+          <mxGeometry height="40" width="380" x="1260" y="634" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-243" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8.5;align=center;verticalAlign=middle;fillColor=#faf3d0;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="Gold&lt;br&gt;dim/fact — grain rõ, chỉ additive measure" vertex="1">
+          <mxGeometry height="40" width="380" x="1260" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-244" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=8.5;align=center;verticalAlign=middle;fillColor=#f6e9c9;strokeColor=#8a6d1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=4;" value="Mart&lt;br&gt;aggregate — giữ tử + mẫu, _pct tính ở đây hoặc DAX" vertex="1">
+          <mxGeometry height="40" width="380" x="1260" y="726" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-245" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10.5;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a18;" value="THAY ĐỔI so với v1  ([+] thêm mới · [~] đổi tên/sửa grain — viền vàng đậm)" vertex="1">
+          <mxGeometry height="20" width="380" x="1260" y="786" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-246" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=6;fontSize=8.6;align=left;verticalAlign=top;fillColor=#FBFBFA;strokeColor=#a68b1f;strokeWidth=1.1;fontColor=#1a1a18;spacing=8;" value="[v2.5] AUDIT 4 LỚP + QUAN HỆ (2026-09-15)&lt;br&gt;• Đủ 48 Staging + 3 Snapshot/SCD2 helper + 19 Silver + 28 Gold + 10 Mart models&lt;br&gt;• 44 bảng Odoo CDC; Kafka→MinIO chỉ commit offset sau upload thành công&lt;br&gt;• 4 CSV production; mỗi lần load là full-file batch, Silver/Gold rebuild snapshot mới nhất&lt;br&gt;• 2 CSV funnel/acquisition legacy giữ trên sơ đồ nhưng KHÔNG ingest&lt;br&gt;• SCD2: MERGE theo version key, closure/version cũ được cập nhật; Fact dùng khoảng [valid_from, valid_to)&lt;br&gt;• Soft delete đi từ CDC→Silver→Gold; Campaign nối campaign_id → utm_campaign.id, không JOIN tên&lt;br&gt;• Schema vật lý: ANALYTIC_LAYER_{STAGING,SILVER,GOLD,MART}_LAYER" vertex="1">
+          <mxGeometry height="520" width="380" x="1260" y="812" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-351" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-350" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-89" value="product_id + src/dest location">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-353" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-352" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;fontColor=#5f5e5a;labelBackgroundColor=#ffffff;" target="hsMrwj-C6JGUcgIdwQ7A-120" value="processing-time product version">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-412" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-68" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;" target="hsMrwj-C6JGUcgIdwQ7A-403" value="stg_crm_lead">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-413" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-403" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;" target="hsMrwj-C6JGUcgIdwQ7A-69" value="lead facts + source version">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-414" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-404" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;" target="hsMrwj-C6JGUcgIdwQ7A-74" value="PO line + order header">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-415" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-82" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;" target="hsMrwj-C6JGUcgIdwQ7A-74" value="receipt SLA via purchase_order_line_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-416" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-101" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;" target="hsMrwj-C6JGUcgIdwQ7A-406" value="account lookup">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-417" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-102" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;" target="hsMrwj-C6JGUcgIdwQ7A-406" value="journal lookup">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-418" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-406" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;" target="hsMrwj-C6JGUcgIdwQ7A-103" value="Silver facts → Gold facts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-419" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-124" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;" target="hsMrwj-C6JGUcgIdwQ7A-352" value="workorder quantities → MO">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-420" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-407" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;" target="hsMrwj-C6JGUcgIdwQ7A-135" value="campaign_id → dim_campaign">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-421" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-408" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;" target="hsMrwj-C6JGUcgIdwQ7A-141" value="email_id grain">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-422" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-409" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;" target="hsMrwj-C6JGUcgIdwQ7A-147" value="first confirmed order + paid spend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-423" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-410" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;" target="hsMrwj-C6JGUcgIdwQ7A-153" value="test × variant">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hsMrwj-C6JGUcgIdwQ7A-424" edge="1" parent="1" source="hsMrwj-C6JGUcgIdwQ7A-411" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;endArrow=block;endFill=1;endSize=5;strokeColor=#8A8880;strokeWidth=1.1;fontSize=8;" target="hsMrwj-C6JGUcgIdwQ7A-158" value="aggregate từ Gold facts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

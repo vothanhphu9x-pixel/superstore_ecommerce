@@ -1,0 +1,40 @@
+# Name your project! Project names should contain only lowercase characters
+# and underscores. A good package name should reflect your organization's
+# name or the intended use of these models
+name: "superstore_db"
+version: "1.0.0"
+
+# This setting configures which "profile" dbt uses for this project.
+profile: "superstore_db"
+
+# These configurations specify where dbt should look for different types of files.
+# The `model-paths` config, for example, states that models in this project can be
+# found in the "models/" directory. You probably won't need to change these!
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets: # directories to be removed by `dbt clean`
+  - "target"
+  - "dbt_packages"
+
+# Configuring models
+# Full documentation: https://docs.getdbt.com/docs/configuring-models
+
+# dbt nối target schema ANALYTIC_LAYER với tên layer dưới đây; schema vật lý lần lượt là
+# ANALYTIC_LAYER_STAGING_LAYER, ANALYTIC_LAYER_SILVER_LAYER,
+# ANALYTIC_LAYER_GOLD_LAYER và ANALYTIC_LAYER_MART_LAYER.
+models:
+  superstore_db:
+    # Layer layout khớp docs/data_platform/superstore-pipeline-3layer.drawio
+    staging:
+      +schema: STAGING_LAYER # models/staging/ — stg_*
+    silver:
+      +schema: SILVER_LAYER # models/silver/ — sil_*
+    gold:
+      +schema: GOLD_LAYER # models/gold/ — dim_*/fact_*
+    mart:
+      +schema: MART_LAYER # models/mart/ — aggregate business KPI
