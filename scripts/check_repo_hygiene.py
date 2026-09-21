@@ -15,10 +15,6 @@ REQUIRED_EXAMPLES = {
     "RAG_CHATBOT/.env.example",
     "RAG_CHATBOT/frontend/.env.example",
     "data_platform/.env.example",
-    "data_platform/Data_warehouse/.env.example",
-    "data_platform/Debezium_producer/.env.example",
-    "data_platform/csv_loader/.env.example",
-    "data_platform/minio_consumer/.env.example",
     "data_platform/superstore_db/.dbt/profiles.yml.example",
     "ml_platform/.env.example",
     "odoo_dev/.env.example",
@@ -49,10 +45,10 @@ ENV_EXAMPLE_PAIRS = (
     ("RAG_CHATBOT/.env", "RAG_CHATBOT/.env.example"),
     ("RAG_CHATBOT/frontend/.env.local", "RAG_CHATBOT/frontend/.env.example"),
     ("data_platform/.env", "data_platform/.env.example"),
-    ("data_platform/Data_warehouse/.env", "data_platform/Data_warehouse/.env.example"),
-    ("data_platform/Debezium_producer/.env", "data_platform/Debezium_producer/.env.example"),
-    ("data_platform/csv_loader/.env", "data_platform/csv_loader/.env.example"),
-    ("data_platform/minio_consumer/.env", "data_platform/minio_consumer/.env.example"),
+    ("data_platform/Data_warehouse/.env", "data_platform/.env.example"),
+    ("data_platform/Debezium_producer/.env", "data_platform/.env.example"),
+    ("data_platform/csv_loader/.env", "data_platform/.env.example"),
+    ("data_platform/minio_consumer/.env", "data_platform/.env.example"),
     ("ml_platform/.env", "ml_platform/.env.example"),
     ("odoo_dev/.env", "odoo_dev/.env.example"),
 )
@@ -108,6 +104,11 @@ def main() -> int:
     missing_examples = REQUIRED_EXAMPLES - tracked
     for path in sorted(missing_examples):
         errors.append(f"required safe example is not tracked: {path}")
+
+    for path in sorted(tracked):
+        if path.startswith("data_platform/") and Path(path).name == ".env.example":
+            if path != "data_platform/.env.example" and (ROOT / path).is_file():
+                errors.append(f"duplicate Data Platform example: {path}")
 
     for local_name, example_name in ENV_EXAMPLE_PAIRS:
         local_path = ROOT / local_name

@@ -1,0 +1,1015 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-09-19T00:00:00.000Z" agent="Codex">
+  <diagram name="01 · Lineage theo domain" id="0qwCZquG_ynv_KXC-XY0">
+    <mxGraphModel dx="1477" dy="850" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3400" pageHeight="2630" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;" value="SUPERSTORE — END-TO-END PIPELINE LINEAGE (4 DBT LAYERS)" vertex="1">
+          <mxGeometry height="40" width="3200" x="100" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#666666;" value="v2.6 · 2026-09-18 · 44 bảng Odoo CDC + 4 CSV production · MinIO → Snowflake Bronze → Staging → Silver → Gold → Mart · Snapshot là helper SCD2 · Trang 02 trình bày logic nạp, cột kiểm soát và các nhánh dbt" vertex="1">
+          <mxGeometry height="24" width="3200" x="100" y="58" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-3" parent="1" style="text;html=1;strokeColor=#555555;fillColor=#333333;fontColor=#ffffff;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;rounded=1;" value="SOURCE" vertex="1">
+          <mxGeometry height="40" width="200" x="100" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-4" parent="1" style="text;html=1;strokeColor=#7B3F00;fillColor=#A0522D;fontColor=#ffffff;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;rounded=1;" value="INGESTION&#xa;Debezium · Kafka (1 topic/bảng)" vertex="1">
+          <mxGeometry height="40" width="220" x="320" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-5" parent="1" style="text;html=1;strokeColor=#7B5800;fillColor=#C68642;fontColor=#ffffff;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;rounded=1;" value="LAKE → BRONZE&#xa;MinIO → Snowflake raw_data" vertex="1">
+          <mxGeometry height="40" width="200" x="560" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-6" parent="1" style="text;html=1;strokeColor=#1B4F72;fillColor=#2E86C1;fontColor=#ffffff;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;rounded=1;" value="LAYER 1 · STAGING&#xa;ANALYTIC_LAYER_STAGING_LAYER" vertex="1">
+          <mxGeometry height="40" width="200" x="780" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-7" parent="1" style="text;html=1;strokeColor=#145A32;fillColor=#1E8449;fontColor=#ffffff;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;rounded=1;" value="SNAPSHOT HELPER&#xa;SCD2 (snap_*) — chỉ 3 dim" vertex="1">
+          <mxGeometry height="40" width="200" x="1000" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-8" parent="1" style="text;html=1;strokeColor=#4A235A;fillColor=#7D3C98;fontColor=#ffffff;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;rounded=1;" value="LAYER 2 · SILVER&#xa;ANALYTIC_LAYER_SILVER_LAYER" vertex="1">
+          <mxGeometry height="40" width="200" x="1220" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-9" parent="1" style="text;html=1;strokeColor=#7E5109;fillColor=#F0B27A;fontColor=#333333;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;rounded=1;" value="LAYER 3 · GOLD&#xa;ANALYTIC_LAYER_GOLD_LAYER (dim_* · fact_*)" vertex="1">
+          <mxGeometry height="40" width="1200" x="1440" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-10" parent="1" style="text;html=1;strokeColor=#4A1942;fillColor=#76448A;fontColor=#ffffff;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;rounded=1;" value="LAYER 4 · MART&#xa;ANALYTIC_LAYER_MART_LAYER" vertex="1">
+          <mxGeometry height="40" width="620" x="2660" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-11" parent="1" style="text;html=1;strokeColor=none;fillColor=#EEEEEE;fontColor=#333333;align=left;verticalAlign=middle;fontStyle=1;fontSize=13;rounded=0;spacingLeft=8;" value="SALES &amp; REVENUE" vertex="1">
+          <mxGeometry height="24" width="3180" x="100" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="sale.order&#xa;sale.order.line&#xa;(Odoo PostgreSQL)" vertex="1">
+          <mxGeometry height="65" width="180" x="110" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-13" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#C68642;fontColor=#ffffff;strokeColor=#A0522D;" value="Kafka: &lt;prefix&gt;.public.*&#xa;sale_order · sale_order_line&#xa;(1 bảng = 1 topic)" vertex="1">
+          <mxGeometry height="65" width="210" x="330" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-14" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;sale_order/&#xa;sale_order_line/" vertex="1">
+          <mxGeometry height="65" width="180" x="570" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-15" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_sale_order&#xa;stg_sale_order_line" vertex="1">
+          <mxGeometry height="65" width="180" x="790" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-16" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(không snapshot —&#xa;dùng sil trực tiếp)" vertex="1">
+          <mxGeometry height="65" width="180" x="1010" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-17" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="sil_order_lines_enriched" vertex="1">
+          <mxGeometry height="65" width="180" x="1230" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-18" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="fact_sales&#xa;JOIN: dim_customer·dim_product·dim_employee&#xa;dim_warehouse·dim_campaign·dim_channel&#xa;order_date_key liên hệ dim_date ở Mart" vertex="1">
+          <mxGeometry height="65" width="290" x="1460" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-19" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D7BDE2;fontColor=#4A1942;strokeColor=#76448A;fontStyle=1;" value="mart_revenue_monthly&#xa;(region × category × month)" vertex="1">
+          <mxGeometry height="65" width="260" x="2680" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-20" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-12" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-21" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-13" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-22" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-14" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-23" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-15" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-24" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-17" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-25" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-18" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-26" parent="1" style="text;html=1;strokeColor=none;fillColor=#EEEEEE;fontColor=#333333;align=left;verticalAlign=middle;fontStyle=1;fontSize=13;rounded=0;spacingLeft=8;" value="FINANCE" vertex="1">
+          <mxGeometry height="24" width="3180" x="100" y="309" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-27" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="account.move&#xa;account.move.line&#xa;account.account&#xa;account.journal" vertex="1">
+          <mxGeometry height="95" width="180" x="110" y="339" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-28" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#C68642;fontColor=#ffffff;strokeColor=#A0522D;" value="Kafka: &lt;prefix&gt;.public.*&#xa;account_move · account_move_line&#xa;account_account · account_journal&#xa;(1 bảng = 1 topic)" vertex="1">
+          <mxGeometry height="95" width="210" x="330" y="339" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-29" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;account_move/&#xa;account_move_line/&#xa;account_account/&#xa;account_journal/" vertex="1">
+          <mxGeometry height="95" width="180" x="570" y="339" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-30" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_account_move&#xa;stg_account_move_line&#xa;stg_account_account&#xa;stg_account_journal" vertex="1">
+          <mxGeometry height="95" width="180" x="790" y="339" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-31" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(không snapshot)" vertex="1">
+          <mxGeometry height="95" width="180" x="1010" y="339" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-32" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="sil_journal_entries_enriched&#xa;sil_customer_invoices_enriched" vertex="1">
+          <mxGeometry height="95" width="180" x="1230" y="339" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-33" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="fact_journal_entries + fact_customer_invoice&#xa;JOIN: dim_date·dim_customer·dim_account·dim_journal&#xa;test: Σdebit = Σcredit" vertex="1">
+          <mxGeometry height="95" width="290" x="1460" y="339" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-34" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D7BDE2;fontColor=#4A1942;strokeColor=#76448A;fontStyle=1;" value="mart_pnl_monthly&#xa;mart_ar_aging (invoice snapshot)" vertex="1">
+          <mxGeometry height="95" width="260" x="2680" y="339" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-35" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-27" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-28">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-36" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-28" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-29">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-37" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-29" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-30">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-38" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-30" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-32">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-39" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-33" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-40" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="account.payment&#xa;account_partial_reconcile" vertex="1">
+          <mxGeometry height="65" width="180" x="110" y="448" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-41" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#C68642;fontColor=#ffffff;strokeColor=#A0522D;" value="Kafka: &lt;prefix&gt;.public.*&#xa;account_payment&#xa;account_partial_reconcile&#xa;(1 bảng = 1 topic)" vertex="1">
+          <mxGeometry height="65" width="210" x="330" y="448" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-42" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;account_payment/&#xa;account_partial_reconcile/" vertex="1">
+          <mxGeometry height="65" width="180" x="570" y="448" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-43" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_account_payment&#xa;stg_account_partial_reconcile" vertex="1">
+          <mxGeometry height="65" width="180" x="790" y="448" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-44" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(không snapshot)" vertex="1">
+          <mxGeometry height="65" width="180" x="1010" y="448" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-45" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="sil_invoice_payment_status&#xa;outstanding_amount, aging_bucket" vertex="1">
+          <mxGeometry height="65" width="180" x="1230" y="448" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-46" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="fact_payment_allocation  [→ BI trực tiếp]&#xa;grain=1 account_partial_reconcile&#xa;allocation amount + DSO" vertex="1">
+          <mxGeometry height="65" width="290" x="1460" y="448" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-47" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D7BDE2;fontColor=#4A1942;strokeColor=#76448A;fontStyle=1;" value="mart_dso_monthly&#xa;(weighted allocated_amount)" vertex="1">
+          <mxGeometry height="65" width="260" x="2680" y="448" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-48" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-40" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-41">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-49" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-41" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-42">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-50" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-42" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-43">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-51" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-43" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-45">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-52" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-45" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-46">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-53" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-46" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-47">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-54" parent="1" style="text;html=1;strokeColor=none;fillColor=#EEEEEE;fontColor=#333333;align=left;verticalAlign=middle;fontStyle=1;fontSize=13;rounded=0;spacingLeft=8;" value="PROCUREMENT" vertex="1">
+          <mxGeometry height="24" width="3180" x="100" y="547" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-55" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="purchase.order&#xa;purchase.order.line" vertex="1">
+          <mxGeometry height="65" width="180" x="110" y="577" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-56" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#C68642;fontColor=#ffffff;strokeColor=#A0522D;" value="Kafka: &lt;prefix&gt;.public.*&#xa;purchase_order · purchase_order_line&#xa;(1 bảng = 1 topic)" vertex="1">
+          <mxGeometry height="65" width="210" x="330" y="577" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-57" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;purchase_order/&#xa;purchase_order_line/" vertex="1">
+          <mxGeometry height="65" width="180" x="570" y="577" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-58" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_purchase_order&#xa;stg_purchase_order_line" vertex="1">
+          <mxGeometry height="65" width="180" x="790" y="577" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-59" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(không snapshot)" vertex="1">
+          <mxGeometry height="65" width="180" x="1010" y="577" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-60" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="sil_purchase_order_lines_enriched&#xa;PO line + order header&#xa;+ source_version_key" vertex="1">
+          <mxGeometry height="65" width="180" x="1230" y="577" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-61" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="fact_purchase&#xa;+ sil_stock_movement_enriched cho receipt SLA&#xa;JOIN conformed dimensions" vertex="1">
+          <mxGeometry height="65" width="290" x="1460" y="577" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-62" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D7BDE2;fontColor=#4A1942;strokeColor=#76448A;fontStyle=1;" value="mart_vendor_performance&#xa;(vendor × month)" vertex="1">
+          <mxGeometry height="65" width="260" x="2680" y="577" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-63" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-55" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-56">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-64" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-56" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-57">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-65" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-57" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-58">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-66" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-58" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-60">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-67" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-61" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-62">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-68" parent="1" style="text;html=1;strokeColor=none;fillColor=#EEEEEE;fontColor=#333333;align=left;verticalAlign=middle;fontStyle=1;fontSize=13;rounded=0;spacingLeft=8;" value="INVENTORY &amp; WAREHOUSE" vertex="1">
+          <mxGeometry height="24" width="3180" x="100" y="676" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-69" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="stock.move · stock.picking&#xa;stock.location · delivery.carrier" vertex="1">
+          <mxGeometry height="80" width="180" x="110" y="706" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-70" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#C68642;fontColor=#ffffff;strokeColor=#A0522D;" value="Kafka: &lt;prefix&gt;.public.*&#xa;stock_move · stock_picking&#xa;stock_location · delivery_carrier" vertex="1">
+          <mxGeometry height="80" width="210" x="330" y="706" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-71" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;&#xa;stock_move/ · stock_picking/&#xa;stock_location/ · delivery_carrier/" vertex="1">
+          <mxGeometry height="80" width="180" x="570" y="706" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-72" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_stock_move · stg_stock_picking&#xa;stg_stock_location · stg_delivery_carrier" vertex="1">
+          <mxGeometry height="80" width="180" x="790" y="706" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-73" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(không snapshot)" vertex="1">
+          <mxGeometry height="80" width="180" x="1010" y="706" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-74" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="sil_stock_movement_enriched&#xa;movement_type + carrier + picking SLA" vertex="1">
+          <mxGeometry height="80" width="180" x="1230" y="706" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-75" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="fact_inventory_movement&#xa;JOIN: dim_product·dim_date·dim_warehouse&#xa;dim_location (×2: src/dest)" vertex="1">
+          <mxGeometry height="80" width="290" x="1460" y="706" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-76" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D7BDE2;fontColor=#4A1942;strokeColor=#76448A;fontStyle=1;" value="mart_delivery_performance&#xa;(picking × month × ship_mode)" vertex="1">
+          <mxGeometry height="80" width="260" x="2680" y="706" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-77" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-69" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-70">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-78" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-70" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-71">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-79" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-71" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-72">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-80" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-72" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-74">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-81" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-74" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-75">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-82" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-75" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-76">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-83" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="stock.valuation.layer" vertex="1">
+          <mxGeometry height="50" width="180" x="110" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-84" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#C68642;fontColor=#ffffff;strokeColor=#A0522D;" value="Kafka: &lt;prefix&gt;.public.stock_valuation_layer&#xa;(1 bảng = 1 topic)" vertex="1">
+          <mxGeometry height="50" width="210" x="330" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-85" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;stock_valuation_layer/" vertex="1">
+          <mxGeometry height="50" width="180" x="570" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-86" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_stock_valuation_layer" vertex="1">
+          <mxGeometry height="50" width="180" x="790" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-87" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(không snapshot)" vertex="1">
+          <mxGeometry height="50" width="180" x="1010" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-88" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="sil_stock_valuation_enriched&#xa;+ stock_move src/dest" vertex="1">
+          <mxGeometry height="50" width="180" x="1230" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-89" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="fact_inventory_valuation [→ BI trực tiếp]&#xa;grain=1 valuation event&#xa;+ remaining_qty/remaining_value" vertex="1">
+          <mxGeometry height="50" width="290" x="1460" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-90" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-83" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-84">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-91" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-84" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-85">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-92" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-85" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-86">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-93" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-86" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-88">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-94" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="stock.quant" vertex="1">
+          <mxGeometry height="65" width="180" x="110" y="864" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-95" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#C68642;fontColor=#ffffff;strokeColor=#A0522D;" value="Kafka: &lt;prefix&gt;.public.stock_quant&#xa;(1 bảng = 1 topic)" vertex="1">
+          <mxGeometry height="65" width="210" x="330" y="864" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-96" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;stock_quant/" vertex="1">
+          <mxGeometry height="65" width="180" x="570" y="864" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-97" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_stock_quant" vertex="1">
+          <mxGeometry height="65" width="180" x="790" y="864" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-98" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(không dbt snapshot —&#xa;fact tự incremental)" vertex="1">
+          <mxGeometry height="65" width="180" x="1010" y="864" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-99" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(không silver)" vertex="1">
+          <mxGeometry height="65" width="180" x="1230" y="864" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-100" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="fact_inventory_balance&#xa;grain=product×location×date · INCREMENTAL&#xa;+ dim_location (thay location_name degenerate)" vertex="1">
+          <mxGeometry height="65" width="290" x="1460" y="864" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-101" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-94" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-95">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-102" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-95" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-96">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-103" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-96" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-97">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-104" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-97" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-100">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-105" parent="1" style="text;html=1;strokeColor=none;fillColor=#EEEEEE;fontColor=#333333;align=left;verticalAlign=middle;fontStyle=1;fontSize=13;rounded=0;spacingLeft=8;" value="MANUFACTURING" vertex="1">
+          <mxGeometry height="24" width="3180" x="100" y="963" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-106" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="mrp.production&#xa;mrp.bom" vertex="1">
+          <mxGeometry height="65" width="180" x="110" y="993" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-107" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#C68642;fontColor=#ffffff;strokeColor=#A0522D;" value="Kafka: &lt;prefix&gt;.public.*&#xa;mrp_production · mrp_bom&#xa;(1 bảng = 1 topic)" vertex="1">
+          <mxGeometry height="65" width="210" x="330" y="993" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-108" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;mrp_production/&#xa;mrp_bom/" vertex="1">
+          <mxGeometry height="65" width="180" x="570" y="993" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-109" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_mrp_production&#xa;stg_mrp_bom" vertex="1">
+          <mxGeometry height="65" width="180" x="790" y="993" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-110" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(không snapshot)" vertex="1">
+          <mxGeometry height="65" width="180" x="1010" y="993" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-111" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="sil_manufacturing_enriched&#xa;+ workorder qty + scrap" vertex="1">
+          <mxGeometry height="65" width="180" x="1230" y="993" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-112" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8.5;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="fact_manufacturing · grain=mrp_production.id&#xa;FK bom_id→mrp_bom.id · product_id→product_product.id&#xa;JOIN dim_product·dim_date·dim_warehouse" vertex="1">
+          <mxGeometry height="65" width="290" x="1460" y="993" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-113" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-106" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-107">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-114" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-107" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-108">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-115" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-108" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-109">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-116" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-109" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-111">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-117" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8.5;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="mrp.workorder&#xa;stock.scrap&#xa;mrp.workcenter.productivity&#xa;mrp.workcenter.productivity_loss&#xa;mrp.workcenter" vertex="1">
+          <mxGeometry height="95" width="180" x="110" y="1072" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-118" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8.5;fillColor=#C68642;fontColor=#ffffff;strokeColor=#A0522D;" value="Kafka: &lt;prefix&gt;.public.*&#xa;mrp_workorder · stock_scrap&#xa;mrp_workcenter_productivity&#xa;mrp_workcenter_productivity_loss&#xa;mrp_workcenter" vertex="1">
+          <mxGeometry height="95" width="210" x="330" y="1072" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-119" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8.5;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;&#xa;mrp_workorder/ · stock_scrap/&#xa;mrp_workcenter_productivity/&#xa;mrp_workcenter_productivity_loss/&#xa;mrp_workcenter/" vertex="1">
+          <mxGeometry height="95" width="180" x="570" y="1072" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-120" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8.5;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_mrp_workorder · stg_stock_scrap&#xa;stg_mrp_workcenter_productivity&#xa;stg_mrp_workcenter_productivity_loss&#xa;stg_mrp_workcenter" vertex="1">
+          <mxGeometry height="95" width="180" x="790" y="1072" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-121" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(không snapshot —&#xa;workorder immutable)" vertex="1">
+          <mxGeometry height="95" width="180" x="1010" y="1072" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-122" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8.5;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="sil_workorder_enriched + sil_oee_blocks_enriched&#xa;productivity.workorder_id → workorder.id&#xa;workorder.production_id → production.id" vertex="1">
+          <mxGeometry height="95" width="180" x="1230" y="1072" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-123" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8.5;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="fact_workorder · grain=mrp_workorder.id&#xa;fact_manufacturing_oee · grain=productivity block&#xa;qty MO lặp theo block; Mart dedup theo MO/workcenter" vertex="1">
+          <mxGeometry height="95" width="290" x="1460" y="1072" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-124" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D7BDE2;fontColor=#4A1942;strokeColor=#76448A;fontStyle=1;" value="mart_oee_by_workcenter_monthly&#xa;(workcenter × month; A × P × Q)" vertex="1">
+          <mxGeometry height="95" width="260" x="2680" y="1072" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-125" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-117" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-118">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-126" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-118" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-119">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-127" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-119" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-120">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-128" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-120" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-122">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-129" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-122" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-123">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-130" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-123" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-124">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-131" parent="1" style="text;html=1;strokeColor=none;fillColor=#EEEEEE;fontColor=#333333;align=left;verticalAlign=middle;fontStyle=1;fontSize=13;rounded=0;spacingLeft=8;" value="CRM &amp; MARKETING" vertex="1">
+          <mxGeometry height="24" width="3180" x="100" y="1201" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-132" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="crm.lead&lt;div&gt;crm.stage&lt;/div&gt;&lt;div&gt;crm.lost_reason&lt;/div&gt;" vertex="1">
+          <mxGeometry height="65" width="180" x="110" y="1231" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-133" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#C68642;fontColor=#ffffff;strokeColor=#A0522D;" value="Kafka: &lt;prefix&gt;.public.*&#xa;crm_lead · crm_stage&#xa;crm_lost_reason&#xa;(1 bảng = 1 topic)" vertex="1">
+          <mxGeometry height="65" width="210" x="330" y="1231" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-134" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;&#xa;crm_lead/ · crm_stage/&#xa;crm_lost_reason/" vertex="1">
+          <mxGeometry height="65" width="180" x="570" y="1231" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-135" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_crm_lead&#xa;stg_crm_stage&#xa;stg_crm_lost_reason" vertex="1">
+          <mxGeometry height="65" width="180" x="790" y="1231" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-136" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(không snapshot)" vertex="1">
+          <mxGeometry height="65" width="180" x="1010" y="1231" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-137" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="sil_crm_lead_enriched&#xa;latest lead + source_version_key&#xa;stage/lost reason tra tại Gold" vertex="1">
+          <mxGeometry height="65" width="180" x="1230" y="1231" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-138" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8.5;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="fact_crm_funnel · grain=crm_lead.id&#xa;FK stage_id/lost_reason_id/partner_id&#xa;campaign_id/medium_id/source_id&#xa;JOIN dim_customer·dim_date·dim_campaign·dim_channel" vertex="1">
+          <mxGeometry height="65" width="290" x="1460" y="1231" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-139" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-132" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-133">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-140" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-133" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-134">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-141" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-134" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-135">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-142" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-135" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-137">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-143" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="utm.campaign (Odoo)&#xa;+ campaign master CSV&#xa;join bằng campaign_id" vertex="1">
+          <mxGeometry height="65" width="180" x="110" y="1310" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-144" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#C68642;fontColor=#ffffff;strokeColor=#A0522D;" value="Kafka: utm_campaign&#xa;CSV campaign master: batch" vertex="1">
+          <mxGeometry height="65" width="210" x="330" y="1310" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-145" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;&#xa;utm_campaign/ +&#xa;marketing_campaigns_master/" vertex="1">
+          <mxGeometry height="65" width="180" x="570" y="1310" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-146" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_utm_campaign +&#xa;stg_marketing_campaigns_master" vertex="1">
+          <mxGeometry height="65" width="180" x="790" y="1310" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-147" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(không snapshot)" vertex="1">
+          <mxGeometry height="65" width="180" x="1010" y="1310" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-148" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="[+] sil_campaign_enriched&#xa;CSV campaign_id = utm_campaign.id&#xa;(không JOIN theo tên)" vertex="1">
+          <mxGeometry height="65" width="180" x="1230" y="1310" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-149" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="dim_campaign&#xa;NK hợp nhất: campaign_id = utm_campaign.id&#xa;CSV và Odoo dùng cùng một ID" vertex="1">
+          <mxGeometry height="65" width="290" x="1460" y="1310" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-150" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-143" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-144">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-151" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-144" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-145">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-152" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-145" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-146">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-153" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-146" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-148">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-154" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-148" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-149">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-155" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="utm.medium (Odoo)&#xa;utm.source (Odoo)&#xa;+ CSV marketing_campaigns_master.csv" vertex="1">
+          <mxGeometry height="65" width="180" x="110" y="1389" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-156" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#C68642;fontColor=#ffffff;strokeColor=#A0522D;" value="Kafka: &lt;prefix&gt;.public.*&#xa;utm_medium · utm_source&#xa;(CSV: batch, không CDC)" vertex="1">
+          <mxGeometry height="65" width="210" x="330" y="1389" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-157" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;&#xa;utm_medium/ · utm_source/&#xa;marketing_campaigns_master/" vertex="1">
+          <mxGeometry height="65" width="180" x="570" y="1389" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-158" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_utm_medium · stg_utm_source&#xa;stg_marketing_campaigns_master" vertex="1">
+          <mxGeometry height="65" width="180" x="790" y="1389" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-159" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(không snapshot)" vertex="1">
+          <mxGeometry height="65" width="180" x="1010" y="1389" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-160" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="sil_channel_enriched&#xa;utm_medium + utm_source&#xa;+ CSV channel_code crosswalk" vertex="1">
+          <mxGeometry height="65" width="180" x="1230" y="1389" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-161" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="dim_channel  ★ conformed (6 fact)&#xa;NK: channel_code varchar" vertex="1">
+          <mxGeometry height="65" width="290" x="1460" y="1389" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-162" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-155" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-156">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-163" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-156" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-157">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-164" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-157" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-158">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-165" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-158" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-160">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-166" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-160" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-161">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-167" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="email_campaigns.csv&#xa;400 dòng · 1 row = email_id&#xa;không dùng mailing_trace" vertex="1">
+          <mxGeometry height="65" width="180" x="110" y="1468" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-168" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(CSV — batch load,&#xa;không qua Debezium/Kafka)" vertex="1">
+          <mxGeometry height="65" width="210" x="330" y="1468" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-169" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;&#xa;email_campaigns/" vertex="1">
+          <mxGeometry height="65" width="180" x="570" y="1468" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-170" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_email_campaigns" vertex="1">
+          <mxGeometry height="65" width="180" x="790" y="1468" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-171" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="—" vertex="1">
+          <mxGeometry height="65" width="180" x="1010" y="1468" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-172" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="sil_email_campaigns_enriched&#xa;latest full batch" vertex="1">
+          <mxGeometry height="65" width="180" x="1230" y="1468" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-173" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="fact_email_campaign&#xa;grain=1 email, KHÔNG aggregate&#xa;JOIN: dim_campaign·dim_channel·dim_date" vertex="1">
+          <mxGeometry height="65" width="290" x="1460" y="1468" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-174" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D7BDE2;fontColor=#4A1942;strokeColor=#76448A;fontStyle=1;" value="mart_email_performance&#xa;(channel × month)" vertex="1">
+          <mxGeometry height="65" width="260" x="2680" y="1468" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-175" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-167" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-169">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-176" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-169" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-170">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-177" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-170" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-172">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-178" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-173" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-174">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-179" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="ad_performance_daily.csv&#xa;3.315 dòng · date×campaign_id×channel" vertex="1">
+          <mxGeometry height="65" width="180" x="110" y="1547" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-180" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(CSV — batch load,&#xa;không qua Debezium/Kafka)" vertex="1">
+          <mxGeometry height="65" width="210" x="330" y="1547" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-181" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;&#xa;ad_performance_daily/" vertex="1">
+          <mxGeometry height="65" width="180" x="570" y="1547" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-182" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_ad_performance_daily" vertex="1">
+          <mxGeometry height="65" width="180" x="790" y="1547" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-183" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="—" vertex="1">
+          <mxGeometry height="65" width="180" x="1010" y="1547" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-184" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="sil_ad_performance_daily_enriched&#xa;latest full batch" vertex="1">
+          <mxGeometry height="65" width="180" x="1230" y="1547" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-185" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="fact_ad_spend&#xa;JOIN: dim_campaign·dim_channel&#xa;spend_amount, impressions, clicks (KHÔNG ctr)" vertex="1">
+          <mxGeometry height="65" width="290" x="1460" y="1547" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-186" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D7BDE2;fontColor=#4A1942;strokeColor=#76448A;fontStyle=1;" value="mart_roas_by_channel&#xa;(channel × month)" vertex="1">
+          <mxGeometry height="65" width="260" x="2680" y="1547" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-187" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-179" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-181">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-188" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-181" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-182">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-189" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-182" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-184">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-190" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-185" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-186">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-191" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="Ads + Odoo CRM + linked Sales + Customer Acquisition&#xa;CSV funnel legacy = KHÔNG ingest" vertex="1">
+          <mxGeometry height="65" width="180" x="110" y="1626" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-192" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="legacy reference only&#xa;KHÔNG có batch load" vertex="1">
+          <mxGeometry height="65" width="210" x="330" y="1626" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-193" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO ad_performance_daily/ +&#xa;CDC CRM/Sales theo &lt;table&gt;/date=..." vertex="1">
+          <mxGeometry height="65" width="180" x="570" y="1626" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-194" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg Ads + crm_lead + sale_order&#xa;(không có funnel staging)" vertex="1">
+          <mxGeometry height="65" width="180" x="790" y="1626" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-195" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="—" vertex="1">
+          <mxGeometry height="65" width="180" x="1010" y="1626" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-196" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#F8F9FA;fontColor=#888888;strokeColor=#CCCCCC;fontStyle=2;" value="Không có Silver riêng&#xa;derive từ các Gold facts" vertex="1">
+          <mxGeometry height="65" width="180" x="1230" y="1626" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-197" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="fact_marketing_funnel&#xa;grain=channel×month (dbt aggregate)&#xa;platform metrics tách ERP actuals" vertex="1">
+          <mxGeometry height="65" width="290" x="1460" y="1626" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-198" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-191" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-193">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-199" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-193" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-194">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-200" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-194" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-196">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-201" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="Derived customer acquisition&#xa;không có standalone CSV&#xa;Nguồn thật: Sales + Ads" vertex="1">
+          <mxGeometry height="65" width="180" x="110" y="1705" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-202" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="Inputs dùng CDC Sales&#xa;+ batch Ads hiện có" vertex="1">
+          <mxGeometry height="65" width="210" x="330" y="1705" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-203" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="Không có raw riêng&#xa;reuse raw Sales + Ads" vertex="1">
+          <mxGeometry height="65" width="180" x="570" y="1705" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-204" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="Không có staging riêng&#xa;derive tại Gold" vertex="1">
+          <mxGeometry height="65" width="180" x="790" y="1705" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-205" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="—" vertex="1">
+          <mxGeometry height="65" width="180" x="1010" y="1705" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-206" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#F8F9FA;fontColor=#888888;strokeColor=#CCCCCC;fontStyle=2;" value="Không có Silver riêng&#xa;derive từ Gold facts&#xa;fact_sales + fact_ad_spend" vertex="1">
+          <mxGeometry height="65" width="180" x="1230" y="1705" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-207" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="fact_customer_acquisition&#xa;grain=1 commercial customer&#xa;first order + attributed CAC + actual LTV" vertex="1">
+          <mxGeometry height="65" width="290" x="1460" y="1705" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-208" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D7BDE2;fontColor=#4A1942;strokeColor=#76448A;fontStyle=1;" value="mart_customer_acquisition&#xa;SUM(ltv)/SUM(cac) — KHÔNG AVG(ratio)" vertex="1">
+          <mxGeometry height="65" width="260" x="2680" y="1705" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-209" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-201" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-203">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-210" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-203" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-204">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-211" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-204" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-206">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-212" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-207" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-208">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-213" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="A/B Test CSV/API&#xa;85 dòng · grain=variant_id" vertex="1">
+          <mxGeometry height="65" width="180" x="110" y="1784" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-214" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="CSV/API batch&#xa;không qua Odoo CDC" vertex="1">
+          <mxGeometry height="65" width="210" x="330" y="1784" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-215" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;ab_test/" vertex="1">
+          <mxGeometry height="65" width="180" x="570" y="1784" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-216" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_ab_test" vertex="1">
+          <mxGeometry height="65" width="180" x="790" y="1784" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-217" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="&amp;nbsp; " vertex="1">
+          <mxGeometry height="65" width="180" x="1010" y="1784" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-218" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="sil_ab_test_enriched&#xa;latest full batch" vertex="1">
+          <mxGeometry height="65" width="180" x="1230" y="1784" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-219" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="fact_ab_test&#xa;JOIN: dim_date(×2)·dim_channel·dim_campaign&#xa;is_winner: cờ có sẵn trong CSV" vertex="1">
+          <mxGeometry height="65" width="290" x="1460" y="1784" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-220" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-213" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-215">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-221" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-215" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-216">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-222" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-216" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-218">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-223" parent="1" style="text;html=1;strokeColor=none;fillColor=#EEEEEE;fontColor=#333333;align=left;verticalAlign=middle;fontStyle=1;fontSize=13;rounded=0;spacingLeft=8;" value="REFERENCE DIMENSIONS" vertex="1">
+          <mxGeometry height="24" width="3180" x="100" y="1883" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-224" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8.5;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="res.partner · res.partner.category&#xa;res.partner.res.partner.category.rel&#xa;res.country · res.country.state" vertex="1">
+          <mxGeometry height="65" width="180" x="110" y="1913" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-225" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8.5;fillColor=#C68642;fontColor=#ffffff;strokeColor=#A0522D;" value="Kafka: &lt;prefix&gt;.public.*&#xa;res_partner · res_partner_category&#xa;res_partner_res_partner_category_rel&#xa;res_country · res_country_state" vertex="1">
+          <mxGeometry height="79" width="210" x="330" y="1908" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-226" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=7.8;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;&#xa;res_partner/ · res_partner_category/&#xa;res_partner_res_partner_category_rel/&#xa;res_country/ · res_country_state/" vertex="1">
+          <mxGeometry height="65" width="180" x="570" y="1913" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-227" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=7.8;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_res_partner · stg_res_partner_category&#xa;stg_res_partner_res_partner_category_rel&#xa;stg_res_country · stg_res_country_state" vertex="1">
+          <mxGeometry height="65" width="180" x="790" y="1913" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-228" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5F5E3;fontColor=#145A32;strokeColor=#1E8449;" value="snap_res_partner&#xa;(SCD2, key=partner_id)" vertex="1">
+          <mxGeometry height="65" width="180" x="1010" y="1913" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-229" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="sil_customer_enriched · partner_type theo ranks&#xa;FK rel.partner_id/category_id&#xa;partner.country_id/state_id" vertex="1">
+          <mxGeometry height="65" width="180" x="1230" y="1913" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-230" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="dim_customer  (SCD2 + is_current)" vertex="1">
+          <mxGeometry height="65" width="290" x="1460" y="1913" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-231" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-224" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-225">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-232" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-225" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-226">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-233" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-226" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-227">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-234" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-227" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-228">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-235" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-228" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-229">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-236" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-229" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-230">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-237" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="product.template&lt;br&gt;product.product&lt;br&gt;product.category&lt;div&gt;uom.uom&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="180" x="110" y="1992" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-238" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8.5;fillColor=#C68642;fontColor=#ffffff;strokeColor=#A0522D;" value="Kafka: &lt;prefix&gt;.public.*&#xa;product_template · product_product&#xa;product_category · uom_uom&#xa;(1 bảng = 1 topic)" vertex="1">
+          <mxGeometry height="80" width="210" x="330" y="1992" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-239" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8.5;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;&#xa;product_template/ · product_product/&#xa;product_category/ · uom_uom/" vertex="1">
+          <mxGeometry height="80" width="180" x="570" y="1992" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-240" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8.5;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_product_template · stg_product_product&#xa;stg_product_category · stg_uom_uom" vertex="1">
+          <mxGeometry height="80" width="180" x="790" y="1992" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-241" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5F5E3;fontColor=#145A32;strokeColor=#1E8449;" value="snap_product_template&#xa;(SCD2 list_price/write_date)" vertex="1">
+          <mxGeometry height="80" width="180" x="1010" y="1992" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-242" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="sil_product_enriched&#xa;FK product_tmpl_id · categ_id&#xa;uom_id / uom_po_id" vertex="1">
+          <mxGeometry height="80" width="180" x="1230" y="1992" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-243" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="dim_product  (SCD2 + is_current)" vertex="1">
+          <mxGeometry height="80" width="290" x="1460" y="1992" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-244" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-237" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-238">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-245" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-238" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-239">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-246" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-239" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-240">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-247" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-240" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-241">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-248" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-241" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-242">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-249" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-242" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-243">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-250" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="hr.employee&lt;br&gt;hr.contract&lt;br&gt;hr.department&lt;div&gt;hr.job&lt;br&gt;res.users&lt;/div&gt;" vertex="1">
+          <mxGeometry height="95" width="180" x="110" y="2086" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-251" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8.5;fillColor=#C68642;fontColor=#ffffff;strokeColor=#A0522D;" value="Kafka: &lt;prefix&gt;.public.*&#xa;hr_employee · hr_contract&#xa;hr_department · hr_job · res_users&#xa;(1 bảng = 1 topic)" vertex="1">
+          <mxGeometry height="95" width="210" x="330" y="2086" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-252" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8.5;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO &lt;table&gt;/date=...&#xa;&#xa;hr_employee/ · hr_contract/&#xa;hr_department/ · hr_job/&#xa;res_users/" vertex="1">
+          <mxGeometry height="95" width="180" x="570" y="2086" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-253" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8.5;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_hr_employee · stg_hr_contract&#xa;stg_hr_department · stg_hr_job&#xa;stg_res_users (cầu nối salesperson)" vertex="1">
+          <mxGeometry height="95" width="180" x="790" y="2086" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-254" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5F5E3;fontColor=#145A32;strokeColor=#1E8449;" value="snap_hr_contract&#xa;(SCD2 employee/wage/dates/state)" vertex="1">
+          <mxGeometry height="95" width="180" x="1010" y="2086" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-255" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=8;fillColor=#E8DAEF;fontColor=#4A235A;strokeColor=#7D3C98;" value="sil_employee_enriched&#xa;FK contract.employee_id&#xa;employee.department_id/job_id/user_id" vertex="1">
+          <mxGeometry height="95" width="180" x="1230" y="2086" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-256" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="dim_employee (core SCD2 contract)" vertex="1">
+          <mxGeometry height="95" width="290" x="1460" y="2086" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-257" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-250" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-251">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-258" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-251" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-252">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-259" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-252" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-253">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-260" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-253" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-254">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-261" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-254" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-255">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-262" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-255" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-256">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-263" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#333333;fontColor=#ffffff;strokeColor=#555555;" value="stock.warehouse" vertex="1">
+          <mxGeometry height="65" width="180" x="110" y="2195" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-264" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#C68642;fontColor=#ffffff;strokeColor=#A0522D;" value="Kafka: &lt;prefix&gt;.public.stock_warehouse&#xa;(1 bảng = 1 topic)" vertex="1">
+          <mxGeometry height="65" width="210" x="330" y="2195" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-265" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F5CBA7;fontColor=#333333;strokeColor=#C68642;" value="MinIO&#xa;stock_warehouse/date=.../" vertex="1">
+          <mxGeometry height="65" width="180" x="570" y="2195" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-266" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;" value="stg_stock_warehouse" vertex="1">
+          <mxGeometry height="65" width="180" x="790" y="2195" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-267" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(không snapshot — static)" vertex="1">
+          <mxGeometry height="65" width="180" x="1010" y="2195" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-268" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;fontColor=#AAAAAA;strokeColor=#CCCCCC;fontStyle=2;" value="(không silver)" vertex="1">
+          <mxGeometry height="65" width="180" x="1230" y="2195" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-269" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;fontColor=#7E5109;strokeColor=#F0B27A;fontStyle=1;" value="dim_warehouse (static)" vertex="1">
+          <mxGeometry height="65" width="290" x="1460" y="2195" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-270" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-263" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-264">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-271" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-264" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-265">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-272" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-265" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-266">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-273" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-266" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-269">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-274" parent="1" style="text;html=1;strokeColor=#1B4F72;fillColor=#EBF5FB;fontColor=#1B4F72;align=center;verticalAlign=middle;fontStyle=1;fontSize=11;rounded=1;" value="CORE DIMS PANEL (8) — conformed, dùng chung qua nhiều fact (quick reference)" vertex="1">
+          <mxGeometry height="30" width="1240" x="1440" y="2294" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-275" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;fontStyle=1;" value="dim_date&#xa;PK: date_key (int YYYYMMDD)" vertex="1">
+          <mxGeometry height="50" width="148" x="1450" y="2339" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-276" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;fontStyle=1;" value="dim_customer&#xa;PK: customer_sk" vertex="1">
+          <mxGeometry height="50" width="148" x="1603" y="2339" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-277" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;fontStyle=1;" value="dim_product&#xa;PK: product_sk" vertex="1">
+          <mxGeometry height="50" width="148" x="1756" y="2339" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-278" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;fontStyle=1;" value="dim_employee&#xa;PK: employee_sk" vertex="1">
+          <mxGeometry height="50" width="148" x="1909" y="2339" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-279" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;fontStyle=1;" value="dim_warehouse&#xa;PK: warehouse_sk" vertex="1">
+          <mxGeometry height="50" width="148" x="2062" y="2339" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-280" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;fontStyle=1;" value="dim_workcenter&#xa;PK: workcenter_sk" vertex="1">
+          <mxGeometry height="50" width="148" x="2215" y="2339" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-281" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;fontStyle=1;" value="dim_campaign&#xa;PK: campaign_sk · NK: campaign_id" vertex="1">
+          <mxGeometry height="50" width="148" x="2368" y="2339" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-282" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;fontColor=#1B4F72;strokeColor=#2E86C1;fontStyle=1;" value="dim_channel&#xa;PK: channel_sk · NK: channel_code" vertex="1">
+          <mxGeometry height="50" width="148" x="2521" y="2339" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-283" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontColor=#666666;align=left;fontSize=10;" value="Domain-specific dims (KHÔNG conformed): dim_account, dim_journal (xem lane FINANCE) · dim_location (xem lane INVENTORY — Movement/Balance)" vertex="1">
+          <mxGeometry height="20" width="1200" x="1450" y="2399" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-284" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontStyle=1;fontSize=11;" value="LEGEND" vertex="1">
+          <mxGeometry height="20" width="180" x="100" y="2439" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-285" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FDEBD0;strokeColor=#F0B27A;fontColor=#7E5109;align=left;fontStyle=0;" value="→ BI trực tiếp : Gold fact không có mart, BI đọc trực tiếp" vertex="1">
+          <mxGeometry height="28" width="380" x="100" y="2464" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-286" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;strokeColor=#CCCCCC;fontColor=#888888;align=left;fontStyle=0;" value="Ô xám nghiêng : giai đoạn KHÔNG áp dụng cho bảng này (không snapshot / không silver / không CDC)" vertex="1">
+          <mxGeometry height="28" width="460" x="495" y="2464" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-287" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D6EAF8;strokeColor=#2E86C1;fontColor=#1B4F72;align=left;fontStyle=0;" value="★ conformed : dim dùng chung qua ≥ 6 fact table (dim_channel)" vertex="1">
+          <mxGeometry height="28" width="380" x="970" y="2464" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-288" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F5CBA7;strokeColor=#A0522D;fontColor=#7B3F00;align=left;fontStyle=0;" value="Mỗi topic Kafka ứng với đúng 1 bảng nguồn Odoo (1 bảng = 1 topic, KHÔNG gộp)" vertex="1">
+          <mxGeometry height="28" width="480" x="1365" y="2464" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-289" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F8F9FA;strokeColor=#555555;fontColor=#333333;align=left;" value="Airflow 09:00 hằng ngày: configure Debezium (signal topic 1 partition/backfill bảng mới) → connector health → 4 CSV → Kafka→MinIO → Snowflake Bronze → dbt deps → Staging/Test → Snapshot/Test → Silver/Test → Gold/Test → Mart/Test" vertex="1">
+          <mxGeometry height="28" width="2900" x="100" y="2509" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-400" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-32" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-401" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-60" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-61">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-402" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-88" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-89">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-403" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-111" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-112">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-404" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-137" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-138">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-405" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-172" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-173">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-406" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-184" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-185">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-407" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-196" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-197">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-408" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-206" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-207">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E2b3ZzQ0dzDLAJJ7FSjC-409" edge="1" parent="1" source="E2b3ZzQ0dzDLAJJ7FSjC-218" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=9;" target="E2b3ZzQ0dzDLAJJ7FSjC-219">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="superstore-process-lineage" name="02 · Logic nạp và biến đổi">
+    <mxGraphModel dx="1500" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3020" pageHeight="2860" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="SUPERSTORE · LOGIC NẠP VÀ BIẾN ĐỔI DỮ LIỆU" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=30;fontStyle=1;fontColor=#16324F;" vertex="1" parent="1">
+          <mxGeometry x="70" y="20" width="2880" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="PostgreSQL → Debezium → Kafka → MinIO → Bronze → Staging → [Snapshot / Silver] → Gold Dim + Fact → Mart. Sơ đồ này mô tả cột, bộ lọc, dedup và nhánh chạy; khóa bảng chi tiết nằm ở superstore-pipeline-3layer.drawio." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=17;fontColor=#526273;" vertex="1" parent="1">
+          <mxGeometry x="70" y="78" width="2880" height="54" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pg" value="&lt;b&gt;1 · Odoo / PostgreSQL&lt;/b&gt;&lt;br&gt;Bảng nghiệp vụ, PK/FK và thay đổi INSERT / UPDATE / DELETE.&lt;br&gt;Nguồn sống: chưa có cột phân tích hay lịch sử dimension dbt." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#EEF2F6;strokeColor=#60758B;fontColor=#193149;" vertex="1" parent="1">
+          <mxGeometry x="70" y="160" width="520" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="debezium" value="&lt;b&gt;2 · Debezium / WAL&lt;/b&gt;&lt;br&gt;Initial snapshot + CDC; một topic Kafka / bảng.&lt;br&gt;Event có op, before / after, source.ts_ms và LSN.&lt;br&gt;Không join hoặc dedup business key ở đây." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#FFF0DD;strokeColor=#C4833A;fontColor=#503313;" vertex="1" parent="1">
+          <mxGeometry x="660" y="160" width="520" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="consumer" value="&lt;b&gt;3 · Kafka + consumer&lt;/b&gt;&lt;br&gt;DELETE đọc before; sự kiện khác đọc after.&lt;br&gt;Tạo is_deleted, cdc_status, _cdc_ts_ms, _cdc_lsn, _kafka_topic / partition / offset.&lt;br&gt;Commit offset sau khi upload Parquet thành công." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#FFF0DD;strokeColor=#C4833A;fontColor=#503313;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="160" width="520" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="minio" value="&lt;b&gt;4 · MinIO / Parquet&lt;/b&gt;&lt;br&gt;Lưu file theo bảng / date; một file chứa batch event.&lt;br&gt;Chưa chọn bản mới nhất theo PK, chưa join.&lt;br&gt;Nhánh CSV đi thẳng vào MinIO, bỏ qua Debezium / Kafka." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#FFF0DD;strokeColor=#C4833A;fontColor=#503313;" vertex="1" parent="1">
+          <mxGeometry x="1840" y="160" width="520" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="bronze" value="&lt;b&gt;5 · Snowflake Bronze&lt;/b&gt;&lt;br&gt;raw_data VARIANT + ingested_at + record_hash = MD5(raw record).&lt;br&gt;Dedup bản ghi y hệt; KHÔNG dedup latest PK.&lt;br&gt;COPY lỗi → rollback bảng đó, không báo nạp thành công giả." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#FFF0DD;strokeColor=#C4833A;fontColor=#503313;" vertex="1" parent="1">
+          <mxGeometry x="2430" y="160" width="520" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="csv" value="&lt;b&gt;CSV marketing (4 file)&lt;/b&gt; · kiểm tra key / grain, thêm _source_batch_id, _source_file_hash, _source_loaded_at; file hash không đổi thì bỏ qua batch." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=middle;spacingLeft=16;spacingRight=14;fontSize=16;strokeWidth=2;fillColor=#F8F1FC;strokeColor=#9271AC;fontColor=#4C2E61;" vertex="1" parent="1">
+          <mxGeometry x="1840" y="425" width="520" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="staging" value="&lt;b&gt;LAYER 1 · STAGING — CDC event log có kiểu dữ liệu&lt;/b&gt;&lt;br&gt;CDC: incremental append; chỉ đọc Bronze có raw_data:ingested_at mới hơn watermark target. Parse kiểu và giữ _cdc_ts_ms, _cdc_lsn, is_deleted, ingested_at, record_hash; KHÔNG dedup PK tại đây.&lt;br&gt;Ngoại lệ: stg_res_users và stg_account_partial_reconcile là view. CSV staging giữ thêm metadata batch / file; không phải CDC." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingRight=18;spacingTop=15;fontSize=19;strokeWidth=3;fillColor=#E4F3FF;strokeColor=#468EBB;fontColor=#143F5D;" vertex="1" parent="1">
+          <mxGeometry x="70" y="570" width="2880" height="190" as="geometry" />
+        </mxCell>
+
+        <mxCell id="header_branch" value="ĐẦU VÀO SAU STAGING" style="rounded=1;html=1;fillColor=#DAEAF7;strokeColor=none;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;fontColor=#164A70;" vertex="1" parent="1"><mxGeometry x="70" y="800" width="580" height="50" as="geometry" /></mxCell>
+        <mxCell id="header_silver" value="SNAPSHOT / LAYER 2 · SILVER" style="rounded=1;html=1;fillColor=#EEDFF5;strokeColor=none;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;fontColor=#693384;" vertex="1" parent="1"><mxGeometry x="730" y="800" width="620" height="50" as="geometry" /></mxCell>
+        <mxCell id="header_dim" value="LAYER 3 · GOLD DIM / FACT" style="rounded=1;html=1;fillColor=#FFE8D4;strokeColor=none;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;fontColor=#925013;" vertex="1" parent="1"><mxGeometry x="1430" y="800" width="650" height="50" as="geometry" /></mxCell>
+        <mxCell id="header_control" value="CỘT JOIN / CẬP NHẬT / NGOẠI LỆ" style="rounded=1;html=1;fillColor=#FFE8D4;strokeColor=none;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;fontColor=#925013;" vertex="1" parent="1"><mxGeometry x="2180" y="800" width="770" height="50" as="geometry" /></mxCell>
+        <mxCell id="fanout" value="" style="rounded=1;fillColor=#4A91BA;strokeColor=#4A91BA;strokeWidth=1;" vertex="1" parent="1"><mxGeometry x="33" y="868" width="12" height="1472" as="geometry" /></mxCell>
+
+        <mxCell id="snapshot_input" value="&lt;b&gt;A · Nhánh có lịch sử SCD2&lt;/b&gt;&lt;br&gt;stg_res_partner, stg_product_template, stg_hr_contract.&lt;br&gt;Mỗi lần chạy: ROW_NUMBER theo business key; lấy event mới nhất bằng _cdc_ts_ms, _cdc_lsn.&lt;br&gt;Không dùng ingested_at để xếp version." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#EDF6FD;strokeColor=#6FA7CD;fontColor=#143F5D;" vertex="1" parent="1"><mxGeometry x="70" y="880" width="580" height="250" as="geometry" /></mxCell>
+        <mxCell id="snapshot" value="&lt;b&gt;SNAPSHOT helper → SILVER SCD2&lt;/b&gt;&lt;br&gt;Snapshot check_cols theo bảng, gồm is_deleted; tạo dbt_scd_id, dbt_valid_from, dbt_valid_to, dbt_updated_at.&lt;br&gt;Silver bỏ version is_deleted=true, join lookup mới nhất; tạo is_current, enrichment_version_key / updated_at.&lt;br&gt;MERGE theo version key; key đổi → nạp lại mọi version của business key." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#F4E9FA;strokeColor=#9D73B9;fontColor=#4C2E61;" vertex="1" parent="1"><mxGeometry x="730" y="880" width="620" height="250" as="geometry" /></mxCell>
+        <mxCell id="gold_scd2" value="&lt;b&gt;GOLD DIM SCD2&lt;/b&gt;&lt;br&gt;dim_customer / product / employee giữ TẤT CẢ version từ Silver.&lt;br&gt;MERGE dbt_scd_id; product dùng product_version_id = product × template-version.&lt;br&gt;Tạo customer_sk / product_sk / employee_sk, dim_updated_at; gold_refreshed_at chỉ là giờ chạy pipeline." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#FFF1E2;strokeColor=#D99A58;fontColor=#653A12;" vertex="1" parent="1"><mxGeometry x="1430" y="880" width="650" height="250" as="geometry" /></mxCell>
+        <mxCell id="temporal" value="&lt;b&gt;Hợp đồng temporal join cho Fact&lt;/b&gt;&lt;br&gt;business_id khớp; source.silver_updated_at nằm trong [dim.dbt_valid_from, dim.dbt_valid_to).&lt;br&gt;Đây là processing time hiện dùng trong project; business date chỉ dùng để báo cáo.&lt;br&gt;Không ép fact cũ vào version đầu tiên. dim_updated_at giúp phát hiện correction / backfill." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#FFF8EA;strokeColor=#D6B269;fontColor=#654A18;" vertex="1" parent="1"><mxGeometry x="2180" y="880" width="770" height="250" as="geometry" /></mxCell>
+
+        <mxCell id="current_input" value="&lt;b&gt;B · Nguồn giao dịch CDC&lt;/b&gt;&lt;br&gt;Sales, Purchase, CRM, Inventory movement / valuation, Accounting, Manufacturing.&lt;br&gt;Staging append → lấy event mới nhất theo PK, ORDER BY _cdc_ts_ms DESC, _cdc_lsn DESC; sau đó join header / lookup.&lt;br&gt;Giữ tombstone is_deleted." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#EDF6FD;strokeColor=#6FA7CD;fontColor=#143F5D;" vertex="1" parent="1"><mxGeometry x="70" y="1180" width="580" height="250" as="geometry" /></mxCell>
+        <mxCell id="silver_current" value="&lt;b&gt;SILVER current-state fact source&lt;/b&gt;&lt;br&gt;Join source chính với parent / lookup mới nhất; derive is_deleted kể cả parent khi có.&lt;br&gt;source_version_key hash các version nguồn phụ thuộc; chỉ MERGE PK khi key này khác target.&lt;br&gt;Tạo silver_updated_at lúc row thực sự INSERT / UPDATE; không tạo SCD2." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#F4E9FA;strokeColor=#9D73B9;fontColor=#4C2E61;" vertex="1" parent="1"><mxGeometry x="730" y="1180" width="620" height="250" as="geometry" /></mxCell>
+        <mxCell id="gold_fact" value="&lt;b&gt;GOLD FACT vận hành&lt;/b&gt;&lt;br&gt;Một row theo grain nguồn: ví dụ sale_order_line_id, stock_move_id, account_move_line_id.&lt;br&gt;Join DIM SCD2 bằng khoảng version; DIM lookup bằng business key hiện hành.&lt;br&gt;Tạo fact_*_sk, dimension SK, date key, measures; giữ source_version_key, source_silver_updated_at, is_deleted." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#FFF1E2;strokeColor=#D99A58;fontColor=#653A12;" vertex="1" parent="1"><mxGeometry x="1430" y="1180" width="650" height="250" as="geometry" /></mxCell>
+        <mxCell id="fact_refresh" value="&lt;b&gt;Incremental MERGE Fact&lt;/b&gt;&lt;br&gt;Reprocess khi row nguồn mới, source_version_key / source_silver_updated_at đổi, SK DIM đổi, hoặc dim_updated_at mới hơn bản fact giữ.&lt;br&gt;MERGE theo grain key của fact; chỉ Mart lọc is_deleted=false để không tính tombstone.&lt;br&gt;Tùy fact có thêm trigger từ lookup / parent." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#FFF8EA;strokeColor=#D6B269;fontColor=#654A18;" vertex="1" parent="1"><mxGeometry x="2180" y="1180" width="770" height="250" as="geometry" /></mxCell>
+
+        <mxCell id="lookup_input" value="&lt;b&gt;C · Bảng tham chiếu / lookup&lt;/b&gt;&lt;br&gt;Staging vẫn append event. Năm DIM lookup trực tiếp chọn latest theo ID bằng _cdc_ts_ms, _cdc_lsn.&lt;br&gt;Ở năm DIM này, dedup TRƯỚC khi xét is_deleted nên DELETE không làm sống lại version cũ.&lt;br&gt;Không cần Snapshot cho thuộc tính current-state." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#EDF6FD;strokeColor=#6FA7CD;fontColor=#143F5D;" vertex="1" parent="1"><mxGeometry x="70" y="1480" width="580" height="250" as="geometry" /></mxCell>
+        <mxCell id="lookup_route" value="&lt;b&gt;Hai đường sang GOLD&lt;/b&gt;&lt;br&gt;1) Staging → Gold trực tiếp: account, journal, warehouse, location, workcenter.&lt;br&gt;2) Staging + CSV campaign master → Silver table → dim_campaign / dim_channel.&lt;br&gt;Lưu ý: Silver campaign/channel hiện lọc is_deleted trước ROW_NUMBER ở vài UTM input; DELETE có nguy cơ lấy lại event cũ." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#F4E9FA;strokeColor=#9D73B9;fontColor=#4C2E61;" vertex="1" parent="1"><mxGeometry x="730" y="1480" width="620" height="250" as="geometry" /></mxCell>
+        <mxCell id="gold_lookup" value="&lt;b&gt;GOLD DIM lookup / SCD1&lt;/b&gt;&lt;br&gt;materialized=table; năm DIM đọc thẳng Staging chọn latest event, thêm *_sk và active.&lt;br&gt;Tombstone vẫn giữ row với active=false để khóa fact cũ còn resolve được; thuộc tính là current-state, không tái tạo lịch sử.&lt;br&gt;Chỉ dim_location trong nhóm này có dim_updated_at; dim_date là calendar dbt." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#FFF1E2;strokeColor=#D99A58;fontColor=#653A12;" vertex="1" parent="1"><mxGeometry x="1430" y="1480" width="650" height="250" as="geometry" /></mxCell>
+        <mxCell id="lookup_caution" value="&lt;b&gt;Khi join Fact&lt;/b&gt;&lt;br&gt;DIM lookup khớp business key; không có dbt_valid_from / to nên không thể temporal join.&lt;br&gt;Đổi thuộc tính lookup không tự reprocess mọi fact: cần model so SK / dim_updated_at, hoặc rebuild fact rõ ràng. gold_refreshed_at KHÔNG phải version business.&lt;br&gt;Với lookup direct, phải latest-row dedup trước khi xét is_deleted." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#FFF8EA;strokeColor=#D6B269;fontColor=#654A18;" vertex="1" parent="1"><mxGeometry x="2180" y="1480" width="770" height="250" as="geometry" /></mxCell>
+
+        <mxCell id="csv_input" value="&lt;b&gt;D · CSV marketing full snapshot&lt;/b&gt;&lt;br&gt;4 file từ loader → MinIO → Bronze → Staging; có source_batch_id, source_file_hash, source_loaded_at, record_hash.&lt;br&gt;Không có _cdc_ts_ms / _cdc_lsn từ PostgreSQL; grain từng file được kiểm tra trước khi nạp." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#EDF6FD;strokeColor=#6FA7CD;fontColor=#143F5D;" vertex="1" parent="1"><mxGeometry x="70" y="1780" width="580" height="250" as="geometry" /></mxCell>
+        <mxCell id="silver_csv" value="&lt;b&gt;SILVER CSV table&lt;/b&gt;&lt;br&gt;Chọn batch mới nhất bằng source_loaded_at; ROW_NUMBER theo grain của file, tie-break ingested_at / record_hash.&lt;br&gt;Rebuild table để row đã biến mất khỏi full CSV cũng biến mất.&lt;br&gt;source_version_key = record_hash; silver_updated_at = source_loaded_at." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#F4E9FA;strokeColor=#9D73B9;fontColor=#4C2E61;" vertex="1" parent="1"><mxGeometry x="730" y="1780" width="620" height="250" as="geometry" /></mxCell>
+        <mxCell id="gold_csv" value="&lt;b&gt;GOLD FACT CSV&lt;/b&gt;&lt;br&gt;fact_ad_spend, fact_email_campaign, fact_ab_test là table từ Silver full batch.&lt;br&gt;Tạo fact SK, date / channel / campaign SK, measures; không MERGE theo ingested_at để giữ row đã bị xóa khỏi CSV.&lt;br&gt;Ratio ở Mart tính lại từ tổng." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#FFF1E2;strokeColor=#D99A58;fontColor=#653A12;" vertex="1" parent="1"><mxGeometry x="1430" y="1780" width="650" height="250" as="geometry" /></mxCell>
+        <mxCell id="gold_derived" value="&lt;b&gt;GOLD FACT dẫn xuất&lt;/b&gt;&lt;br&gt;fact_customer_acquisition = fact_sales + dim_customer + fact_ad_spend.&lt;br&gt;fact_marketing_funnel = fact_ad_spend + fact_crm_funnel + fact_sales + fact_customer_acquisition.&lt;br&gt;Cả hai là table full recompute; KHÔNG đọc stg_customer_acquisition / stg_marketing_funnel_monthly." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#FFF8EA;strokeColor=#D6B269;fontColor=#654A18;" vertex="1" parent="1"><mxGeometry x="2180" y="1780" width="770" height="250" as="geometry" /></mxCell>
+
+        <mxCell id="quant_input" value="&lt;b&gt;E · stock_quant (live state)&lt;/b&gt;&lt;br&gt;Staging append CDC; lấy latest theo stock_quant_id bằng _cdc_ts_ms / _cdc_lsn.&lt;br&gt;Sau dedup mới lọc is_deleted=false và SUM quantity, reserved_quantity theo product × location.&lt;br&gt;Nguồn không tự lưu lịch sử tồn kho." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#EDF6FD;strokeColor=#6FA7CD;fontColor=#143F5D;" vertex="1" parent="1"><mxGeometry x="70" y="2080" width="580" height="250" as="geometry" /></mxCell>
+        <mxCell id="quant_bypass" value="&lt;b&gt;BỎ QUA SILVER / SNAPSHOT&lt;/b&gt;&lt;br&gt;stock_quant đi trực tiếp Staging → Gold fact_inventory_balance.&lt;br&gt;Không MERGE theo quant_id: fact grain là product × location × snapshot_date_key.&lt;br&gt;Mốc temporal cho product SK là snapshot_captured_at." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#F9F2FC;strokeColor=#B593C8;fontColor=#4C2E61;" vertex="1" parent="1"><mxGeometry x="730" y="2080" width="620" height="250" as="geometry" /></mxCell>
+        <mxCell id="gold_balance" value="&lt;b&gt;GOLD FACT inventory balance&lt;/b&gt;&lt;br&gt;delete+insert theo snapshot_date_key; rerun cùng ngày thay toàn bộ partition, ngày cũ vẫn giữ.&lt;br&gt;Tạo snapshot_captured_at, fact_inv_bal_sk và quantity_available = quantity − reserved_quantity.&lt;br&gt;Giữ cả key hôm nay vừa biến mất để ghi balance về 0." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#FFF1E2;strokeColor=#D99A58;fontColor=#653A12;" vertex="1" parent="1"><mxGeometry x="1430" y="2080" width="650" height="250" as="geometry" /></mxCell>
+        <mxCell id="snapshot_note" value="&lt;b&gt;Hai kiểu “snapshot” khác nhau&lt;/b&gt;&lt;br&gt;dbt Snapshot (nhánh A) giữ version thuộc tính DIM bằng dbt_scd_id / valid_from / valid_to.&lt;br&gt;Daily inventory balance (nhánh E) chụp số lượng theo snapshot_date_key; không dùng dbt Snapshot.&lt;br&gt;Không dùng ngày đơn hàng để giả lập lịch sử stock_quant." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=16;spacingRight=14;spacingTop=16;fontSize=17;strokeWidth=2;fillColor=#FFF8EA;strokeColor=#D6B269;fontColor=#654A18;" vertex="1" parent="1"><mxGeometry x="2180" y="2080" width="770" height="250" as="geometry" /></mxCell>
+
+        <mxCell id="mart" value="&lt;b&gt;LAYER 4 · MART — đọc GOLD, không ref Silver trực tiếp&lt;/b&gt;&lt;br&gt;9 Mart materialized=table, tính lại toàn bộ từ Gold để nhận correction lịch sử và xóa nhóm đã biến mất; mart_ar_aging là ngoại lệ: daily incremental MERGE theo customer_sk × snapshot_date_key.&lt;br&gt;Lọc fact.is_deleted=false ở KPI cần dữ liệu còn hiệu lực; group theo dimension / business date, tính lại tỉ lệ từ SUM, không cộng các ratio đã pre-aggregate.&lt;br&gt;Đầu ra: revenue, delivery, vendor, P&amp;L, DSO / AR aging, OEE, ROAS, email, acquisition." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=20;spacingRight=18;spacingTop=18;fontSize=20;strokeWidth=3;fillColor=#E5F3E9;strokeColor=#59A274;fontColor=#234D31;" vertex="1" parent="1"><mxGeometry x="70" y="2420" width="2880" height="210" as="geometry" /></mxCell>
+        <mxCell id="controls" value="&lt;b&gt;CÁC MỐC KIỂM SOÁT / NƠI BÁO LỖI&lt;/b&gt;&lt;br&gt;Kafka offset commit sau upload MinIO · Snowflake COPY/transaction chặn file lỗi · Bronze record_hash chỉ loại payload y hệt · Staging append không đảm bảo một PK/một row · latest-row dedup xảy ra tại Snapshot, Silver hoặc Gold lookup tùy nhánh.&lt;br&gt;dbt tests theo grain, not_null, relationships và SCD2 interval; Airflow chạy Staging → Snapshot → Silver → Gold → Mart rồi test từng lớp. DELETE before có thể chỉ có PK: kiểm tra replica identity trước khi dựa vào non-key field của tombstone." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=20;spacingRight=18;spacingTop=16;fontSize=18;strokeWidth=2;fillColor=#F1F4F7;strokeColor=#8797A5;fontColor=#344759;" vertex="1" parent="1"><mxGeometry x="70" y="2670" width="2880" height="160" as="geometry" /></mxCell>
+
+        <mxCell id="e_pg_deb" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#6B7E8E;strokeWidth=3;" edge="1" parent="1" source="pg" target="debezium"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_deb_cons" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#6B7E8E;strokeWidth=3;" edge="1" parent="1" source="debezium" target="consumer"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_cons_minio" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#6B7E8E;strokeWidth=3;" edge="1" parent="1" source="consumer" target="minio"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_minio_bronze" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#6B7E8E;strokeWidth=3;" edge="1" parent="1" source="minio" target="bronze"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_csv_minio" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#9271AC;strokeWidth=3;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="csv" target="minio"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_bronze_stg" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#6B7E8E;strokeWidth=3;exitX=0.5;exitY=1;entryX=0.88;entryY=0;" edge="1" parent="1" source="bronze" target="staging"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_stg_fan" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#4A91BA;strokeWidth=3;exitX=0;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="staging" target="fanout"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_fan_a" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4A91BA;strokeWidth=2;exitX=1;exitY=0.093;entryX=0;entryY=0.5;" edge="1" parent="1" source="fanout" target="snapshot_input"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_fan_b" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4A91BA;strokeWidth=2;exitX=1;exitY=0.297;entryX=0;entryY=0.5;" edge="1" parent="1" source="fanout" target="current_input"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_fan_c" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4A91BA;strokeWidth=2;exitX=1;exitY=0.501;entryX=0;entryY=0.5;" edge="1" parent="1" source="fanout" target="lookup_input"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_fan_d" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4A91BA;strokeWidth=2;exitX=1;exitY=0.705;entryX=0;entryY=0.5;" edge="1" parent="1" source="fanout" target="csv_input"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_fan_e" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4A91BA;strokeWidth=2;exitX=1;exitY=0.909;entryX=0;entryY=0.5;" edge="1" parent="1" source="fanout" target="quant_input"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="e_a1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#728492;strokeWidth=2;" edge="1" parent="1" source="snapshot_input" target="snapshot"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_a2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#728492;strokeWidth=2;" edge="1" parent="1" source="snapshot" target="gold_scd2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_a3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#728492;strokeWidth=2;" edge="1" parent="1" source="gold_scd2" target="temporal"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_b1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#728492;strokeWidth=2;" edge="1" parent="1" source="current_input" target="silver_current"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_b2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#728492;strokeWidth=2;" edge="1" parent="1" source="silver_current" target="gold_fact"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_b3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#728492;strokeWidth=2;" edge="1" parent="1" source="gold_fact" target="fact_refresh"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_temporal_fact" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#C48547;strokeWidth=2;exitX=0.35;exitY=1;entryX=0.85;entryY=0;" edge="1" parent="1" source="temporal" target="gold_fact"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_c1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#728492;strokeWidth=2;" edge="1" parent="1" source="lookup_input" target="lookup_route"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_c2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#728492;strokeWidth=2;" edge="1" parent="1" source="lookup_route" target="gold_lookup"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_c3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#728492;strokeWidth=2;" edge="1" parent="1" source="gold_lookup" target="lookup_caution"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_lookup_fact" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#C48547;strokeWidth=2;exitX=0.65;exitY=0;entryX=0.65;entryY=1;" edge="1" parent="1" source="gold_lookup" target="gold_fact"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_d1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#728492;strokeWidth=2;" edge="1" parent="1" source="csv_input" target="silver_csv"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_d2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#728492;strokeWidth=2;" edge="1" parent="1" source="silver_csv" target="gold_csv"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_d3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#728492;strokeWidth=2;" edge="1" parent="1" source="gold_csv" target="gold_derived"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_fact_derived" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#C48547;strokeWidth=2;exitX=1;exitY=0.45;entryX=1;entryY=0.3;" edge="1" parent="1" source="fact_refresh" target="gold_derived"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="2985" y="1290" /><mxPoint x="2985" y="1855" /></Array></mxGeometry></mxCell>
+        <mxCell id="e_e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#728492;strokeWidth=2;" edge="1" parent="1" source="quant_input" target="quant_bypass"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#728492;strokeWidth=2;" edge="1" parent="1" source="quant_bypass" target="gold_balance"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#728492;strokeWidth=2;" edge="1" parent="1" source="gold_balance" target="snapshot_note"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_gold_mart" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#59A274;strokeWidth=3;exitX=0.5;exitY=1;entryX=0.74;entryY=0;" edge="1" parent="1" source="gold_balance" target="mart"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_derived_mart" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#59A274;strokeWidth=3;exitX=1;exitY=1;entryX=1;entryY=0.5;" edge="1" parent="1" source="gold_derived" target="mart"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="2980" y="2190" /><mxPoint x="2980" y="2525" /></Array></mxGeometry></mxCell>
+        <mxCell id="e_fact_mart" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#59A274;strokeWidth=3;exitX=1;exitY=1;entryX=0.97;entryY=0;" edge="1" parent="1" source="fact_refresh" target="mart"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="3000" y="1450" /><mxPoint x="3000" y="2400" /></Array></mxGeometry></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+

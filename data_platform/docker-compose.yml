@@ -1,0 +1,405 @@
+name: superstore-analytics_project
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.1
+    restart: always
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: ["CMD", "cub", "zk-ready", "localhost:2181", "30"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.1
+    container_name: kafka
+    restart: always
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092" # internal port for Kafka
+      - "29092:29092" # external port for Kafka
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 2
+      KAFKA_NUM_PARTITIONS: 4
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    healthcheck:
+      test: ["CMD", "cub", "kafka-ready", "-b", "kafka:9092", "1", "30"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  kafka_2:
+    image: confluentinc/cp-kafka:7.4.1
+    container_name: kafka_2
+    restart: always
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9093:9093" # internal port for Kafka
+      - "29093:29093" # external port for Kafka
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://kafka_2:9093,PLAINTEXT_HOST://0.0.0.0:29093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_2:9093,PLAINTEXT_HOST://localhost:29093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 2
+      KAFKA_NUM_PARTITIONS: 4
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    healthcheck:
+      test: ["CMD", "cub", "kafka-ready", "-b", "kafka_2:9093", "1", "30"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  kafka_ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: kafka_ui
+    restart: always
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka_2:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: kafka-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092,kafka_2:9093
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+
+  connect:
+    image: debezium/connect:2.2
+    platform: linux/amd64
+    container_name: debezium_connect
+    restart: always
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka_2:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092,kafka_2:9093
+      GROUP_ID: debezium-connect-superstore
+      CONFIG_STORAGE_TOPIC: debezium-connect-superstore-configs
+      OFFSET_STORAGE_TOPIC: debezium-connect-superstore-offsets
+      STATUS_STORAGE_TOPIC: debezium-connect-superstore-status
+      CONFIG_STORAGE_REPLICATION_FACTOR: "2"
+      OFFSET_STORAGE_REPLICATION_FACTOR: "2"
+      STATUS_STORAGE_REPLICATION_FACTOR: "2"
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -fsS http://localhost:8083/connectors >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z
+    container_name: minio
+    restart: always
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in data_platform/.env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in data_platform/.env}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:9000/minio/health/live >/dev/null",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  airflow-init:
+    build:
+      context: .
+      dockerfile: dockerfile-airflow.dockerfile
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AIRFLOW_DB_USER:?Set AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD:?Set AIRFLOW_DB_PASSWORD}@airflow-postgres:5432/${AIRFLOW_DB_NAME:?Set AIRFLOW_DB_NAME}
+      - _AIRFLOW_DB_MIGRATE=true
+      - _AIRFLOW_WWW_USER_CREATE=true
+      - _AIRFLOW_WWW_USER_USERNAME=${AIRFLOW_ADMIN_USER:?Set AIRFLOW_ADMIN_USER}
+      - _AIRFLOW_WWW_USER_PASSWORD=${AIRFLOW_ADMIN_PASSWORD:?Set AIRFLOW_ADMIN_PASSWORD}
+    env_file:
+      - .env
+    command: airflow version
+
+  airflow-webserver:
+    build:
+      context: .
+      dockerfile: dockerfile-airflow.dockerfile
+    container_name: airflow-webserver
+    restart: always
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+      airflow-scheduler:
+        condition: service_started
+    ports:
+      - "8080:8080"
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AIRFLOW_DB_USER:?Set AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD:?Set AIRFLOW_DB_PASSWORD}@airflow-postgres:5432/${AIRFLOW_DB_NAME:?Set AIRFLOW_DB_NAME}
+      - DEBEZIUM_CONNECTOR_URL=http://connect:8083/connectors
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092,kafka_2:9093
+      - MINIO_ENDPOINT_URL=http://minio:9000
+      - MINIO_ENDPOINT=http://minio:9000
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - PYTHONPATH=/opt/airflow
+      - DATA_SOURCE_DIR=/opt/airflow/data_source
+    volumes:
+      - ./docker/dags:/opt/airflow/dags
+      - ./docker/logs:/opt/airflow/logs
+      - ./docker/plugins:/opt/airflow/plugins
+      - ./superstore_db:/opt/airflow/superstore_db
+      - ./superstore_db/.dbt:/home/airflow/.dbt
+      - ./Debezium_producer:/opt/airflow/Debezium_producer
+      - ./minio_consumer:/opt/airflow/minio_consumer
+      - ./Data_warehouse:/opt/airflow/Data_warehouse
+      - ../ml_platform:/opt/airflow/ml_platform
+      - ./csv_loader:/opt/airflow/csv_loader
+      - ../odoo_dev/CRM_Marketing_source:/opt/airflow/data_source:ro
+    command: webserver
+    env_file:
+      - .env
+
+  airflow-scheduler:
+    build:
+      context: .
+      dockerfile: dockerfile-airflow.dockerfile
+    container_name: airflow-scheduler
+    restart: always
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+      kafka_2:
+        condition: service_healthy
+      connect:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AIRFLOW_DB_USER:?Set AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD:?Set AIRFLOW_DB_PASSWORD}@airflow-postgres:5432/${AIRFLOW_DB_NAME:?Set AIRFLOW_DB_NAME}
+      - DEBEZIUM_CONNECTOR_URL=http://connect:8083/connectors
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092,kafka_2:9093
+      - MINIO_ENDPOINT_URL=http://minio:9000
+      - MINIO_ENDPOINT=http://minio:9000
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - PYTHONPATH=/opt/airflow
+      - DATA_SOURCE_DIR=/opt/airflow/data_source
+    volumes:
+      - ./docker/dags:/opt/airflow/dags
+      - ./docker/logs:/opt/airflow/logs
+      - ./docker/plugins:/opt/airflow/plugins
+      - ./superstore_db:/opt/airflow/superstore_db
+      - ./superstore_db/.dbt:/home/airflow/.dbt
+      - ./Debezium_producer:/opt/airflow/Debezium_producer
+      - ./minio_consumer:/opt/airflow/minio_consumer
+      - ./Data_warehouse:/opt/airflow/Data_warehouse
+      - ../ml_platform:/opt/airflow/ml_platform
+      - ./csv_loader:/opt/airflow/csv_loader
+      - ../odoo_dev/CRM_Marketing_source:/opt/airflow/data_source:ro
+    command: scheduler
+    env_file:
+      - .env
+
+  airflow-postgres:
+    image: postgres:15
+    container_name: airflow-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${AIRFLOW_DB_USER:?Set AIRFLOW_DB_USER}
+      POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD:?Set AIRFLOW_DB_PASSWORD}
+      POSTGRES_DB: ${AIRFLOW_DB_NAME:?Set AIRFLOW_DB_NAME}
+    volumes:
+      - airflow_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  n8n:
+    image: n8nio/n8n:1.76.1
+    container_name: n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=n8n
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - N8N_SECURE_COOKIE=false
+      - N8N_RUNNERS_ENABLED=true
+      - WEBHOOK_URL=http://n8n:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - default
+
+  # Vector DB cho RAG_CHATBOT
+  qdrant:
+    image: qdrant/qdrant:v1.12.5
+    container_name: qdrant_superstore
+    restart: always
+    ports:
+      - "6333:6333" # rest api
+      - "6334:6334" # grpc
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    volumes:
+      - ../RAG_CHATBOT/qdrant_storage:/qdrant/storage
+
+  # Vector DB cho RAG_CHATBOT — gộp về đây từ RAG_CHATBOT/docker-compose.yaml (đã xoá) để
+  # cả dự án chỉ còn 1 file compose duy nhất. Volume trỏ ngược sang thư mục cũ để giữ
+  # nguyên data đã ingest, không phải re-ingest lại từ đầu.
+  redis:
+    image: redis:7.4.5-alpine
+    container_name: redis_superstore
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - ../RAG_CHATBOT/redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ══════════════════ Ứng dụng (profile "app") ══════════════════════════════
+  #
+  # Hai service dưới nằm trong profile `app` nên `docker compose up -d` KHÔNG động tới
+  # chúng. Chủ ý: luồng dev hiện tại là chạy hạ tầng bằng docker rồi `make api` /
+  # `make frontend` trên máy để có hot-reload. Nhét app vào `up` sẽ bắt build image (lần
+  # đầu ~10 phút vì torch) mỗi khi chỉ muốn bật Kafka.
+  #
+  #   make up       → chỉ hạ tầng (như cũ)
+  #   make app-up   → hạ tầng + api + frontend trong container
+  #
+  # ⚠️ ĐỊA CHỈ MẠNG — chỗ sai nhiều nhất khi đóng gói:
+  # `.env` dùng `localhost` cho Qdrant/Redis/backend vì nó viết cho tiến trình chạy TRÊN MÁY.
+  # Trong container, `localhost` là chính container đó. Vì vậy mọi URL nội cụm phải ghi đè
+  # bằng TÊN SERVICE ở khối `environment:` dưới đây. Compose ưu tiên `environment:` hơn
+  # `env_file:`, và `load_dotenv()` của Python mặc định KHÔNG ghi đè biến môi trường đã có,
+  # nên `.env` giữ nguyên cho luồng chạy trên máy — hai luồng không giẫm chân nhau.
+  api:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: superstore_api:1.1
+    container_name: superstore_api
+    restart: always
+    profiles: ["app"]
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../RAG_CHATBOT/.env
+    environment:
+      # goi API for commuunication
+      QDRANT_URL: http://qdrant:6333
+      REDIS_URL: redis://redis:6379/0
+      # Ngoài cụm: LM Studio và Odoo Postgres chạy trên MÁY THẬT, không phải service compose.
+      # `host.docker.internal` là đường container gọi ngược về host (macOS/Windows có sẵn;
+      # trên Linux cần khối `extra_hosts` bên dưới).
+      LLM_BASE_URL: http://host.docker.internal:1234/v1
+      ODOO_BASE_URL: http://host.docker.internal:8069
+      # n8n LÀ service trong cụm này → gọi bằng tên service. Hiện `MAIL_PROVIDER=log` nên
+      # chưa dùng tới, nhưng để `localhost` ở đây là gài sẵn một lỗi cho ngày đổi sang
+      # `MAIL_PROVIDER=n8n`: magic link sẽ im lặng không gửi được và rất khó đoán vì sao.
+      N8N_MAIL_WEBHOOK_URL: http://n8n:5678/Webhook/superstore-mailer
+      # Địa chỉ đưa vào email magic link — phải là địa chỉ KHÁCH mở được trên trình duyệt,
+      # không phải tên service nội cụm.
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3000}
+      API_HOST: 0.0.0.0
+      API_RELOAD: "False"
+    extra_hosts:
+      # Linux không tự có host.docker.internal. Dòng này thêm nó vào /etc/hosts của
+      # container; trên macOS/Windows thì thừa nhưng vô hại.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # Cache model HuggingFace (~1,2 GB). Lần khởi động ĐẦU TIÊN sẽ tải và chậm vài phút;
+      # các lần sau đọc từ volume nên gần như tức thì. Không bake vào image để mỗi lần sửa
+      # code không phải build lại 1,2 GB.
+      - hf_cache:/cache/huggingface
+    depends_on:
+      qdrant:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../RAG_CHATBOT/frontend
+    image: superstore_frontend:1.1
+    container_name: superstore_frontend
+    restart: always
+    profiles: ["app"]
+    ports:
+      - "3000:3000"
+    env_file:
+      # Chỉ nạp .env của FRONTEND (đúng 2 biến: INTERNAL_API_URL + API_KEY), KHÔNG nạp
+      # `RAG_CHATBOT/.env`. Frontend không cần mật khẩu Snowflake, Odoo hay SMTP — đưa vào
+      # là mở rộng vùng ảnh hưởng nếu container này bị chiếm quyền.
+      - ../RAG_CHATBOT/frontend/.env
+    environment:
+      # Ghi đè INTERNAL_API_URL của .env.local (localhost:8000 — dành cho chạy trên máy).
+      # Trình duyệt KHÔNG bao giờ gọi địa chỉ này; chỉ server Next gọi, qua route handler
+      # `app/api/internal/[...path]/route.ts`. Vì vậy nó là tên service nội cụm.
+      INTERNAL_API_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_started
+
+volumes:
+  airflow_postgres_data:
+  minio_data:
+  n8n_data:
+  redis_data:
+  hf_cache:
+networks:
+  default:
+    name: superstore-network

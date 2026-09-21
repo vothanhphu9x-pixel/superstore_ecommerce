@@ -208,11 +208,10 @@ AP phát hiện price/qty khác PO → Không Post bill → Gửi lại Purchasi
 | `account_move` | Hóa đơn & bút toán (header) | Transaction |
 | `account_move_line` | Dòng Nợ/Có (double-entry) | Transaction → **fact_journal_entries** |
 | `account_payment` | Thanh toán thu/chi | Transaction |
-| `account_reconcile` | Đối trừ HĐ với payment | Transaction |
+| `account_partial_reconcile` | Phân bổ/đối soát payment với hóa đơn | Transaction → **fact_payment_allocation** |
 
 **Phân tích downstream:**
-- P&L (Lãi lỗ) theo tháng × category × region
-- Balance Sheet (Bảng cân đối kế toán) snapshot
-- AR Aging: công nợ 0–30, 31–60, 61–90, >90 ngày
-- DSO, DPO trend
-- Cash flow statement
+- `fact_journal_entries` → `mart_pnl_monthly`
+- `fact_customer_invoice` → daily snapshot `mart_ar_aging`
+- `fact_payment_allocation` → `mart_dso_monthly`
+- P&L, AR Aging và DSO là phạm vi analytics hiện tại; Balance Sheet, Cash Flow và DPO cần model riêng trước khi công bố KPI.

@@ -1,0 +1,2249 @@
+version: 2
+
+# File này tách rõ hai khu vực trong từng resource:
+# 1) TEST: điều kiện kiểm thử dữ liệu.
+# 2) DESCRIPTION: metadata mô tả bảng/cột cho dbt Docs.
+models:
+  - name: stg_res_partner
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của đối tác khách hàng/nhà cung cấp; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa đối tác khách hàng/nhà cung cấp từ Bronze và giữ metadata tải/CDC. Cung cấp thông tin khách hàng/nhà cung cấp, phân khúc và địa lý cho các domain thương mại và tài chính.
+  
+      **Build logic:**
+      - Đọc `BRONZE.res_partner`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: partner_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của res partner.
+    - name: is_company
+      description: Cờ phân biệt doanh nghiệp với cá nhân trong res.partner.
+    - name: parent_id
+      description: Mã định danh parent; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: commercial_partner_id
+      description: ID đối tác thương mại gốc trong Odoo, dùng gom các contact thuộc cùng một tổ chức.
+    - name: customer_rank
+      description: Điểm xếp hạng khách hàng của Odoo; giá trị lớn hơn 0 cho biết đã có vai trò khách hàng.
+    - name: supplier_rank
+      description: Điểm xếp hạng nhà cung cấp của Odoo; giá trị lớn hơn 0 cho biết đã có vai trò vendor.
+    - name: state_id
+      description: Mã định danh trạng thái; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: country_id
+      description: Mã định danh country; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: city
+      description: Thuộc tính city của res partner trong lớp Staging.
+    - name: zip
+      description: Thuộc tính zip của res partner trong lớp Staging.
+    - name: email
+      description: Thuộc tính email của res partner trong lớp Staging.
+    - name: phone
+      description: Thuộc tính phone của res partner trong lớp Staging.
+    - name: comment
+      description: Thuộc tính comment của res partner trong lớp Staging.
+    - name: ref
+      description: Thuộc tính ref của res partner trong lớp Staging.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: write_date
+      description: Ngày write của res partner.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_res_partner_category
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của nhãn phân khúc đối tác; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa nhãn phân khúc đối tác từ Bronze và giữ metadata tải/CDC. Cung cấp thông tin khách hàng/nhà cung cấp, phân khúc và địa lý cho các domain thương mại và tài chính.
+  
+      **Build logic:**
+      - Đọc `BRONZE.res_partner_category`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: category_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: category_id
+      description: Mã định danh category; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của res partner category.
+    - name: parent_id
+      description: Mã định danh parent; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_res_partner_res_partner_category_rel
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của quan hệ partner–tag; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa quan hệ partner–tag từ Bronze và giữ metadata tải/CDC. Cung cấp thông tin khách hàng/nhà cung cấp, phân khúc và địa lý cho các domain thương mại và tài chính.
+  
+      **Build logic:**
+      - Đọc `BRONZE.res_partner_res_partner_category_rel`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: partner_id
+    - not_null:
+        arguments:
+          column_name: category_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: category_id
+      description: Mã định danh category; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_res_country_state
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của bang/tỉnh; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa bang/tỉnh từ Bronze và giữ metadata tải/CDC. Cung cấp địa lý chuẩn để phân vùng khách hàng và báo cáo theo khu vực.
+  
+      **Build logic:**
+      - Đọc `BRONZE.res_country_state`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: state_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: state_id
+      description: Mã định danh trạng thái; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của res country state.
+    - name: code
+      description: Mã nghiệp vụ của res country state, dùng nhận diện hoặc mapping dữ liệu.
+    - name: country_id
+      description: Mã định danh country; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_res_country
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của quốc gia; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa quốc gia từ Bronze và giữ metadata tải/CDC. Cung cấp địa lý chuẩn để phân vùng khách hàng và báo cáo theo khu vực.
+  
+      **Build logic:**
+      - Đọc `BRONZE.res_country`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: country_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: country_id
+      description: Mã định danh country; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của res country.
+    - name: code
+      description: Mã nghiệp vụ của res country, dùng nhận diện hoặc mapping dữ liệu.
+    - name: phone_code
+      description: Mã nghiệp vụ của res country, dùng nhận diện hoặc mapping dữ liệu.
+    - name: state_required
+      description: Thuộc tính trạng thái required của res country trong lớp Staging.
+    - name: zip_required
+      description: Thuộc tính zip required của res country trong lớp Staging.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: write_date
+      description: Ngày write của res country.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_product_template
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của định nghĩa sản phẩm; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa định nghĩa sản phẩm từ Bronze và giữ metadata tải/CDC. Cung cấp thông tin SKU, danh mục, UOM, giá và standard cost cho phân tích bán, mua, kho và sản xuất.
+  
+      **Build logic:**
+      - Đọc `BRONZE.product_template`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: product_tmpl_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: product_tmpl_id
+      description: Mã định danh sản phẩm tmpl; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của product template.
+    - name: type
+      description: Thuộc tính loại của product template trong lớp Staging.
+    - name: is_storable
+      description: Cờ cho biết sản phẩm được quản lý tồn kho.
+    - name: categ_id
+      description: Mã định danh categ; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: list_price
+      description: Thuộc tính list giá của product template trong lớp Staging.
+    - name: sale_ok
+      description: Thuộc tính sale ok của product template trong lớp Staging.
+    - name: purchase_ok
+      description: Thuộc tính purchase ok của product template trong lớp Staging.
+    - name: tracking
+      description: Thuộc tính tracking của product template trong lớp Staging.
+    - name: uom_id
+      description: Mã định danh uom; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: write_date
+      description: Ngày write của product template.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_product_product
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của SKU sản phẩm; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa SKU sản phẩm từ Bronze và giữ metadata tải/CDC. Cung cấp thông tin SKU, danh mục, UOM, giá và standard cost cho phân tích bán, mua, kho và sản xuất.
+  
+      **Build logic:**
+      - Đọc `BRONZE.product_product`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: product_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_tmpl_id
+      description: Mã định danh sản phẩm tmpl; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: default_code
+      description: Mã nghiệp vụ của product product, dùng nhận diện hoặc mapping dữ liệu.
+    - name: barcode
+      description: Thuộc tính barcode của product product trong lớp Staging.
+    - name: standard_price
+      description: Thuộc tính standard giá của product product trong lớp Staging.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: write_date
+      description: Ngày write của product product.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_product_category
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của danh mục sản phẩm; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa danh mục sản phẩm từ Bronze và giữ metadata tải/CDC. Cung cấp thông tin SKU, danh mục, UOM, giá và standard cost cho phân tích bán, mua, kho và sản xuất.
+  
+      **Build logic:**
+      - Đọc `BRONZE.product_category`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: categ_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: categ_id
+      description: Mã định danh categ; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của product category.
+    - name: complete_name
+      description: Tên hiển thị của product category.
+    - name: parent_id
+      description: Mã định danh parent; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_uom_uom
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của đơn vị tính; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa đơn vị tính từ Bronze và giữ metadata tải/CDC. Cung cấp thông tin SKU, danh mục, UOM, giá và standard cost cho phân tích bán, mua, kho và sản xuất.
+  
+      **Build logic:**
+      - Đọc `BRONZE.uom_uom`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: uom_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: uom_id
+      description: Mã định danh uom; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của uom uom.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_mrp_bom
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của định mức nguyên vật liệu; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa định mức nguyên vật liệu từ Bronze và giữ metadata tải/CDC. Đo sản lượng, scrap, cycle time và hiệu quả lệnh sản xuất.
+  
+      **Build logic:**
+      - Đọc `BRONZE.mrp_bom`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: bom_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: bom_id
+      description: Mã định danh bom; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_tmpl_id
+      description: Mã định danh sản phẩm tmpl; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: bom_type
+      description: Thuộc tính bom loại của mrp bom trong lớp Staging.
+    - name: is_active
+      description: Cờ cho biết bản ghi đang hoạt động và được phép sử dụng trong nghiệp vụ.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_hr_employee
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của nhân viên; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa nhân viên từ Bronze và giữ metadata tải/CDC. Cung cấp quan hệ nhân viên–hợp đồng–user để phân tích salesperson, buyer và nguồn lực.
+  
+      **Build logic:**
+      - Đọc `BRONZE.hr_employee`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: employee_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: employee_id
+      description: Mã định danh nhân viên; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của hr employee.
+    - name: department_id
+      description: Mã định danh department; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: job_title
+      description: Thuộc tính job title của hr employee trong lớp Staging.
+    - name: job_id
+      description: Mã định danh job; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: user_id
+      description: Mã định danh user; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: employee_type
+      description: Thuộc tính nhân viên loại của hr employee trong lớp Staging.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_hr_contract
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của hợp đồng lao động; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa hợp đồng lao động từ Bronze và giữ metadata tải/CDC. Cung cấp quan hệ nhân viên–hợp đồng–user để phân tích salesperson, buyer và nguồn lực.
+  
+      **Build logic:**
+      - Đọc `BRONZE.hr_contract`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: contract_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: contract_id
+      description: Mã định danh contract; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của hr contract.
+    - name: employee_id
+      description: Mã định danh nhân viên; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: wage
+      description: Thuộc tính wage của hr contract trong lớp Staging.
+    - name: date_start
+      description: Ngày start của hr contract.
+    - name: date_end
+      description: Ngày end của hr contract.
+    - name: state
+      description: Trạng thái nghiệp vụ của hr contract.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_hr_department
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của phòng ban; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa phòng ban từ Bronze và giữ metadata tải/CDC. Cung cấp quan hệ nhân viên–hợp đồng–user để phân tích salesperson, buyer và nguồn lực.
+  
+      **Build logic:**
+      - Đọc `BRONZE.hr_department`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: department_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: department_id
+      description: Mã định danh department; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của hr department.
+    - name: manager_id
+      description: Mã định danh manager; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_hr_job
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của vị trí công việc; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa vị trí công việc từ Bronze và giữ metadata tải/CDC. Cung cấp quan hệ nhân viên–hợp đồng–user để phân tích salesperson, buyer và nguồn lực.
+  
+      **Build logic:**
+      - Đọc `BRONZE.hr_job`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: job_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: job_id
+      description: Mã định danh job; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của hr job.
+    - name: department_id
+      description: Mã định danh department; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: company_id
+      description: Mã định danh company; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: expected_employees
+      description: Thuộc tính expected employees của hr job trong lớp Staging.
+    - name: employee_count
+      description: Số lượng nhân viên tại grain của model.
+    - name: recruitment_count
+      description: Số lượng recruitment tại grain của model.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: write_date
+      description: Ngày write của hr job.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_res_users
+    description: |-
+      **Grain:** 1 hàng = 1 user_id với employee mapping hiện hành.
+  
+      **Business value:** Chuẩn hóa tài khoản người dùng Odoo từ Bronze và giữ metadata tải/CDC. Cung cấp quan hệ nhân viên–hợp đồng–user để phân tích salesperson, buyer và nguồn lực.
+  
+      **Build logic:**
+      - Đọc Bronze `res_users` và `hr_employee`, chọn event CDC mới nhất của mỗi user/employee rồi join để suy `employee_id`.
+      - View luôn tính lại current mapping; event cũ không xuất hiện trong output nhưng vẫn được giữ ở Staging nguồn.
+      - Không dùng incremental watermark vì thay đổi ở một trong hai phía join đều phải phản ánh ngay.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: user_id
+    - not_null:
+        arguments:
+          column_name: user_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: user_id
+      description: Mã định danh user; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: login
+      description: Thuộc tính login của res users trong lớp Staging.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: employee_id
+      description: Mã định danh nhân viên; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+
+  - name: stg_stock_warehouse
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của kho hàng; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa kho hàng từ Bronze và giữ metadata tải/CDC. Cung cấp danh mục kho để phân tích tồn kho, mua hàng và giao nhận theo warehouse.
+  
+      **Build logic:**
+      - Đọc `BRONZE.stock_warehouse`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: warehouse_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: warehouse_id
+      description: Mã định danh kho; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của stock warehouse.
+    - name: code
+      description: Mã nghiệp vụ của stock warehouse, dùng nhận diện hoặc mapping dữ liệu.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_mrp_workcenter
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của trung tâm sản xuất; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa trung tâm sản xuất từ Bronze và giữ metadata tải/CDC. Cung cấp danh mục work center và loss type cho phân tích vận hành sản xuất.
+  
+      **Build logic:**
+      - Đọc `BRONZE.mrp_workcenter`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: workcenter_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: workcenter_id
+      description: Mã định danh workcenter; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của mrp workcenter.
+    - name: code
+      description: Mã nghiệp vụ của mrp workcenter, dùng nhận diện hoặc mapping dữ liệu.
+    - name: default_capacity
+      description: Thuộc tính default capacity của mrp workcenter trong lớp Staging.
+    - name: time_efficiency
+      description: Thuộc tính thời gian efficiency của mrp workcenter trong lớp Staging.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_sale_order
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của đơn bán hàng; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa đơn bán hàng từ Bronze và giữ metadata tải/CDC. Đo đơn bán, số lượng, doanh thu, giá vốn, lợi nhuận gộp và attribution bán hàng.
+  
+      **Build logic:**
+      - Đọc `BRONZE.sale_order`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: order_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: order_id
+      description: Mã định danh đơn hàng; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của sale order.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: user_id
+      description: Mã định danh user; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: warehouse_id
+      description: Mã định danh kho; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: state
+      description: Trạng thái nghiệp vụ của sale order.
+    - name: date_order
+      description: Ngày đơn hàng của sale order.
+    - name: invoice_status
+      description: Trạng thái xử lý của sale order.
+    - name: delivery_status
+      description: Trạng thái xử lý của sale order.
+    - name: amount_total
+      description: Thuộc tính giá trị tiền tổng của sale order trong lớp Staging.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: medium_id
+      description: Mã định danh medium; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: source_id
+      description: Mã định danh source; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: opportunity_id
+      description: ID CRM opportunity liên kết với đơn bán hàng.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: write_date
+      description: Ngày write của sale order.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_sale_order_line
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của dòng đơn bán hàng; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa dòng đơn bán hàng từ Bronze và giữ metadata tải/CDC. Đo đơn bán, số lượng, doanh thu, giá vốn, lợi nhuận gộp và attribution bán hàng.
+  
+      **Build logic:**
+      - Đọc `BRONZE.sale_order_line`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: sale_order_line_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: sale_order_line_id
+      description: Mã định danh sale đơn hàng line; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: order_id
+      description: Mã định danh đơn hàng; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: state
+      description: Trạng thái nghiệp vụ của sale order line.
+    - name: product_uom_qty
+      description: Số lượng sản phẩm uom tại grain của model.
+    - name: qty_delivered
+      description: Số lượng delivered tại grain của model.
+    - name: price_unit
+      description: Thuộc tính giá unit của sale order line trong lớp Staging.
+    - name: discount
+      description: Thuộc tính discount của sale order line trong lớp Staging.
+    - name: price_subtotal
+      description: Thuộc tính giá subtotal của sale order line trong lớp Staging.
+    - name: price_total
+      description: Thuộc tính giá tổng của sale order line trong lớp Staging.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: write_date
+      description: Ngày write của sale order line.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_utm_campaign
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của chiến dịch UTM; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa chiến dịch UTM từ Bronze và giữ metadata tải/CDC. Chuẩn hóa campaign Odoo và marketing ngoài hệ thống để attribution dùng chung một định danh.
+  
+      **Build logic:**
+      - Đọc `BRONZE.utm_campaign`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: utm_campaign_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: utm_campaign_id
+      description: Mã định danh utm chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của utm campaign.
+    - name: title
+      description: Thuộc tính title của utm campaign trong lớp Staging.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_utm_medium
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của medium marketing; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa medium marketing từ Bronze và giữ metadata tải/CDC. Chuẩn hóa source/medium/channel để so sánh và attribution hiệu quả đa kênh.
+  
+      **Build logic:**
+      - Đọc `BRONZE.utm_medium`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: utm_medium_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: utm_medium_id
+      description: Mã định danh utm medium; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của utm medium.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_marketing_campaigns_master
+    description: |-
+      **Grain:** 1 hàng = 1 campaign trong mỗi lần ingest file.
+  
+      **Business value:** Chuẩn hóa campaign master marketing từ Bronze và giữ metadata tải/CDC. Chuẩn hóa campaign Odoo và marketing ngoài hệ thống để attribution dùng chung một định danh.
+  
+      **Build logic:**
+      - Đọc `BRONZE.marketing_campaigns_master`, cast/đổi tên cột và append từng lần ingest file theo `ingested_at`.
+      - Không deduplicate ở Staging và không có metadata CDC; Silver chọn snapshot/version mới nhất bằng `ingested_at` và `record_hash`.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: campaign_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: source_campaign_id
+      description: Mã định danh source chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_name
+      description: Tên hiển thị của marketing campaigns master.
+    - name: year
+      description: Thuộc tính year của marketing campaigns master trong lớp Staging.
+    - name: objective
+      description: Thuộc tính objective của marketing campaigns master trong lớp Staging.
+    - name: target_segment
+      description: Thuộc tính target segment của marketing campaigns master trong lớp Staging.
+    - name: product_focus
+      description: Thuộc tính sản phẩm focus của marketing campaigns master trong lớp Staging.
+    - name: channels
+      description: Thuộc tính channels của marketing campaigns master trong lớp Staging.
+    - name: start_date
+      description: Ngày start của marketing campaigns master.
+    - name: end_date
+      description: Ngày end của marketing campaigns master.
+    - name: duration_days
+      description: Thuộc tính thời lượng days của marketing campaigns master trong lớp Staging.
+    - name: total_budget_usd
+      description: Giá trị tổng budget theo đơn vị USD từ nguồn.
+    - name: budget_multiplier
+      description: Thuộc tính budget multiplier của marketing campaigns master trong lớp Staging.
+    - name: status
+      description: Trạng thái xử lý của marketing campaigns master.
+    - name: is_underperformer
+      description: Cờ đánh dấu campaign hoặc ngày quảng cáo hoạt động dưới ngưỡng kỳ vọng.
+    - name: notes
+      description: Thuộc tính notes của marketing campaigns master trong lớp Staging.
+    - name: source_batch_id
+      description: Mã lô nạp nguồn, dùng truy vết các bản ghi được xử lý cùng một lần.
+    - name: source_file_hash
+      description: Hash của tệp nguồn, dùng nhận diện và chống nạp lặp cùng một tệp.
+    - name: source_loaded_at
+      description: Thời điểm dữ liệu nguồn được loader ghi vào kho dữ liệu.
+    - name: record_hash
+      description: Hash nội dung của từng bản ghi, dùng phát hiện thay đổi và tránh cập nhật thừa khi ingest lại dữ liệu giống hệt.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_crm_lead
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của lead/opportunity CRM; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa lead/opportunity CRM từ Bronze và giữ metadata tải/CDC. Cung cấp dữ liệu phễu Lead → Opportunity → Won để đo conversion, win/loss và hiệu quả campaign/channel.
+  
+      **Build logic:**
+      - Đọc `BRONZE.crm_lead`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: crm_lead_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: crm_lead_id
+      description: Mã định danh crm lead; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của crm lead.
+    - name: type
+      description: Thuộc tính loại của crm lead trong lớp Staging.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: user_id
+      description: Mã định danh user; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: team_id
+      description: Mã định danh team; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: stage_id
+      description: Mã định danh stage; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: medium_id
+      description: Mã định danh medium; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: source_id
+      description: Mã định danh source; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: probability
+      description: Thuộc tính probability của crm lead trong lớp Staging.
+    - name: expected_revenue
+      description: Thuộc tính expected doanh thu của crm lead trong lớp Staging.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: date_open
+      description: Ngày open của crm lead.
+    - name: date_closed
+      description: Ngày closed của crm lead.
+    - name: date_conversion
+      description: Ngày conversion của crm lead.
+    - name: date_last_stage_update
+      description: Ngày last stage update của crm lead.
+    - name: create_date
+      description: Ngày create của crm lead.
+    - name: lost_reason_id
+      description: Mã định danh lost reason; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: write_date
+      description: Ngày write của crm lead.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_utm_source
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của nguồn marketing; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa nguồn marketing từ Bronze và giữ metadata tải/CDC. Chuẩn hóa source/medium/channel để so sánh và attribution hiệu quả đa kênh.
+  
+      **Build logic:**
+      - Đọc `BRONZE.utm_source`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: source_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: source_id
+      description: Mã định danh source; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: source_name
+      description: Tên hiển thị của utm source.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_account_move
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của chứng từ kế toán/hóa đơn; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa chứng từ kế toán/hóa đơn từ Bronze và giữ metadata tải/CDC. Theo dõi vòng đời hóa đơn/refund, ngày đến hạn, số dư còn lại và trạng thái thanh toán.
+  
+      **Build logic:**
+      - Đọc `BRONZE.account_move`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: move_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: move_id
+      description: Mã định danh dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của account move.
+    - name: date
+      description: Thuộc tính ngày của account move trong lớp Staging.
+    - name: invoice_date
+      description: Ngày hóa đơn của account move.
+    - name: invoice_date_due
+      description: Thuộc tính hóa đơn ngày due của account move trong lớp Staging.
+    - name: delivery_date
+      description: Ngày delivery của account move.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: journal_id
+      description: Mã định danh sổ nhật ký; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: currency_id
+      description: Mã định danh currency; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: company_id
+      description: Mã định danh company; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: move_type
+      description: Thuộc tính dịch chuyển loại của account move trong lớp Staging.
+    - name: state
+      description: Trạng thái nghiệp vụ của account move.
+    - name: amount_untaxed
+      description: Thuộc tính giá trị tiền untaxed của account move trong lớp Staging.
+    - name: amount_tax
+      description: Thuộc tính giá trị tiền tax của account move trong lớp Staging.
+    - name: amount_total
+      description: Thuộc tính giá trị tiền tổng của account move trong lớp Staging.
+    - name: amount_residual
+      description: Thuộc tính giá trị tiền residual của account move trong lớp Staging.
+    - name: payment_state
+      description: Trạng thái nghiệp vụ của account move.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: write_date
+      description: Ngày write của account move.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_account_move_line
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của dòng bút toán; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa dòng bút toán từ Bronze và giữ metadata tải/CDC. Cung cấp sổ cái chi tiết để đối chiếu Nợ/Có và lập báo cáo tài chính.
+  
+      **Build logic:**
+      - Đọc `BRONZE.account_move_line`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: account_move_line_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: account_move_line_id
+      description: Mã định danh tài khoản kế toán dịch chuyển line; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: move_id
+      description: Mã định danh dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: account_id
+      description: Mã định danh tài khoản kế toán; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của account move line.
+    - name: debit
+      description: Thuộc tính debit của account move line trong lớp Staging.
+    - name: credit
+      description: Thuộc tính credit của account move line trong lớp Staging.
+    - name: balance
+      description: Thuộc tính balance của account move line trong lớp Staging.
+    - name: amount_currency
+      description: Thuộc tính giá trị tiền currency của account move line trong lớp Staging.
+    - name: currency_id
+      description: Mã định danh currency; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: date_maturity
+      description: Ngày maturity của account move line.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_account_account
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của hệ thống tài khoản kế toán; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa hệ thống tài khoản kế toán từ Bronze và giữ metadata tải/CDC. Chuẩn hóa Chart of Accounts và dấu Nợ/Có để lập P&L và các báo cáo tài chính.
+  
+      **Build logic:**
+      - Đọc `BRONZE.account_account`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: account_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: account_id
+      description: Mã định danh tài khoản kế toán; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: code
+      description: Mã nghiệp vụ của account account, dùng nhận diện hoặc mapping dữ liệu.
+    - name: name
+      description: Tên hiển thị của account account.
+    - name: account_type
+      description: Thuộc tính tài khoản kế toán loại của account account trong lớp Staging.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_account_journal
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của sổ nhật ký kế toán; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa sổ nhật ký kế toán từ Bronze và giữ metadata tải/CDC. Phân loại bút toán và thanh toán theo sổ nhật ký kế toán.
+  
+      **Build logic:**
+      - Đọc `BRONZE.account_journal`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: journal_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: journal_id
+      description: Mã định danh sổ nhật ký; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: code
+      description: Mã nghiệp vụ của account journal, dùng nhận diện hoặc mapping dữ liệu.
+    - name: name
+      description: Tên hiển thị của account journal.
+    - name: type
+      description: Thuộc tính loại của account journal trong lớp Staging.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_account_payment
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của thanh toán; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa thanh toán từ Bronze và giữ metadata tải/CDC. Cung cấp dữ liệu thanh toán đã chuẩn hóa cho phân tích và các model downstream.
+  
+      **Build logic:**
+      - Đọc `BRONZE.account_payment`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: payment_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: payment_id
+      description: Mã định danh thanh toán; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của account payment.
+    - name: move_id
+      description: Mã định danh dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: date
+      description: Thuộc tính ngày của account payment trong lớp Staging.
+    - name: journal_id
+      description: Mã định danh sổ nhật ký; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: amount
+      description: Thuộc tính giá trị tiền của account payment trong lớp Staging.
+    - name: payment_type
+      description: Thuộc tính thanh toán loại của account payment trong lớp Staging.
+    - name: state
+      description: Trạng thái nghiệp vụ của account payment.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_account_partial_reconcile
+    description: |-
+      **Grain:** 1 hàng = 1 allocation payment–invoice ở mapping hiện hành.
+  
+      **Business value:** Chuẩn hóa phân bổ payment–invoice từ Bronze và giữ metadata tải/CDC. Nối payment với invoice để tính allocation, DSO, overdue, aging và dòng tiền thu.
+  
+      **Build logic:**
+      - Đọc partial reconcile, move line và payment; chọn event mới nhất rồi join `debit_move_id/credit_move_id → account_move_line.id → move_id` để suy payment và invoice.
+      - View chỉ trả mapping hiện hành; record cũ bị thay thế không xuất hiện trong kết quả.
+      - Không dùng watermark vì thay đổi ở bất kỳ bảng cầu nối nào cũng phải được tính lại.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: account_partial_reconcile_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: account_partial_reconcile_id
+      description: Mã định danh tài khoản kế toán partial reconcile; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: debit_move_id
+      description: Mã định danh debit dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: credit_move_id
+      description: Mã định danh credit dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: amount
+      description: Thuộc tính giá trị tiền của account partial reconcile trong lớp Staging.
+    - name: max_date
+      description: Ngày max của account partial reconcile.
+    - name: payment_id
+      description: Mã định danh thanh toán; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: invoice_move_id
+      description: Mã định danh hóa đơn dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+
+  - name: stg_purchase_order
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của đơn mua hàng; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa đơn mua hàng từ Bronze và giữ metadata tải/CDC. Đo hoạt động mua hàng, số lượng đặt/nhận, giá trị mua và hiệu quả nhà cung cấp.
+  
+      **Build logic:**
+      - Đọc `BRONZE.purchase_order`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: order_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: order_id
+      description: Mã định danh đơn hàng; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của purchase order.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: user_id
+      description: Mã định danh user; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: state
+      description: Trạng thái nghiệp vụ của purchase order.
+    - name: date_order
+      description: Ngày đơn hàng của purchase order.
+    - name: date_planned
+      description: Ngày dự kiến của purchase order.
+    - name: amount_total
+      description: Thuộc tính giá trị tiền tổng của purchase order trong lớp Staging.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: write_date
+      description: Ngày write của purchase order.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_purchase_order_line
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của dòng đơn mua hàng; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa dòng đơn mua hàng từ Bronze và giữ metadata tải/CDC. Đo hoạt động mua hàng, số lượng đặt/nhận, giá trị mua và hiệu quả nhà cung cấp.
+  
+      **Build logic:**
+      - Đọc `BRONZE.purchase_order_line`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: purchase_order_line_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: purchase_order_line_id
+      description: Mã định danh purchase đơn hàng line; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: order_id
+      description: Mã định danh đơn hàng; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: date_planned
+      description: Ngày dự kiến của purchase order line.
+    - name: product_qty
+      description: Số lượng sản phẩm tại grain của model.
+    - name: qty_received
+      description: Số lượng received tại grain của model.
+    - name: price_unit
+      description: Thuộc tính giá unit của purchase order line trong lớp Staging.
+    - name: discount
+      description: Thuộc tính discount của purchase order line trong lớp Staging.
+    - name: price_subtotal
+      description: Thuộc tính giá subtotal của purchase order line trong lớp Staging.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_stock_move
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của dịch chuyển kho; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa dịch chuyển kho từ Bronze và giữ metadata tải/CDC. Theo dõi luồng nhập/xuất/chuyển kho và SLA giao nhận.
+  
+      **Build logic:**
+      - Đọc `BRONZE.stock_move`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: stock_move_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: stock_move_id
+      description: Mã định danh stock dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: date
+      description: Thuộc tính ngày của stock move trong lớp Staging.
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_uom_qty
+      description: Số lượng sản phẩm uom tại grain của model.
+    - name: quantity
+      description: Số lượng  tại grain của model.
+    - name: location_id
+      description: Mã định danh vị trí kho; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: location_dest_id
+      description: Mã định danh vị trí kho dest; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: picking_id
+      description: Mã định danh picking; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: purchase_order_line_id
+      description: 'FK tùy chọn: stock_move.purchase_line_id → purchase_order_line.id.'
+    - name: sale_order_line_id
+      description: 'FK tùy chọn: stock_move.sale_line_id → sale_order_line.id.'
+    - name: state
+      description: Trạng thái nghiệp vụ của stock move.
+    - name: origin
+      description: Thuộc tính origin của stock move trong lớp Staging.
+    - name: reference
+      description: Thuộc tính reference của stock move trong lớp Staging.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: write_date
+      description: Ngày write của stock move.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_stock_picking
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của phiếu giao/nhận hàng; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa phiếu giao/nhận hàng từ Bronze và giữ metadata tải/CDC. Theo dõi luồng nhập/xuất/chuyển kho và SLA giao nhận.
+  
+      **Build logic:**
+      - Đọc `BRONZE.stock_picking`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: picking_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: picking_id
+      description: Mã định danh picking; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của stock picking.
+    - name: origin
+      description: Thuộc tính origin của stock picking trong lớp Staging.
+    - name: sale_id
+      description: Mã định danh sale; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: picking_type_id
+      description: Mã định danh picking loại; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: location_id
+      description: Mã định danh vị trí kho; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: location_dest_id
+      description: Mã định danh vị trí kho dest; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: state
+      description: Trạng thái nghiệp vụ của stock picking.
+    - name: scheduled_date
+      description: Thời điểm dự kiến xử lý transfer.
+    - name: date_deadline
+      description: Deadline/cam kết của transfer.
+    - name: date
+      description: Thuộc tính ngày của stock picking trong lớp Staging.
+    - name: date_done
+      description: Thời điểm transfer thực tế hoàn tất.
+    - name: has_deadline_issue
+      description: Cờ Odoo so date_deadline với scheduled_date; không thay thế KPI độ trễ thực tế.
+    - name: carrier_id
+      description: Mã định danh carrier; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: carrier_tracking_ref
+      description: Thuộc tính carrier tracking ref của stock picking trong lớp Staging.
+    - name: carrier_price
+      description: Thuộc tính carrier giá của stock picking trong lớp Staging.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: write_date
+      description: Ngày write của stock picking.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_delivery_carrier
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của đơn vị/phương thức vận chuyển; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa đơn vị/phương thức vận chuyển từ Bronze và giữ metadata tải/CDC. Theo dõi luồng nhập/xuất/chuyển kho và SLA giao nhận.
+  
+      **Build logic:**
+      - Đọc `BRONZE.delivery_carrier`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: carrier_id
+    - not_null:
+        arguments:
+          column_name: carrier_name
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: carrier_id
+      description: Mã định danh carrier; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: carrier_name
+      description: Tên hiển thị của delivery carrier.
+    - name: delivery_type
+      description: Thuộc tính delivery loại của delivery carrier trong lớp Staging.
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: fixed_price
+      description: Thuộc tính fixed giá của delivery carrier trong lớp Staging.
+    - name: company_id
+      description: Mã định danh company; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: write_date
+      description: Ngày write của delivery carrier.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_stock_location
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của vị trí kho; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa vị trí kho từ Bronze và giữ metadata tải/CDC. Cung cấp vị trí nguồn/đích để truy vết movement và balance trong kho.
+  
+      **Build logic:**
+      - Đọc `BRONZE.stock_location`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: location_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: location_id
+      description: Mã định danh vị trí kho; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của stock location.
+    - name: complete_name
+      description: Tên hiển thị của stock location.
+    - name: usage
+      description: Thuộc tính usage của stock location trong lớp Staging.
+    - name: warehouse_id
+      description: Mã định danh kho; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_stock_valuation_layer
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của lớp định giá tồn kho; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa lớp định giá tồn kho từ Bronze và giữ metadata tải/CDC. Theo dõi quantity, unit cost, value và remaining value của các valuation event.
+  
+      **Build logic:**
+      - Đọc `BRONZE.stock_valuation_layer`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: stock_valuation_layer_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: stock_valuation_layer_id
+      description: Mã định danh stock valuation layer; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: stock_move_id
+      description: Mã định danh stock dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: description
+      description: Thuộc tính description của stock valuation layer trong lớp Staging.
+    - name: quantity
+      description: Số lượng  tại grain của model.
+    - name: unit_cost
+      description: Thuộc tính unit chi phí của stock valuation layer trong lớp Staging.
+    - name: value
+      description: Thuộc tính value của stock valuation layer trong lớp Staging.
+    - name: remaining_qty
+      description: Số lượng còn lại trên valuation layer; có ý nghĩa đặc biệt với FIFO/AVCO.
+    - name: remaining_value
+      description: Giá trị còn lại tương ứng với remaining_qty trong đơn vị tiền tệ công ty.
+    - name: create_date
+      description: Ngày create của stock valuation layer.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_stock_quant
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của số dư tồn kho hiện hành; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa số dư tồn kho hiện hành từ Bronze và giữ metadata tải/CDC. Theo dõi tồn on-hand, reserved và available theo sản phẩm, vị trí và thời điểm.
+  
+      **Build logic:**
+      - Đọc `BRONZE.stock_quant`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: stock_quant_id
+    - not_null:
+        arguments:
+          column_name: product_id
+    - not_null:
+        arguments:
+          column_name: location_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: stock_quant_id
+      description: Mã định danh stock quant; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: location_id
+      description: Mã định danh vị trí kho; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: lot_id
+      description: Mã định danh lot; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: package_id
+      description: Mã định danh package; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: owner_id
+      description: Mã định danh owner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: company_id
+      description: Mã định danh company; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: quantity
+      description: Số lượng  tại grain của model.
+    - name: reserved_quantity
+      description: Số lượng reserved tại grain của model.
+    - name: inventory_quantity
+      description: Số lượng inventory tại grain của model.
+    - name: inventory_diff_quantity
+      description: Chênh lệch giữa số lượng kiểm kê và số lượng hệ thống tại thời điểm kiểm kê.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: write_date
+      description: Ngày write của stock quant.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_mrp_production
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của lệnh sản xuất; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa lệnh sản xuất từ Bronze và giữ metadata tải/CDC. Đo sản lượng, scrap, cycle time và hiệu quả lệnh sản xuất.
+  
+      **Build logic:**
+      - Đọc `BRONZE.mrp_production`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: mrp_production_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: mrp_production_id
+      description: Mã định danh mrp lệnh sản xuất; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của mrp production.
+    - name: priority
+      description: Thuộc tính priority của mrp production trong lớp Staging.
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_qty
+      description: Số lượng sản phẩm tại grain của model.
+    - name: qty_producing
+      description: Số lượng producing tại grain của model.
+    - name: bom_id
+      description: Mã định danh bom; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: location_src_id
+      description: Mã định danh vị trí kho src; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: location_dest_id
+      description: Mã định danh vị trí kho dest; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: date_deadline
+      description: Ngày deadline của mrp production.
+    - name: date_start
+      description: Ngày start của mrp production.
+    - name: date_finished
+      description: Ngày finished của mrp production.
+    - name: state
+      description: Trạng thái nghiệp vụ của mrp production.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: write_date
+      description: Ngày write của mrp production.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_stock_scrap
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của phế phẩm; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa phế phẩm từ Bronze và giữ metadata tải/CDC. Đo sản lượng, scrap, cycle time và hiệu quả lệnh sản xuất.
+  
+      **Build logic:**
+      - Đọc `BRONZE.stock_scrap`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: stock_scrap_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: stock_scrap_id
+      description: Mã định danh stock phế phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của stock scrap.
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: production_id
+      description: FK tới mrp_production; có thể NULL nếu scrap không phát sinh từ MO.
+    - name: workorder_id
+      description: Mã định danh work order; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: scrap_qty
+      description: Số lượng phế phẩm tại grain của model.
+    - name: location_id
+      description: Mã định danh vị trí kho; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: scrap_location_id
+      description: Mã định danh phế phẩm vị trí kho; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: state
+      description: Trạng thái nghiệp vụ của stock scrap.
+    - name: date_done
+      description: Ngày done của stock scrap.
+    - name: origin
+      description: Thuộc tính origin của stock scrap trong lớp Staging.
+    - name: company_id
+      description: Mã định danh company; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: write_date
+      description: Ngày write của stock scrap.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_mrp_workorder
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của work order; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa work order từ Bronze và giữ metadata tải/CDC. Theo dõi thời lượng dự kiến và productive thực tế của work order.
+  
+      **Build logic:**
+      - Đọc `BRONZE.mrp_workorder`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: mrp_workorder_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: mrp_workorder_id
+      description: Mã định danh mrp work order; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của mrp workorder.
+    - name: production_id
+      description: Mã định danh lệnh sản xuất; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: workcenter_id
+      description: Mã định danh workcenter; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: state
+      description: Trạng thái nghiệp vụ của mrp workorder.
+    - name: date_start
+      description: Ngày start của mrp workorder.
+    - name: date_finished
+      description: Ngày finished của mrp workorder.
+    - name: duration_expected
+      description: Thuộc tính thời lượng expected của mrp workorder trong lớp Staging.
+    - name: qty_produced
+      description: Số lượng produced tại grain của model.
+    - name: duration
+      description: Thuộc tính thời lượng của mrp workorder trong lớp Staging.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_mrp_workcenter_productivity
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của productivity block OEE; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa productivity block OEE từ Bronze và giữ metadata tải/CDC. Cung cấp danh mục work center và loss type cho phân tích vận hành sản xuất.
+  
+      **Build logic:**
+      - Đọc `BRONZE.mrp_workcenter_productivity`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: productivity_block_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: productivity_block_id
+      description: Mã định danh productivity block; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: workorder_id
+      description: Mã định danh work order; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: workcenter_id
+      description: Mã định danh workcenter; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: loss_id
+      description: Mã định danh loss; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: date_start
+      description: Ngày start của mrp workcenter productivity.
+    - name: date_end
+      description: Ngày end của mrp workcenter productivity.
+    - name: duration
+      description: Thuộc tính thời lượng của mrp workcenter productivity trong lớp Staging.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_mrp_workcenter_productivity_loss
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của loại tổn thất sản xuất; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa loại tổn thất sản xuất từ Bronze và giữ metadata tải/CDC. Cung cấp danh mục work center và loss type cho phân tích vận hành sản xuất.
+  
+      **Build logic:**
+      - Đọc `BRONZE.mrp_workcenter_productivity_loss`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: loss_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: loss_id
+      description: Mã định danh loss; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của mrp workcenter productivity loss.
+    - name: loss_type
+      description: Thuộc tính loss loại của mrp workcenter productivity loss trong lớp Staging.
+    - name: manual
+      description: Thuộc tính manual của mrp workcenter productivity loss trong lớp Staging.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_crm_stage
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của giai đoạn CRM; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa giai đoạn CRM từ Bronze và giữ metadata tải/CDC. Cung cấp dữ liệu phễu Lead → Opportunity → Won để đo conversion, win/loss và hiệu quả campaign/channel.
+  
+      **Build logic:**
+      - Đọc `BRONZE.crm_stage`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: stage_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: stage_id
+      description: Mã định danh stage; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của crm stage.
+    - name: sequence
+      description: Thuộc tính sequence của crm stage trong lớp Staging.
+    - name: is_won
+      description: Cờ cho biết CRM opportunity đã chuyển sang trạng thái thắng.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_crm_lost_reason
+    description: |-
+      **Grain:** 1 hàng = 1 sự kiện CDC của lý do mất cơ hội; cùng business key có thể xuất hiện nhiều lần.
+  
+      **Business value:** Chuẩn hóa lý do mất cơ hội từ Bronze và giữ metadata tải/CDC. Cung cấp dữ liệu phễu Lead → Opportunity → Won để đo conversion, win/loss và hiệu quả campaign/channel.
+  
+      **Build logic:**
+      - Đọc `BRONZE.crm_lost_reason`, parse RAW_DATA, cast kiểu và append event mới bằng watermark `ingested_at`.
+      - Không deduplicate và không loại `is_deleted=true`; giữ nguyên lịch sử CDC để Snapshot/Silver dựng trạng thái mới nhất.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: lost_reason_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: lost_reason_id
+      description: Mã định danh lost reason; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của crm lost reason.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_email_campaigns
+    description: |-
+      **Grain:** 1 hàng = 1 email campaign/blast gửi tới một danh sách trong mỗi lần ingest file.
+  
+      **Business value:** Chuẩn hóa email campaign từ Bronze và giữ metadata tải/CDC. Đo deliverability, open, click, conversion, revenue và cost của email marketing.
+  
+      **Build logic:**
+      - Đọc `BRONZE.email_campaigns`, cast/đổi tên cột và append từng lần ingest file theo `ingested_at`.
+      - Không deduplicate ở Staging và không có metadata CDC; Silver chọn snapshot/version mới nhất bằng `ingested_at` và `record_hash`.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: email_id
+    - not_null:
+        arguments:
+          column_name: campaign_id
+    - not_null:
+        arguments:
+          column_name: send_date
+    - not_null:
+        arguments:
+          column_name: record_hash
+    - not_null:
+        arguments:
+          column_name: ingested_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: email_id
+      description: Mã định danh email; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: source_campaign_id
+      description: Mã định danh source chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: year
+      description: Thuộc tính year của email campaigns trong lớp Staging.
+    - name: send_date
+      description: Ngày send của email campaigns.
+    - name: month
+      description: Thuộc tính month của email campaigns trong lớp Staging.
+    - name: quarter
+      description: Thuộc tính quarter của email campaigns trong lớp Staging.
+    - name: email_type
+      description: Thuộc tính email loại của email campaigns trong lớp Staging.
+    - name: goal
+      description: Thuộc tính goal của email campaigns trong lớp Staging.
+    - name: list_name
+      description: Tên hiển thị của email campaigns.
+    - name: subject_line
+      description: Thuộc tính subject line của email campaigns trong lớp Staging.
+    - name: sent
+      description: Thuộc tính sent của email campaigns trong lớp Staging.
+    - name: list_size
+      description: Thuộc tính list size của email campaigns trong lớp Staging.
+    - name: delivered
+      description: Thuộc tính delivered của email campaigns trong lớp Staging.
+    - name: bounced_total
+      description: Thuộc tính bounced tổng của email campaigns trong lớp Staging.
+    - name: hard_bounce
+      description: Thuộc tính hard bounce của email campaigns trong lớp Staging.
+    - name: soft_bounce
+      description: Thuộc tính soft bounce của email campaigns trong lớp Staging.
+    - name: deliverability
+      description: Thuộc tính deliverability của email campaigns trong lớp Staging.
+    - name: opens
+      description: Thuộc tính opens của email campaigns trong lớp Staging.
+    - name: unique_opens
+      description: Thuộc tính unique opens của email campaigns trong lớp Staging.
+    - name: open_rate
+      description: Tỷ lệ open từ nguồn hoặc được model tính toán.
+    - name: clicks
+      description: Thuộc tính clicks của email campaigns trong lớp Staging.
+    - name: unique_clicks
+      description: Thuộc tính unique clicks của email campaigns trong lớp Staging.
+    - name: ctr
+      description: Click-through rate, bằng clicks chia impressions.
+    - name: ctor
+      description: Click-to-open rate, bằng unique clicks chia unique opens.
+    - name: unsubscribes
+      description: Thuộc tính unsubscribes của email campaigns trong lớp Staging.
+    - name: unsubscribe_rate
+      description: Tỷ lệ unsubscribe từ nguồn hoặc được model tính toán.
+    - name: spam_reports
+      description: Thuộc tính spam reports của email campaigns trong lớp Staging.
+    - name: conversions
+      description: Thuộc tính conversions của email campaigns trong lớp Staging.
+    - name: revenue_usd
+      description: Giá trị doanh thu theo đơn vị USD từ nguồn.
+    - name: cost_usd
+      description: Giá trị chi phí theo đơn vị USD từ nguồn.
+    - name: roas
+      description: Return on Ad Spend, bằng doanh thu quy gán chia cho chi phí quảng cáo.
+    - name: revenue_per_email
+      description: Thuộc tính doanh thu per email của email campaigns trong lớp Staging.
+    - name: source_batch_id
+      description: Mã lô nạp nguồn, dùng truy vết các bản ghi được xử lý cùng một lần.
+    - name: source_file_hash
+      description: Hash của tệp nguồn, dùng nhận diện và chống nạp lặp cùng một tệp.
+    - name: source_loaded_at
+      description: Thời điểm dữ liệu nguồn được loader ghi vào kho dữ liệu.
+    - name: record_hash
+      description: Hash nội dung của từng bản ghi, dùng phát hiện thay đổi và tránh cập nhật thừa khi ingest lại dữ liệu giống hệt.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_ad_performance_daily
+    description: |-
+      **Grain:** 1 hàng = 1 ngày × 1 campaign × 1 channel trong mỗi lần ingest file.
+  
+      **Business value:** Chuẩn hóa hiệu quả quảng cáo ngày từ Bronze và giữ metadata tải/CDC. Đo spend, reach, impression, click, lead, conversion và ROAS của quảng cáo theo campaign/channel.
+  
+      **Build logic:**
+      - Đọc `BRONZE.ad_performance_daily`, cast/đổi tên cột và append từng lần ingest file theo `ingested_at`.
+      - Không deduplicate ở Staging và không có metadata CDC; Silver chọn snapshot/version mới nhất bằng `ingested_at` và `record_hash`.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: campaign_id
+    - not_null:
+        arguments:
+          column_name: date
+    - not_null:
+        arguments:
+          column_name: channel
+    - not_null:
+        arguments:
+          column_name: record_hash
+    - not_null:
+        arguments:
+          column_name: ingested_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: date
+      description: Thuộc tính ngày của ad performance daily trong lớp Staging.
+    - name: source_campaign_id
+      description: Mã định danh source chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_name
+      description: Tên hiển thị của ad performance daily.
+    - name: channel
+      description: Thuộc tính kênh của ad performance daily trong lớp Staging.
+    - name: channel_label
+      description: Thuộc tính kênh label của ad performance daily trong lớp Staging.
+    - name: channel_type
+      description: Thuộc tính kênh loại của ad performance daily trong lớp Staging.
+    - name: year
+      description: Thuộc tính year của ad performance daily trong lớp Staging.
+    - name: month
+      description: Thuộc tính month của ad performance daily trong lớp Staging.
+    - name: quarter
+      description: Thuộc tính quarter của ad performance daily trong lớp Staging.
+    - name: spend_usd
+      description: Giá trị spend theo đơn vị USD từ nguồn.
+    - name: impressions
+      description: Thuộc tính impressions của ad performance daily trong lớp Staging.
+    - name: reach
+      description: Thuộc tính reach của ad performance daily trong lớp Staging.
+    - name: clicks
+      description: Thuộc tính clicks của ad performance daily trong lớp Staging.
+    - name: ctr
+      description: Click-through rate, bằng clicks chia impressions.
+    - name: cpc_usd
+      description: Giá trị cpc theo đơn vị USD từ nguồn.
+    - name: cpm_usd
+      description: Giá trị cpm theo đơn vị USD từ nguồn.
+    - name: frequency
+      description: Thuộc tính frequency của ad performance daily trong lớp Staging.
+    - name: leads
+      description: Thuộc tính leads của ad performance daily trong lớp Staging.
+    - name: conversions
+      description: Thuộc tính conversions của ad performance daily trong lớp Staging.
+    - name: conv_rate
+      description: Tỷ lệ conv từ nguồn hoặc được model tính toán.
+    - name: cpa_usd
+      description: Giá trị cpa theo đơn vị USD từ nguồn.
+    - name: cpl_usd
+      description: Giá trị cpl theo đơn vị USD từ nguồn.
+    - name: revenue_usd
+      description: Giá trị doanh thu theo đơn vị USD từ nguồn.
+    - name: roas
+      description: Return on Ad Spend, bằng doanh thu quy gán chia cho chi phí quảng cáo.
+    - name: lead_quality_score
+      description: Thuộc tính lead quality score của ad performance daily trong lớp Staging.
+    - name: is_underperformer
+      description: Cờ đánh dấu campaign hoặc ngày quảng cáo hoạt động dưới ngưỡng kỳ vọng.
+    - name: source_batch_id
+      description: Mã lô nạp nguồn, dùng truy vết các bản ghi được xử lý cùng một lần.
+    - name: source_file_hash
+      description: Hash của tệp nguồn, dùng nhận diện và chống nạp lặp cùng một tệp.
+    - name: source_loaded_at
+      description: Thời điểm dữ liệu nguồn được loader ghi vào kho dữ liệu.
+    - name: record_hash
+      description: Hash nội dung của từng bản ghi, dùng phát hiện thay đổi và tránh cập nhật thừa khi ingest lại dữ liệu giống hệt.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+
+  - name: stg_ab_test
+    description: |-
+      **Grain:** 1 hàng = 1 variant_id thuộc một test_id trong mỗi lần ingest file.
+  
+      **Business value:** Chuẩn hóa kết quả A/B test từ Bronze và giữ metadata tải/CDC. So sánh traffic, conversion, revenue, cost và winner giữa các variant thử nghiệm.
+  
+      **Build logic:**
+      - Đọc `BRONZE.ab_test`, cast/đổi tên cột và append từng lần ingest file theo `ingested_at`.
+      - Không deduplicate ở Staging và không có metadata CDC; Silver chọn snapshot/version mới nhất bằng `ingested_at` và `record_hash`.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: test_id
+    - not_null:
+        arguments:
+          column_name: variant_id
+    - not_null:
+        arguments:
+          column_name: campaign_id
+    - not_null:
+        arguments:
+          column_name: channel
+    - not_null:
+        arguments:
+          column_name: start_date
+    - not_null:
+        arguments:
+          column_name: end_date
+    - not_null:
+        arguments:
+          column_name: record_hash
+    - not_null:
+        arguments:
+          column_name: ingested_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: test_id
+      description: Mã định danh test; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: variant_id
+      description: Mã định danh variant; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: source_campaign_id
+      description: Mã định danh source chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: year
+      description: Thuộc tính year của ab test trong lớp Staging.
+    - name: test_name
+      description: Tên hiển thị của ab test.
+    - name: channel
+      description: Thuộc tính kênh của ab test trong lớp Staging.
+    - name: start_date
+      description: Ngày start của ab test.
+    - name: end_date
+      description: Ngày end của ab test.
+    - name: duration_days
+      description: Thuộc tính thời lượng days của ab test trong lớp Staging.
+    - name: variant_name
+      description: Tên hiển thị của ab test.
+    - name: is_winner
+      description: Cờ xác định variant thắng trong A/B test.
+    - name: budget_usd
+      description: Giá trị budget theo đơn vị USD từ nguồn.
+    - name: impressions
+      description: Thuộc tính impressions của ab test trong lớp Staging.
+    - name: clicks
+      description: Thuộc tính clicks của ab test trong lớp Staging.
+    - name: ctr
+      description: Click-through rate, bằng clicks chia impressions.
+    - name: conversions
+      description: Thuộc tính conversions của ab test trong lớp Staging.
+    - name: conv_rate
+      description: Tỷ lệ conv từ nguồn hoặc được model tính toán.
+    - name: revenue_usd
+      description: Giá trị doanh thu theo đơn vị USD từ nguồn.
+    - name: roas
+      description: Return on Ad Spend, bằng doanh thu quy gán chia cho chi phí quảng cáo.
+    - name: cpa_usd
+      description: Giá trị cpa theo đơn vị USD từ nguồn.
+    - name: insight
+      description: Thuộc tính insight của ab test trong lớp Staging.
+    - name: source_batch_id
+      description: Mã lô nạp nguồn, dùng truy vết các bản ghi được xử lý cùng một lần.
+    - name: source_file_hash
+      description: Hash của tệp nguồn, dùng nhận diện và chống nạp lặp cùng một tệp.
+    - name: source_loaded_at
+      description: Thời điểm dữ liệu nguồn được loader ghi vào kho dữ liệu.
+    - name: record_hash
+      description: Hash nội dung của từng bản ghi, dùng phát hiện thay đổi và tránh cập nhật thừa khi ingest lại dữ liệu giống hệt.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.

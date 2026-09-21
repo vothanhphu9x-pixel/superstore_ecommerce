@@ -1,0 +1,246 @@
+version: 2
+
+# File này tách rõ hai khu vực trong từng resource:
+# 1) TEST: điều kiện kiểm thử dữ liệu.
+# 2) DESCRIPTION: metadata mô tả bảng/cột cho dbt Docs.
+snapshots:
+  - name: snap_res_partner
+    description: |-
+      **Grain:** 1 hàng = 1 phiên bản lịch sử SCD2 của một partner_id.
+  
+      **Business value:** Lưu lịch sử thay đổi của đối tác khách hàng/nhà cung cấp để báo cáo quá khứ không bị ghi đè. Cung cấp thông tin khách hàng/nhà cung cấp, phân khúc và địa lý cho các domain thương mại và tài chính.
+  
+      **Build logic:**
+      - Đọc `stg_res_partner`, deduplicate `partner_id` bằng `_cdc_ts_ms DESC, _cdc_lsn DESC`; Snapshot không join bảng khác.
+      - Strategy=check theo `write_date`, `is_deleted`; thay đổi sẽ đóng version cũ và tạo version mới với `dbt_scd_id/dbt_valid_from/dbt_valid_to`.
+      - `invalidate_hard_deletes=true` đóng version khi business key biến mất khỏi kết quả snapshot.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - partner_id
+          - dbt_valid_from
+    - scd2_at_most_one_open:
+        arguments:
+          business_key: partner_id
+    - scd2_no_overlaps:
+        arguments:
+          business_key: partner_id
+    - scd2_valid_interval
+    - not_null:
+        arguments:
+          column_name: partner_id
+    - unique:
+        arguments:
+          column_name: dbt_scd_id
+    - not_null:
+        arguments:
+          column_name: dbt_scd_id
+    - not_null:
+        arguments:
+          column_name: dbt_valid_from
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của res partner.
+    - name: is_company
+      description: Cờ phân biệt doanh nghiệp với cá nhân trong res.partner.
+    - name: parent_id
+      description: Mã định danh parent; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: commercial_partner_id
+      description: ID đối tác thương mại gốc trong Odoo, dùng gom các contact thuộc cùng một tổ chức.
+    - name: customer_rank
+      description: Điểm xếp hạng khách hàng của Odoo; giá trị lớn hơn 0 cho biết đã có vai trò khách hàng.
+    - name: supplier_rank
+      description: Điểm xếp hạng nhà cung cấp của Odoo; giá trị lớn hơn 0 cho biết đã có vai trò vendor.
+    - name: state_id
+      description: Mã định danh trạng thái; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: country_id
+      description: Mã định danh country; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: city
+      description: Thuộc tính city của res partner trong lớp Snapshot.
+    - name: zip
+      description: Thuộc tính zip của res partner trong lớp Snapshot.
+    - name: email
+      description: Thuộc tính email của res partner trong lớp Snapshot.
+    - name: phone
+      description: Thuộc tính phone của res partner trong lớp Snapshot.
+    - name: comment
+      description: Thuộc tính comment của res partner trong lớp Snapshot.
+    - name: ref
+      description: Thuộc tính ref của res partner trong lớp Snapshot.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: write_date
+      description: Ngày write của res partner.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+    - name: dbt_scd_id
+      description: Khóa phiên bản SCD2 do dbt Snapshot tạo; mỗi phiên bản lịch sử có một giá trị duy nhất.
+    - name: dbt_updated_at
+      description: Thời điểm nguồn thay đổi mà dbt Snapshot dùng để quản lý phiên bản.
+    - name: dbt_valid_from
+      description: Thời điểm phiên bản SCD2 bắt đầu có hiệu lực.
+    - name: dbt_valid_to
+      description: NULL = bản ghi hiện hành.
+
+  - name: snap_product_template
+    description: |-
+      **Grain:** 1 hàng = 1 phiên bản lịch sử SCD2 của một product_tmpl_id.
+  
+      **Business value:** Lưu lịch sử thay đổi của định nghĩa sản phẩm để báo cáo quá khứ không bị ghi đè. Cung cấp thông tin SKU, danh mục, UOM, giá và standard cost cho phân tích bán, mua, kho và sản xuất.
+  
+      **Build logic:**
+      - Đọc `stg_product_template`, deduplicate `product_tmpl_id` bằng `_cdc_ts_ms DESC, _cdc_lsn DESC`; Snapshot không join bảng khác.
+      - Strategy=check theo `list_price`, `write_date`, `is_deleted`; thay đổi sẽ đóng version cũ và tạo version mới với `dbt_scd_id/dbt_valid_from/dbt_valid_to`.
+      - `invalidate_hard_deletes=true` đóng version khi business key biến mất khỏi kết quả snapshot.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - product_tmpl_id
+          - dbt_valid_from
+    - scd2_at_most_one_open:
+        arguments:
+          business_key: product_tmpl_id
+    - scd2_no_overlaps:
+        arguments:
+          business_key: product_tmpl_id
+    - scd2_valid_interval
+    - not_null:
+        arguments:
+          column_name: product_tmpl_id
+    - unique:
+        arguments:
+          column_name: dbt_scd_id
+    - not_null:
+        arguments:
+          column_name: dbt_scd_id
+    - not_null:
+        arguments:
+          column_name: dbt_valid_from
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: product_tmpl_id
+      description: Mã định danh sản phẩm tmpl; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của product template.
+    - name: type
+      description: Thuộc tính loại của product template trong lớp Snapshot.
+    - name: is_storable
+      description: Cờ cho biết sản phẩm được quản lý tồn kho.
+    - name: categ_id
+      description: Mã định danh categ; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: list_price
+      description: Thuộc tính list giá của product template trong lớp Snapshot.
+    - name: sale_ok
+      description: Thuộc tính sale ok của product template trong lớp Snapshot.
+    - name: purchase_ok
+      description: Thuộc tính purchase ok của product template trong lớp Snapshot.
+    - name: tracking
+      description: Thuộc tính tracking của product template trong lớp Snapshot.
+    - name: uom_id
+      description: Mã định danh uom; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: write_date
+      description: Ngày write của product template.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+    - name: dbt_scd_id
+      description: Khóa phiên bản SCD2 do dbt Snapshot tạo; mỗi phiên bản lịch sử có một giá trị duy nhất.
+    - name: dbt_updated_at
+      description: Thời điểm nguồn thay đổi mà dbt Snapshot dùng để quản lý phiên bản.
+    - name: dbt_valid_from
+      description: Thời điểm phiên bản SCD2 bắt đầu có hiệu lực.
+    - name: dbt_valid_to
+      description: NULL = bản ghi hiện hành.
+
+  - name: snap_hr_contract
+    description: |-
+      **Grain:** 1 hàng = 1 phiên bản lịch sử SCD2 của một contract_id.
+  
+      **Business value:** Lưu lịch sử thay đổi của hợp đồng lao động để báo cáo quá khứ không bị ghi đè. Cung cấp quan hệ nhân viên–hợp đồng–user để phân tích salesperson, buyer và nguồn lực.
+  
+      **Build logic:**
+      - Đọc `stg_hr_contract`, deduplicate `contract_id` bằng `_cdc_ts_ms DESC, _cdc_lsn DESC`; Snapshot không join bảng khác.
+      - Strategy=check theo `employee_id`, `wage`, `date_start`, `date_end`, `state`, `is_deleted`; thay đổi sẽ đóng version cũ và tạo version mới với `dbt_scd_id/dbt_valid_from/dbt_valid_to`.
+      - `invalidate_hard_deletes=true` đóng version khi business key biến mất khỏi kết quả snapshot.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - contract_id
+          - dbt_valid_from
+    - scd2_at_most_one_open:
+        arguments:
+          business_key: contract_id
+    - scd2_no_overlaps:
+        arguments:
+          business_key: contract_id
+    - scd2_valid_interval
+    - not_null:
+        arguments:
+          column_name: contract_id
+    - unique:
+        arguments:
+          column_name: dbt_scd_id
+    - not_null:
+        arguments:
+          column_name: dbt_scd_id
+    - not_null:
+        arguments:
+          column_name: dbt_valid_from
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: contract_id
+      description: Mã định danh contract; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của hr contract.
+    - name: employee_id
+      description: Mã định danh nhân viên; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: wage
+      description: Thuộc tính wage của hr contract trong lớp Snapshot.
+    - name: date_start
+      description: Ngày start của hr contract.
+    - name: date_end
+      description: Ngày end của hr contract.
+    - name: state
+      description: Trạng thái nghiệp vụ của hr contract.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+    - name: dbt_scd_id
+      description: Khóa phiên bản SCD2 do dbt Snapshot tạo; mỗi phiên bản lịch sử có một giá trị duy nhất.
+    - name: dbt_updated_at
+      description: Thời điểm nguồn thay đổi mà dbt Snapshot dùng để quản lý phiên bản.
+    - name: dbt_valid_from
+      description: Thời điểm phiên bản SCD2 bắt đầu có hiệu lực.
+    - name: dbt_valid_to
+      description: NULL = bản ghi hiện hành.

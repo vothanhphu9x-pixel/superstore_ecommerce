@@ -3,13 +3,11 @@ superstore_marketing_data_generator.py
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Tạo toàn bộ dữ liệu Digital Marketing cho Superstore Inc. (2023–2026).
 
-Output (6 CSV files):
+Output (4 CSV files):
   1. marketing_campaigns_master.csv      — Campaign metadata (16 chiến dịch/năm)
   2. ad_performance_daily.csv            — KPI hằng ngày theo campaign × channel
   3. email_campaigns.csv                 — Email marketing metrics theo chiến dịch
   4. ab_test_results.csv                 — Creative A/B test performance
-  5. marketing_funnel_monthly.csv        — Funnel Awareness → Conversion theo kênh
-  6. customer_acquisition_source.csv     — Nguồn thu hút khách hàng + LTV
 
 Chạy:
     python superstore_marketing_data_generator.py [--year 2023] [--all]
@@ -24,7 +22,6 @@ KPI phân tích được sau khi chạy:
     ✓ A/B test: creative nào hiệu quả nhất
     ✓ Attribution: channel nào tạo revenue thật sự
     ✓ Seasonal performance (back-to-school vs year-end)
-    ✓ LTV:CAC ratio theo acquisition channel
 """
 
 import csv
@@ -268,6 +265,41 @@ def date_range(start: date, end: date):
 
 def safe_div(a, b, default=0.0):
     return round(a / b, 4) if b else default
+
+
+def select_campaign_id(campaigns: list[dict], year: int, channel: str,
+                       event_date: date, prefer_specific: bool = False):
+    """Chọn Odoo utm_campaign.id cho một event demo theo year/channel/date.
+
+    Đây là shared key của demo, không phải phép fuzzy match theo tên.
+    Campaign đang active tại event_date được ưu tiên; nếu không có thì
+    chọn campaign cùng year/channel gần nhất. A/B test ưu tiên campaign
+    ngắn/specific; email lifecycle ưu tiên campaign annual.
+    """
+    candidates = [
+        c for c in campaigns
+        if c["year"] == year and channel in c["channels"].split("|")
+    ]
+    if not candidates:
+        return None
+
+    active = [
+        c for c in candidates
+        if date.fromisoformat(c["start_date"]) <= event_date <= date.fromisoformat(c["end_date"])
+    ]
+    pool = active or candidates
+
+    def sort_key(c):
+        start = date.fromisoformat(c["start_date"])
+        end = date.fromisoformat(c["end_date"])
+        distance = 0 if start <= event_date <= end else min(
+            abs((event_date - start).days), abs((event_date - end).days)
+        )
+        duration = int(c["duration_days"])
+        duration_rank = duration if prefer_specific else -duration
+        return distance, duration_rank, str(c["campaign_id"])
+
+    return sorted(pool, key=sort_key)[0]["campaign_id"]
 
 
 # ─── FILE 1: CAMPAIGN MASTER ─────────────────────────────────────────────────
@@ -570,6 +602,13 @@ def generate_email_campaigns(years: list[int], campaigns: list[dict]) -> list[di
 
             for send_date in send_dates:
                 subject = random.choice(tpl["subject_variants"])
+                campaign_id = select_campaign_id(
+                    campaigns,
+                    year,
+                    "email_marketing",
+                    send_date,
+                    prefer_specific=(tpl["type"] == "promotional"),
+                )
 
                 # Các chỉ số email
                 delivered_rate = random.uniform(0.96, 0.99)
@@ -603,6 +642,7 @@ def generate_email_campaigns(years: list[int], campaigns: list[dict]) -> list[di
 
                 rows.append({
                     "email_id":         f"EM{str(email_id).zfill(5)}",
+                    "campaign_id":      campaign_id,
                     "year":             year,
                     "send_date":        send_date.isoformat(),
                     "month":            send_date.month,
@@ -612,6 +652,7 @@ def generate_email_campaigns(years: list[int], campaigns: list[dict]) -> list[di
                     "list_name":        tpl["list_name"],
                     "subject_line":     subject,
                     # List metrics
+                    "sent":             list_size,
                     "list_size":        list_size,
                     "delivered":        delivered,
                     "bounced_total":    bounced,
@@ -734,7 +775,7 @@ AB_TESTS = [
     },
 ]
 
-def generate_ab_tests(years: list[int]) -> list[dict]:
+def generate_ab_tests(years: list[int], campaigns: list[dict]) -> list[dict]:
     rows    = []
     test_id = 1
 
@@ -746,6 +787,10 @@ def generate_ab_tests(years: list[int]) -> list[dict]:
             ch      = CHANNELS[tpl["channel"]]
             test_start = date(year, random.randint(1, 11), random.randint(1, 28))
             test_end   = test_start + timedelta(days=random.randint(14, 28))
+            campaign_id = select_campaign_id(
+                campaigns, year, tpl["channel"], test_start, prefer_specific=True
+            )
+            test_code = f"AB{str(test_id).zfill(4)}"
 
             # Base metrics cho test
             base_budget_daily  = ch["avg_daily_budget"] / len(tpl["variants"])
@@ -755,7 +800,7 @@ def generate_ab_tests(years: list[int]) -> list[dict]:
             base_ctr  = sum(ch["ctr_range"]) / 2
             base_conv = sum(ch["conv_rate_range"]) / 2
 
-            for v in tpl["variants"]:
+            for variant_no, v in enumerate(tpl["variants"], start=1):
                 ctr  = jitter(base_ctr * v["ctr_boost"], 0.08)
                 cpc  = jitter(sum(ch["cpc_range"]) / 2, 0.10)
                 impressions  = max(100, int(budget_per_variant / cpc * safe_div(1, ctr, 1)))
@@ -768,7 +813,9 @@ def generate_ab_tests(years: list[int]) -> list[dict]:
                 is_winner    = "YES" if v["name"].startswith(tpl["winner"]) else "NO"
 
                 rows.append({
-                    "test_id":       f"AB{str(test_id).zfill(4)}",
+                    "test_id":       test_code,
+                    "variant_id":    f"{test_code}-V{variant_no}",
+                    "campaign_id":   campaign_id,
                     "year":          year,
                     "test_name":     tpl["test_name"],
                     "channel":       tpl["channel"],
@@ -790,161 +837,17 @@ def generate_ab_tests(years: list[int]) -> list[dict]:
                 })
             test_id += 1
 
+    unmapped = [row for row in rows if row["campaign_id"] is None]
+    if unmapped:
+        skipped_tests = sorted({row["test_id"] for row in unmapped})
+        log.warning(
+            "Bỏ %s A/B variant thuộc test %s vì year/channel không có "
+            "utm_campaign Odoo tương ứng",
+            len(unmapped), ", ".join(skipped_tests),
+        )
+        rows = [row for row in rows if row["campaign_id"] is not None]
+
     log.info(f"A/B tests: {len(rows)} rows")
-    return rows
-
-
-# ─── FILE 5: MARKETING FUNNEL MONTHLY ────────────────────────────────────────
-
-def generate_marketing_funnel_monthly(years: list[int],
-                                       ad_data: list[dict]) -> list[dict]:
-    """Tổng hợp funnel Awareness → Leads → Orders → Revenue theo kênh × tháng."""
-    from collections import defaultdict
-
-    funnel = defaultdict(lambda: {
-        "impressions": 0, "reach": 0, "clicks": 0, "spend": 0,
-        "leads": 0, "conversions": 0, "revenue": 0,
-    })
-
-    for row in ad_data:
-        key = (row["year"], row["month"], row["channel"])
-        funnel[key]["impressions"] += row["impressions"]
-        funnel[key]["reach"]       += row.get("reach", 0)
-        funnel[key]["clicks"]      += row["clicks"]
-        funnel[key]["spend"]       += row["spend_usd"]
-        funnel[key]["leads"]       += row["leads"]
-        funnel[key]["conversions"] += row["conversions"]
-        funnel[key]["revenue"]     += row["revenue_usd"]
-
-    rows = []
-    for (year, month, channel), m in sorted(funnel.items()):
-        impressions = m["impressions"]
-        clicks      = m["clicks"]
-        leads       = m["leads"]
-        conversions = m["conversions"]
-        spend       = round(m["spend"], 2)
-        revenue     = round(m["revenue"], 2)
-
-        rows.append({
-            "year":               year,
-            "month":              month,
-            "quarter":            f"Q{(month-1)//3+1}",
-            "channel":            channel,
-            # Funnel stages
-            "impressions":        impressions,       # Awareness
-            "reach":              m["reach"],
-            "clicks":             clicks,            # Interest
-            "leads":              leads,             # Consideration
-            "conversions":        conversions,       # Conversion (orders)
-            # Funnel drop-off rates
-            "ctr":                round(safe_div(clicks, impressions), 5),
-            "click_to_lead_rate": round(safe_div(leads, clicks), 4),
-            "lead_to_order_rate": round(safe_div(conversions, leads), 4),
-            "end_to_end_rate":    round(safe_div(conversions, impressions), 6),
-            # Economics
-            "spend_usd":          spend,
-            "revenue_usd":        revenue,
-            "roas":               round(safe_div(revenue, spend), 3),
-            "cac_usd":            round(safe_div(spend, conversions), 2) if conversions else None,
-            "cpl_usd":            round(safe_div(spend, leads), 2) if leads else None,
-            "cpc_usd":            round(safe_div(spend, clicks), 3) if clicks else None,
-            "cpm_usd":            round(safe_div(spend, impressions) * 1000, 2) if impressions else None,
-            # Volume KPIs
-            "revenue_per_lead":   round(safe_div(revenue, leads), 2) if leads else None,
-        })
-
-    log.info(f"Marketing funnel monthly: {len(rows)} rows")
-    return rows
-
-
-# ─── FILE 6: CUSTOMER ACQUISITION SOURCE ─────────────────────────────────────
-
-def generate_customer_acquisition_source(years: list[int],
-                                          ad_data: list[dict]) -> list[dict]:
-    """
-    Mô phỏng nguồn thu hút khách hàng + LTV estimate.
-    Dùng để phân tích: CAC, LTV:CAC, payback period theo channel.
-    """
-    rows      = []
-    cust_id   = 1
-    channels  = list(CHANNELS.keys()) + ["organic_search", "direct", "referral"]
-    ch_weights= [0.22, 0.08, 0.18, 0.12, 0.15, 0.10, 0.08, 0.07]
-
-    for year in years:
-        # Số khách mới mỗi năm — PHẢI nhỏ hơn hẳn tổng customer base thật trong
-        # Odoo (2,000, cố định từ generator chính, không tăng theo năm). Range
-        # cũ (700-1000/năm × 4 năm ≈ 3,400) VƯỢT QUÁ tổng customer base thật —
-        # nghịch lý khi so "khách mới do marketing acquire" với tổng khách có
-        # trong ERP. Hạ xuống để tổng 4 năm ở dưới mức 2,000 (chừa dư địa cho
-        # số khách không có "acquisition event" rõ ràng trong mô phỏng này).
-        n_new = random.randint(350, 480)
-
-        for _ in range(n_new):
-            acq_date = date(year, 1, 1) + timedelta(days=random.randint(0, 364))
-            ch       = random.choices(channels, weights=ch_weights)[0]
-            segment  = random.choices(
-                ["Consumer","Corporate","Home Office"], weights=[0.50,0.33,0.17]
-            )[0]
-
-            # CAC theo channel (paid cao hơn organic)
-            cac_by_ch = {
-                "google_search": random.uniform(55, 130),
-                "google_display": random.uniform(40, 100),
-                "meta_facebook": random.uniform(45, 110),
-                "meta_instagram": random.uniform(40, 95),
-                "email_marketing": random.uniform(8, 25),
-                "organic_search": random.uniform(5, 20),
-                "direct": 0,
-                "referral": random.uniform(10, 40),
-            }
-            cac = round(cac_by_ch.get(ch, 50), 2)
-
-            # First order value theo segment
-            fov_by_seg = {
-                "Consumer": random.uniform(80, 350),
-                "Corporate": random.uniform(300, 2500),
-                "Home Office": random.uniform(150, 800),
-            }
-            first_order_value = round(fov_by_seg[segment], 2)
-
-            # Số tháng hoạt động từ lúc mua đến cuối 2026
-            months_active = max(1, (date(2026, 12, 31) - acq_date).days // 30)
-
-            # LTV estimate: first_order + repeat purchases
-            # Champions buy 10-20x/year, Loyal buy 4-8x, others less
-            ch_quality = CHANNELS.get(ch, {}).get("lead_quality", 0.5) if ch in CHANNELS else 0.4
-            orders_per_year = max(1, int(ch_quality * random.uniform(2, 8)))
-            aov_factor = fov_by_seg[segment] / random.uniform(150, 600)
-            ltv_to_date = round(
-                first_order_value +
-                (orders_per_year * (months_active / 12) * first_order_value * 0.75
-                 * jitter(1.0, 0.25)), 2
-            )
-
-            ltv_cac_ratio = round(safe_div(ltv_to_date, cac), 2) if cac else None
-            payback_days  = round(safe_div(cac, ltv_to_date / max(months_active, 1) * 30), 0) if cac and ltv_to_date else None
-
-            rows.append({
-                "customer_id":            f"CUST{str(cust_id).zfill(6)}",
-                "acquisition_date":       acq_date.isoformat(),
-                "year":                   year,
-                "month":                  acq_date.month,
-                "quarter":                f"Q{(acq_date.month-1)//3+1}",
-                "acquisition_channel":    ch,
-                "acquisition_channel_type": CHANNELS.get(ch, {}).get("type","organic"),
-                "customer_segment":       segment,
-                "first_order_value_usd":  first_order_value,
-                "cac_usd":                cac,
-                "ltv_to_date_usd":        ltv_to_date,
-                "ltv_cac_ratio":          ltv_cac_ratio,
-                "months_active":          months_active,
-                "est_orders_per_year":    orders_per_year,
-                "payback_period_days":    payback_days,
-                "is_profitable_acq":      "YES" if ltv_cac_ratio and ltv_cac_ratio >= 3.0 else "NO",
-            })
-            cust_id += 1
-
-    log.info(f"Customer acquisition source: {len(rows):,} rows")
     return rows
 
 
@@ -970,36 +873,27 @@ def run(years: list[int]):
     log.info(f"Years: {years} | Output: {OUTPUT_DIR.resolve()}")
     log.info("")
 
-    log.info("1/6 Generating campaign master...")
+    log.info("1/4 Generating campaign master...")
     campaigns = generate_campaigns_master(years)
     write_csv(campaigns, "marketing_campaigns_master.csv")
 
-    log.info("2/6 Generating daily ad performance...")
+    log.info("2/4 Generating daily ad performance...")
     ad_daily = generate_ad_performance_daily(campaigns)
     write_csv(ad_daily, "ad_performance_daily.csv")
 
-    log.info("3/6 Generating email campaigns...")
+    log.info("3/4 Generating email campaigns...")
     emails = generate_email_campaigns(years, campaigns)
     write_csv(emails, "email_campaigns.csv")
 
-    log.info("4/6 Generating A/B test results...")
-    ab_tests = generate_ab_tests(years)
+    log.info("4/4 Generating A/B test results...")
+    ab_tests = generate_ab_tests(years, campaigns)
     write_csv(ab_tests, "ab_test_results.csv")
-
-    log.info("5/6 Generating marketing funnel monthly...")
-    funnel = generate_marketing_funnel_monthly(years, ad_daily)
-    write_csv(funnel, "marketing_funnel_monthly.csv")
-
-    log.info("6/6 Generating customer acquisition source...")
-    acq = generate_customer_acquisition_source(years, ad_daily)
-    write_csv(acq, "customer_acquisition_source.csv")
 
     log.info("")
     log.info("═══ DONE ═══")
     log.info("Files tạo ra:")
-    for f in ["marketing_campaigns_master.csv","ad_performance_daily.csv",
-              "email_campaigns.csv","ab_test_results.csv",
-              "marketing_funnel_monthly.csv","customer_acquisition_source.csv"]:
+    for f in ["marketing_campaigns_master.csv", "ad_performance_daily.csv",
+              "email_campaigns.csv", "ab_test_results.csv"]:
         p = OUTPUT_DIR / f
         if p.exists():
             log.info(f"  {f}: {p.stat().st_size//1024} KB")
@@ -1008,9 +902,8 @@ def run(years: list[int]):
     log.info("KPIs phân tích được:")
     log.info("  ✓ ROAS by channel/campaign/quarter (ad_performance_daily.csv)")
     log.info("  ✓ Email open rate, CTR, CTOR, unsubscribes (email_campaigns.csv)")
-    log.info("  ✓ Funnel drop-off: Impression→Click→Lead→Order (marketing_funnel_monthly.csv)")
+    log.info("  ✓ Funnel drop-off: fact_marketing_funnel ghép Ads → CRM → Sales trong dbt")
     log.info("  ✓ A/B winner analysis, CTA/creative insight (ab_test_results.csv)")
-    log.info("  ✓ CAC, LTV:CAC, payback period by channel (customer_acquisition_source.csv)")
     log.info("  ✓ Campaign budget vs performance (marketing_campaigns_master.csv)")
     log.info("  ✓ Seasonal performance: back-to-school vs year-end vs flat months")
     log.info("")

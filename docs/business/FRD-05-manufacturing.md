@@ -165,13 +165,14 @@ MO complete với qty > kế hoạch → Toàn bộ nhập kho → Inventory tur
 | `mrp_production` | Lệnh sản xuất MO (header) | Transaction |
 | `mrp_workorder` | Công đoạn sản xuất Work Order | Transaction |
 | `mrp_bom` | Định mức nguyên liệu BOM | Master |
-| `mrp_bom_line` | Từng nguyên liệu trong BOM | Master |
-| `mrp_routing_workcenter` | Routing — Work Center mapping | Master |
 | `mrp_workcenter` | Work Center master | Master |
-| `stock_move` | Xuất NVL vào SX, nhập thành phẩm | Transaction → **fact_manufacturing** |
-| `mrp_scrap` | Sản phẩm hủy | Transaction |
+| `mrp_workcenter_productivity` | Block thời gian làm việc/dừng máy | Transaction → **fact_manufacturing_oee** |
+| `mrp_workcenter_productivity_loss` | Nhóm nguyên nhân thời gian | Master |
+| `stock_move` | Xuất NVL vào SX, nhập thành phẩm | Transaction → **fact_inventory_movement** |
+| `stock_scrap` | Sản phẩm hủy | Transaction → enrich Manufacturing/OEE facts |
 
 **Phân tích downstream:**
-- `mrp_production` → `fact_manufacturing` (sản lượng, giá thành, hiệu suất)
-- Phân tích: plan vs actual output, defect rate, scrap cost, work center utilization
-- Giá thành thực tế vs giá thành chuẩn (standard cost) → variance analysis
+- `mrp_production` → `fact_manufacturing` (planned/produced/scrap/cycle time)
+- `mrp_workorder` → `fact_workorder`; productivity block → `fact_manufacturing_oee`
+- `mart_oee_by_workcenter_monthly` tính Availability × Performance × Quality sau khi khử lặp quantity theo MO
+- Phân tích: plan vs actual output, defect rate, cycle time, downtime và OEE theo work center

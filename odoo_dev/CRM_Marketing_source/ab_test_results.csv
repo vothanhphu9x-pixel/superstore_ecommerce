@@ -1,0 +1,86 @@
+test_id,variant_id,campaign_id,year,test_name,channel,start_date,end_date,duration_days,variant_name,is_winner,budget_usd,impressions,clicks,ctr,conversions,conv_rate,revenue_usd,roas,cpa_usd,insight
+AB0001,AB0001-V1,2,2023,CTA Button Copy Test,google_search,2023-08-02,2023-08-18,16,A – Shop Now,NO,38400.0,310656,14731,0.04742,545,0.03705,193623.05,5.042,70.46,
+AB0001,AB0001-V2,2,2023,CTA Button Copy Test,google_search,2023-08-02,2023-08-18,16,B – Get Quote,YES,38400.0,399447,14702,0.03681,643,0.04376,336426.36,8.761,59.72,Get Quote drove 25% more conversions despite lower CTR — B2B intent
+AB0001,AB0001-V3,2,2023,CTA Button Copy Test,google_search,2023-08-02,2023-08-18,16,C – View Catalog,NO,38400.0,407674,13397,0.03286,425,0.03174,306484.84,7.981,90.35,
+AB0002,AB0002-V1,1,2023,Email Send Time Test,email_marketing,2023-04-09,2023-05-04,25,A – Tuesday 10 AM,YES,900.0,149035,5225,0.03506,172,0.03296,111079.84,123.422,5.23,Tue 10 AM wins on conversions; Wed 6 AM high CTR but low purchase intent
+AB0002,AB0002-V2,1,2023,Email Send Time Test,email_marketing,2023-04-09,2023-05-04,25,B – Thursday 2 PM,NO,900.0,135539,5305,0.03915,181,0.03418,110318.94,122.577,4.97,
+AB0002,AB0002-V3,1,2023,Email Send Time Test,email_marketing,2023-04-09,2023-05-04,25,C – Wednesday 6 AM,NO,900.0,133226,5674,0.04259,146,0.02581,136495.64,151.662,6.16,
+AB0003,AB0003-V1,4,2023,Instagram Ad Audience Test,meta_instagram,2023-08-20,2023-09-03,14,A – Broad 25-55,NO,11760.0,584776,6850,0.01171,131,0.01921,85279.09,7.252,89.77,
+AB0003,AB0003-V2,4,2023,Instagram Ad Audience Test,meta_instagram,2023-08-20,2023-09-03,14,B – Lookalike 1%,YES,11760.0,400433,6764,0.01689,199,0.02954,168760.36,14.35,59.1,1% Lookalike audience drastically outperformed — build from top customers
+AB0003,AB0003-V3,4,2023,Instagram Ad Audience Test,meta_instagram,2023-08-20,2023-09-03,14,C – Interest targeting,NO,11760.0,459377,6757,0.01471,177,0.02628,52678.94,4.479,66.44,
+AB0004,AB0004-V1,1,2023,Win-back Email Offer Test,email_marketing,2023-09-06,2023-10-02,26,A – 10% discount,NO,936.0,136569,5191,0.03801,170,0.03285,97040.23,103.675,5.51,
+AB0004,AB0004-V2,1,2023,Win-back Email Offer Test,email_marketing,2023-09-06,2023-10-02,26,B – Free shipping,NO,936.0,150740,5034,0.0334,146,0.02915,133079.12,142.179,6.41,
+AB0004,AB0004-V3,1,2023,Win-back Email Offer Test,email_marketing,2023-09-06,2023-10-02,26,C – 15% + free shipping,YES,936.0,114505,5597,0.04888,255,0.04565,232415.19,248.307,3.67,Combined offer (15%+free ship) best for win-back despite higher cost
+AB0005,AB0005-V1,1,2023,Email Subject Line Personalization,email_marketing,2023-08-13,2023-08-31,18,A – Generic promo,NO,972.0,140111,5223,0.03728,153,0.02929,76759.93,78.971,6.35,
+AB0005,AB0005-V2,1,2023,Email Subject Line Personalization,email_marketing,2023-08-13,2023-08-31,18,B – First name + category,YES,972.0,130989,5832,0.04453,224,0.03844,174481.41,179.508,4.34,"Personalization +28% CTR, +32% conversion — always use first name"
+AB0006,AB0006-V1,2,2023,Landing Page Headline Test,google_search,2023-02-21,2023-03-20,27,A – Price-focused: Save 20%,NO,97200.0,693468,33696,0.04859,1199,0.03561,1126357.24,11.588,81.07,
+AB0006,AB0006-V2,2,2023,Landing Page Headline Test,google_search,2023-02-21,2023-03-20,27,B – Quality-focused: SS Workspace,YES,97200.0,811584,36099,0.04448,1537,0.0426,912823.91,9.391,63.24,"Quality message = lower CTR but higher-intent visitors, better conv rate"
+AB0007,AB0007-V1,4,2023,Ad Creative Format Test,meta_facebook,2023-01-19,2023-02-11,23,A – Single Image,NO,35880.0,1497942,23850,0.01592,517,0.02171,194728.27,5.427,69.4,
+AB0007,AB0007-V2,4,2023,Ad Creative Format Test,meta_facebook,2023-01-19,2023-02-11,23,B – Carousel,YES,35880.0,1252756,24736,0.01975,731,0.02958,327555.6,9.129,49.08,Carousel showed 35% higher CTR; Video drove awareness but poor conversion
+AB0007,AB0007-V3,4,2023,Ad Creative Format Test,meta_facebook,2023-01-19,2023-02-11,23,C – Video (15s),NO,35880.0,897711,22320,0.02486,465,0.02085,234121.57,6.525,77.16,
+AB0009,AB0009-V1,5,2024,Email Send Time Test,email_marketing,2024-07-16,2024-08-02,17,A – Tuesday 10 AM,YES,612.0,83861,3340,0.03984,101,0.03025,83218.26,135.977,6.06,Tue 10 AM wins on conversions; Wed 6 AM high CTR but low purchase intent
+AB0009,AB0009-V2,5,2024,Email Send Time Test,email_marketing,2024-07-16,2024-08-02,17,B – Thursday 2 PM,NO,612.0,92114,3237,0.03514,97,0.03017,33958.18,55.487,6.31,
+AB0009,AB0009-V3,5,2024,Email Send Time Test,email_marketing,2024-07-16,2024-08-02,17,C – Wednesday 6 AM,NO,612.0,80322,3514,0.04376,98,0.02794,66341.63,108.401,6.24,
+AB0010,AB0010-V1,8,2024,Ad Creative Format Test,meta_facebook,2024-02-19,2024-03-17,27,A – Single Image,NO,42120.0,1747144,26822,0.01535,608,0.02269,514295.63,12.21,69.28,
+AB0010,AB0010-V2,8,2024,Ad Creative Format Test,meta_facebook,2024-02-19,2024-03-17,27,B – Carousel,YES,42120.0,1286726,27645,0.02148,695,0.02515,359438.01,8.534,60.6,Carousel showed 35% higher CTR; Video drove awareness but poor conversion
+AB0010,AB0010-V3,8,2024,Ad Creative Format Test,meta_facebook,2024-02-19,2024-03-17,27,C – Video (15s),NO,42120.0,1039254,25659,0.02469,583,0.02274,299308.88,7.106,72.25,
+AB0011,AB0011-V1,8,2024,Instagram Ad Audience Test,meta_instagram,2024-05-01,2024-05-28,27,A – Broad 25-55,NO,22680.0,1031630,12253,0.01188,255,0.02088,223392.84,9.85,88.94,
+AB0011,AB0011-V2,8,2024,Instagram Ad Audience Test,meta_instagram,2024-05-01,2024-05-28,27,B – Lookalike 1%,YES,22680.0,823408,13463,0.01635,416,0.03094,174247.51,7.683,54.52,1% Lookalike audience drastically outperformed — build from top customers
+AB0011,AB0011-V3,8,2024,Instagram Ad Audience Test,meta_instagram,2024-05-01,2024-05-28,27,C – Interest targeting,NO,22680.0,970380,14056,0.01449,360,0.02564,324091.25,14.29,63.0,
+AB0012,AB0012-V1,8,2024,Display Ad Size Test,google_display,2024-06-24,2024-07-20,26,A – 300×250 rectangle,YES,24960.0,6182521,33311,0.00539,476,0.0143,324460.98,12.999,52.44,300×250 remains top performer; leaderboard/skyscraper poor ROI
+AB0012,AB0012-V2,8,2024,Display Ad Size Test,google_display,2024-06-24,2024-07-20,26,B – 728×90 leaderboard,NO,24960.0,9065795,35681,0.00394,414,0.01161,320310.77,12.833,60.29,
+AB0012,AB0012-V3,8,2024,Display Ad Size Test,google_display,2024-06-24,2024-07-20,26,C – 160×600 skyscraper,NO,24960.0,11028537,31901,0.00289,295,0.00925,272994.23,10.937,84.61,
+AB0013,AB0013-V1,6,2024,CTA Button Copy Test,google_search,2024-04-16,2024-05-12,26,A – Shop Now,NO,62400.0,545322,22744,0.04171,875,0.03851,291223.75,4.667,71.31,
+AB0013,AB0013-V2,6,2024,CTA Button Copy Test,google_search,2024-04-16,2024-05-12,26,B – Get Quote,YES,62400.0,637812,25931,0.04066,1193,0.04602,945343.88,15.15,52.31,Get Quote drove 25% more conversions despite lower CTR — B2B intent
+AB0013,AB0013-V3,6,2024,CTA Button Copy Test,google_search,2024-04-16,2024-05-12,26,C – View Catalog,NO,62400.0,618942,21501,0.03474,787,0.03661,360386.87,5.775,79.29,
+AB0014,AB0014-V1,6,2024,Win-back Email Offer Test,email_marketing,2024-11-08,2024-11-26,18,A – 10% discount,NO,648.0,96309,3433,0.03565,100,0.02938,71675.78,110.611,6.48,
+AB0014,AB0014-V2,6,2024,Win-back Email Offer Test,email_marketing,2024-11-08,2024-11-26,18,B – Free shipping,NO,648.0,99664,3397,0.03409,99,0.02915,57167.72,88.222,6.55,
+AB0014,AB0014-V3,6,2024,Win-back Email Offer Test,email_marketing,2024-11-08,2024-11-26,18,C – 15% + free shipping,YES,648.0,69026,3668,0.05314,175,0.04781,136766.01,211.059,3.7,Combined offer (15%+free ship) best for win-back despite higher cost
+AB0015,AB0015-V1,6,2024,Landing Page Headline Test,google_search,2024-01-12,2024-02-07,26,A – Price-focused: Save 20%,NO,93600.0,826406,38503,0.04659,1329,0.03452,1077732.19,11.514,70.43,
+AB0015,AB0015-V2,6,2024,Landing Page Headline Test,google_search,2024-01-12,2024-02-07,26,B – Quality-focused: SS Workspace,YES,93600.0,946113,37039,0.03915,1818,0.0491,1030077.33,11.005,51.49,"Quality message = lower CTR but higher-intent visitors, better conv rate"
+AB0016,AB0016-V1,5,2024,Email Subject Line Personalization,email_marketing,2024-04-15,2024-05-03,18,A – Generic promo,NO,972.0,151517,5889,0.03887,167,0.0285,51824.05,53.317,5.82,
+AB0016,AB0016-V2,5,2024,Email Subject Line Personalization,email_marketing,2024-04-15,2024-05-03,18,B – First name + category,YES,972.0,132435,6069,0.04583,264,0.04352,108018.62,111.13,3.68,"Personalization +28% CTR, +32% conversion — always use first name"
+AB0017,AB0017-V1,12,2025,Ad Creative Format Test,meta_facebook,2025-02-03,2025-02-18,15,A – Single Image,NO,23400.0,1046043,16294,0.01558,373,0.02294,328562.5,14.041,62.73,
+AB0017,AB0017-V2,12,2025,Ad Creative Format Test,meta_facebook,2025-02-03,2025-02-18,15,B – Carousel,YES,23400.0,885987,16578,0.01871,456,0.02752,274780.52,11.743,51.32,Carousel showed 35% higher CTR; Video drove awareness but poor conversion
+AB0017,AB0017-V3,12,2025,Ad Creative Format Test,meta_facebook,2025-02-03,2025-02-18,15,C – Video (15s),NO,23400.0,636767,16494,0.0259,345,0.02094,124578.86,5.324,67.83,
+AB0018,AB0018-V1,9,2025,Win-back Email Offer Test,email_marketing,2025-06-12,2025-07-08,26,A – 10% discount,NO,936.0,124152,4979,0.04011,147,0.02971,133469.15,142.595,6.37,
+AB0018,AB0018-V2,9,2025,Win-back Email Offer Test,email_marketing,2025-06-12,2025-07-08,26,B – Free shipping,NO,936.0,153209,5190,0.03388,151,0.02914,94064.45,100.496,6.2,
+AB0018,AB0018-V3,9,2025,Win-back Email Offer Test,email_marketing,2025-06-12,2025-07-08,26,C – 15% + free shipping,YES,936.0,116187,5718,0.04922,260,0.04559,155269.54,165.886,3.6,Combined offer (15%+free ship) best for win-back despite higher cost
+AB0019,AB0019-V1,10,2025,Email Subject Line Personalization,email_marketing,2025-01-01,2025-01-23,22,A – Generic promo,NO,1188.0,170185,6757,0.03971,206,0.03063,88540.31,74.529,5.77,
+AB0019,AB0019-V2,10,2025,Email Subject Line Personalization,email_marketing,2025-01-01,2025-01-23,22,B – First name + category,YES,1188.0,160772,7339,0.04565,293,0.03997,153871.47,129.521,4.05,"Personalization +28% CTR, +32% conversion — always use first name"
+AB0020,AB0020-V1,11,2025,Landing Page Headline Test,google_search,2025-09-24,2025-10-22,28,A – Price-focused: Save 20%,NO,100800.0,925877,39024,0.04215,1443,0.037,905893.96,8.987,69.85,
+AB0020,AB0020-V2,11,2025,Landing Page Headline Test,google_search,2025-09-24,2025-10-22,28,B – Quality-focused: SS Workspace,YES,100800.0,792929,35285,0.0445,1708,0.04842,781040.38,7.748,59.02,"Quality message = lower CTR but higher-intent visitors, better conv rate"
+AB0021,AB0021-V1,11,2025,CTA Button Copy Test,google_search,2025-02-17,2025-03-13,24,A – Shop Now,NO,57600.0,451203,20696,0.04587,802,0.03878,375714.64,6.523,71.82,
+AB0021,AB0021-V2,11,2025,CTA Button Copy Test,google_search,2025-02-17,2025-03-13,24,B – Get Quote,YES,57600.0,482596,20480,0.04244,899,0.04392,569062.63,9.88,64.07,Get Quote drove 25% more conversions despite lower CTR — B2B intent
+AB0021,AB0021-V3,11,2025,CTA Button Copy Test,google_search,2025-02-17,2025-03-13,24,C – View Catalog,NO,57600.0,744558,23803,0.03197,755,0.03176,561691.8,9.752,76.29,
+AB0022,AB0022-V1,12,2025,Display Ad Size Test,google_display,2025-01-26,2025-02-17,22,A – 300×250 rectangle,YES,21120.0,4896416,26747,0.00546,369,0.01382,153165.77,7.252,57.24,300×250 remains top performer; leaderboard/skyscraper poor ROI
+AB0022,AB0022-V2,12,2025,Display Ad Size Test,google_display,2025-01-26,2025-02-17,22,B – 728×90 leaderboard,NO,21120.0,7872741,29988,0.00381,327,0.01093,110266.85,5.221,64.59,
+AB0022,AB0022-V3,12,2025,Display Ad Size Test,google_display,2025-01-26,2025-02-17,22,C – 160×600 skyscraper,NO,21120.0,10123678,30386,0.003,277,0.00912,214550.54,10.159,76.25,
+AB0023,AB0023-V1,11,2025,Instagram Ad Audience Test,meta_instagram,2025-09-24,2025-10-08,14,A – Broad 25-55,NO,11760.0,660102,7674,0.01163,137,0.01797,109610.26,9.321,85.84,
+AB0023,AB0023-V2,11,2025,Instagram Ad Audience Test,meta_instagram,2025-09-24,2025-10-08,14,B – Lookalike 1%,YES,11760.0,375379,6541,0.01743,193,0.02966,127447.49,10.837,60.93,1% Lookalike audience drastically outperformed — build from top customers
+AB0023,AB0023-V3,11,2025,Instagram Ad Audience Test,meta_instagram,2025-09-24,2025-10-08,14,C – Interest targeting,NO,11760.0,486293,7056,0.01451,171,0.02427,77103.57,6.556,68.77,
+AB0024,AB0024-V1,10,2025,Email Send Time Test,email_marketing,2025-03-24,2025-04-14,21,A – Tuesday 10 AM,YES,756.0,116616,4161,0.03569,122,0.02944,100360.43,132.752,6.2,Tue 10 AM wins on conversions; Wed 6 AM high CTR but low purchase intent
+AB0024,AB0024-V2,10,2025,Email Send Time Test,email_marketing,2025-03-24,2025-04-14,21,B – Thursday 2 PM,NO,756.0,130343,4562,0.03501,150,0.03294,107222.03,141.828,5.04,
+AB0024,AB0024-V3,10,2025,Email Send Time Test,email_marketing,2025-03-24,2025-04-14,21,C – Wednesday 6 AM,NO,756.0,98597,4633,0.047,122,0.02633,91017.54,120.394,6.2,
+AB0025,AB0025-V1,13,2026,Ad Creative Format Test,meta_facebook,2026-09-18,2026-10-05,17,A – Single Image,NO,26520.0,1362155,18909,0.01388,417,0.02209,252734.17,9.53,63.6,
+AB0025,AB0025-V2,13,2026,Ad Creative Format Test,meta_facebook,2026-09-18,2026-10-05,17,B – Carousel,YES,26520.0,860030,17159,0.01995,451,0.02631,220227.23,8.304,58.8,Carousel showed 35% higher CTR; Video drove awareness but poor conversion
+AB0025,AB0025-V3,13,2026,Ad Creative Format Test,meta_facebook,2026-09-18,2026-10-05,17,C – Video (15s),NO,26520.0,673539,17773,0.02639,385,0.02171,211925.24,7.991,68.88,
+AB0026,AB0026-V1,14,2026,Instagram Ad Audience Test,meta_instagram,2026-03-17,2026-04-07,21,A – Broad 25-55,NO,17640.0,811644,9443,0.01163,178,0.01889,99170.38,5.622,99.1,
+AB0026,AB0026-V2,14,2026,Instagram Ad Audience Test,meta_instagram,2026-03-17,2026-04-07,21,B – Lookalike 1%,YES,17640.0,621882,10920,0.01756,342,0.03141,96630.89,5.478,51.58,1% Lookalike audience drastically outperformed — build from top customers
+AB0026,AB0026-V3,14,2026,Instagram Ad Audience Test,meta_instagram,2026-03-17,2026-04-07,21,C – Interest targeting,NO,17640.0,748337,10926,0.0146,243,0.02232,146314.5,8.294,72.59,
+AB0027,AB0027-V1,13,2026,CTA Button Copy Test,google_search,2026-02-06,2026-02-28,22,A – Shop Now,NO,52800.0,465923,21002,0.04508,804,0.03832,344380.38,6.522,65.67,
+AB0027,AB0027-V2,13,2026,CTA Button Copy Test,google_search,2026-02-06,2026-02-28,22,B – Get Quote,YES,52800.0,508907,20630,0.04054,992,0.04813,426169.14,8.071,53.23,Get Quote drove 25% more conversions despite lower CTR — B2B intent
+AB0027,AB0027-V3,13,2026,CTA Button Copy Test,google_search,2026-02-06,2026-02-28,22,C – View Catalog,NO,52800.0,622061,21857,0.03514,745,0.03413,286099.35,5.418,70.87,
+AB0028,AB0028-V1,16,2026,Email Subject Line Personalization,email_marketing,2026-03-26,2026-04-16,21,A – Generic promo,NO,1134.0,168280,6458,0.03838,184,0.02864,122057.47,107.635,6.16,
+AB0028,AB0028-V2,16,2026,Email Subject Line Personalization,email_marketing,2026-03-26,2026-04-16,21,B – First name + category,YES,1134.0,145978,6726,0.04608,283,0.04219,159206.87,140.394,4.01,"Personalization +28% CTR, +32% conversion — always use first name"
+AB0029,AB0029-V1,14,2026,Display Ad Size Test,google_display,2026-09-24,2026-10-10,16,A – 300×250 rectangle,YES,15360.0,3551943,18732,0.00527,245,0.01309,140607.87,9.154,62.69,300×250 remains top performer; leaderboard/skyscraper poor ROI
+AB0029,AB0029-V2,14,2026,Display Ad Size Test,google_display,2026-09-24,2026-10-10,16,B – 728×90 leaderboard,NO,15360.0,4765027,19269,0.00404,225,0.0117,192616.78,12.54,68.27,
+AB0029,AB0029-V3,14,2026,Display Ad Size Test,google_display,2026-09-24,2026-10-10,16,C – 160×600 skyscraper,NO,15360.0,7351397,20763,0.00282,219,0.01056,183319.3,11.935,70.14,
+AB0030,AB0030-V1,16,2026,Email Send Time Test,email_marketing,2026-03-08,2026-03-22,14,A – Tuesday 10 AM,YES,504.0,74748,2945,0.03941,89,0.03032,28767.2,57.078,5.66,Tue 10 AM wins on conversions; Wed 6 AM high CTR but low purchase intent
+AB0030,AB0030-V2,16,2026,Email Send Time Test,email_marketing,2026-03-08,2026-03-22,14,B – Thursday 2 PM,NO,504.0,79237,2947,0.0372,84,0.02859,28284.23,56.12,6.0,
+AB0030,AB0030-V3,16,2026,Email Send Time Test,email_marketing,2026-03-08,2026-03-22,14,C – Wednesday 6 AM,NO,504.0,68848,3145,0.04569,77,0.02455,67339.73,133.611,6.55,
+AB0031,AB0031-V1,13,2026,Landing Page Headline Test,google_search,2026-01-09,2026-01-27,18,A – Price-focused: Save 20%,NO,64800.0,499721,22262,0.04455,899,0.0404,347166.15,5.357,72.08,
+AB0031,AB0031-V2,13,2026,Landing Page Headline Test,google_search,2026-01-09,2026-01-27,18,B – Quality-focused: SS Workspace,YES,64800.0,582716,26005,0.04463,1170,0.04502,550986.57,8.503,55.38,"Quality message = lower CTR but higher-intent visitors, better conv rate"
+AB0032,AB0032-V1,16,2026,Win-back Email Offer Test,email_marketing,2026-08-10,2026-09-01,22,A – 10% discount,NO,792.0,132384,4829,0.03648,154,0.0319,99305.47,125.386,5.14,
+AB0032,AB0032-V2,16,2026,Win-back Email Offer Test,email_marketing,2026-08-10,2026-09-01,22,B – Free shipping,NO,792.0,119842,4593,0.03833,115,0.02523,103599.79,130.808,6.89,
+AB0032,AB0032-V3,16,2026,Win-back Email Offer Test,email_marketing,2026-08-10,2026-09-01,22,C – 15% + free shipping,YES,792.0,92078,4887,0.05308,225,0.04605,209055.93,263.959,3.52,Combined offer (15%+free ship) best for win-back despite higher cost

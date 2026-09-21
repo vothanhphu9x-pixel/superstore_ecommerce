@@ -1,0 +1,1527 @@
+version: 2
+
+# File này tách rõ hai khu vực trong từng resource:
+# 1) TEST: điều kiện kiểm thử dữ liệu.
+# 2) DESCRIPTION: metadata mô tả bảng/cột cho dbt Docs.
+models:
+  - name: sil_customer_enriched
+    description: |-
+      **Grain:** 1 version lịch sử của 1 partner (SCD2 — giữ TOÀN BỘ version). Incremental MERGE theo dbt_scd_id. Khi boundary hoặc lookup enrichment đổi, reload toàn bộ versions của partner đó để version cũ vừa đóng được cập nhật.
+  
+      **Business value:** Cung cấp thông tin khách hàng/nhà cung cấp, phân khúc và địa lý cho các domain thương mại và tài chính.
+  
+      **Build logic:**
+      - Đọc `stg_res_country_state`, `stg_res_country`, `stg_res_partner_res_partner_category_rel`, `stg_res_partner_category`, `snap_res_partner` và join theo FK/business key Odoo trong SQL.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Incremental MERGE theo `dbt_scd_id`; version key phát hiện thay đổi từ mọi nguồn phụ thuộc và chỉ cập nhật row thực sự đổi.
+      - Loại record nguồn bị xóa logic khỏi population cuối hoặc lookup enrichment tương ứng.
+      - Giữ toàn bộ SCD2; boundary/current/enrichment đổi sẽ reload mọi version của business key liên quan.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - scd2_at_most_one_current:
+        arguments:
+          business_key: partner_id
+    - scd2_no_overlaps:
+        arguments:
+          business_key: partner_id
+    - scd2_valid_interval
+    - unique:
+        arguments:
+          column_name: dbt_scd_id
+    - not_null:
+        arguments:
+          column_name: dbt_scd_id
+    - not_null:
+        arguments:
+          column_name: partner_id
+    - not_null:
+        arguments:
+          column_name: commercial_partner_id
+    - not_null:
+        arguments:
+          column_name: is_current
+    - not_null:
+        arguments:
+          column_name: dbt_valid_from
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: dbt_scd_id
+      description: Khóa phiên bản SCD2 do dbt Snapshot tạo; mỗi phiên bản lịch sử có một giá trị duy nhất.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: commercial_partner_id
+      description: ID đối tác thương mại gốc trong Odoo, dùng gom các contact thuộc cùng một tổ chức.
+    - name: customer_name
+      description: Tên hiển thị của customer enriched.
+    - name: city
+      description: Thuộc tính city của customer enriched trong lớp Silver.
+    - name: state
+      description: Trạng thái nghiệp vụ của customer enriched.
+    - name: zip
+      description: Thuộc tính zip của customer enriched trong lớp Silver.
+    - name: country
+      description: Thuộc tính country của customer enriched trong lớp Silver.
+    - name: region
+      description: Thuộc tính region của customer enriched trong lớp Silver.
+    - name: is_company
+      description: Cờ phân biệt doanh nghiệp với cá nhân trong res.partner.
+    - name: customer_rank
+      description: Điểm xếp hạng khách hàng của Odoo; giá trị lớn hơn 0 cho biết đã có vai trò khách hàng.
+    - name: supplier_rank
+      description: Điểm xếp hạng nhà cung cấp của Odoo; giá trị lớn hơn 0 cho biết đã có vai trò vendor.
+    - name: partner_type
+      description: 'Phân loại đối tác theo customer_rank và supplier_rank: customer, vendor hoặc both.'
+    - name: email
+      description: Thuộc tính email của customer enriched trong lớp Silver.
+    - name: phone
+      description: Thuộc tính phone của customer enriched trong lớp Silver.
+    - name: rfm_profile
+      description: Thuộc tính rfm profile của customer enriched trong lớp Silver.
+    - name: is_active
+      description: Cờ cho biết bản ghi đang hoạt động và được phép sử dụng trong nghiệp vụ.
+    - name: is_current
+      description: Cờ xác định đây có phải phiên bản SCD2 hiện hành hay không.
+    - name: segment
+      description: Thuộc tính segment của customer enriched trong lớp Silver.
+    - name: dbt_valid_from
+      description: Thời điểm phiên bản SCD2 bắt đầu có hiệu lực.
+    - name: dbt_valid_to
+      description: Thời điểm phiên bản SCD2 hết hiệu lực; NULL nghĩa là phiên bản hiện hành.
+    - name: source_cdc_ts_ms
+      description: CDC timestamp của nguồn source; dùng phát hiện thay đổi incremental.
+    - name: source_cdc_lsn
+      description: CDC LSN của nguồn source; dùng phân xử thứ tự sự kiện.
+    - name: enrichment_version_key
+      description: Khóa phiên bản sau enrichment, dùng phát hiện thay đổi từ các bảng tham chiếu đã join.
+    - name: enrichment_updated_at
+      description: Thời điểm dữ liệu enrichment được tính lại.
+
+  - name: sil_product_enriched
+    description: |-
+      **Grain:** 1 product_id × 1 captured product_template version. MERGE theo product_version_id vì một dbt_scd_id của template có thể có nhiều SKU. Khi boundary hoặc lookup/SKU/BOM đổi, reload toàn bộ versions của product_id đó.
+  
+      **Business value:** Cung cấp thông tin SKU, danh mục, UOM, giá và standard cost cho phân tích bán, mua, kho và sản xuất.
+  
+      **Build logic:**
+      - Đọc `stg_mrp_bom`, `stg_product_product`, `stg_product_category`, `stg_uom_uom`, `snap_product_template` và join theo FK/business key Odoo trong SQL.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Incremental MERGE theo `product_version_id`; version key phát hiện thay đổi từ mọi nguồn phụ thuộc và chỉ cập nhật row thực sự đổi.
+      - Loại record nguồn bị xóa logic khỏi population cuối hoặc lookup enrichment tương ứng.
+      - Giữ toàn bộ SCD2; boundary/current/enrichment đổi sẽ reload mọi version của business key liên quan.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - scd2_at_most_one_current:
+        arguments:
+          business_key: product_id
+    - scd2_no_overlaps:
+        arguments:
+          business_key: product_id
+    - scd2_valid_interval
+    - unique:
+        arguments:
+          column_name: product_version_id
+    - not_null:
+        arguments:
+          column_name: product_version_id
+    - not_null:
+        arguments:
+          column_name: product_tmpl_id
+    - not_null:
+        arguments:
+          column_name: product_id
+    - not_null:
+        arguments:
+          column_name: is_current
+    - not_null:
+        arguments:
+          column_name: dbt_valid_from
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: product_version_id
+      description: Khóa duy nhất cho một product_id tại một phiên bản lịch sử của product template.
+    - name: dbt_scd_id
+      description: Khóa phiên bản SCD2 do dbt Snapshot tạo; mỗi phiên bản lịch sử có một giá trị duy nhất.
+    - name: product_tmpl_id
+      description: Mã định danh sản phẩm tmpl; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: categ_id
+      description: Mã định danh categ; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_name
+      description: Tên hiển thị của product enriched.
+    - name: sku
+      description: Thuộc tính sku của product enriched trong lớp Silver.
+    - name: barcode
+      description: Thuộc tính barcode của product enriched trong lớp Silver.
+    - name: category_l1
+      description: Thuộc tính category l1 của product enriched trong lớp Silver.
+    - name: category_l2
+      description: Thuộc tính category l2 của product enriched trong lớp Silver.
+    - name: category_l3
+      description: Thuộc tính category l3 của product enriched trong lớp Silver.
+    - name: list_price
+      description: Thuộc tính list giá của product enriched trong lớp Silver.
+    - name: standard_price
+      description: Thuộc tính standard giá của product enriched trong lớp Silver.
+    - name: is_manufactured
+      description: Cờ cho biết sản phẩm có BOM hoạt động và có thể được sản xuất.
+    - name: is_storable
+      description: Cờ cho biết sản phẩm được quản lý tồn kho.
+    - name: tracking
+      description: Thuộc tính tracking của product enriched trong lớp Silver.
+    - name: uom_name
+      description: Tên hiển thị của product enriched.
+    - name: sale_ok
+      description: Thuộc tính sale ok của product enriched trong lớp Silver.
+    - name: purchase_ok
+      description: Thuộc tính purchase ok của product enriched trong lớp Silver.
+    - name: is_active
+      description: Cờ cho biết bản ghi đang hoạt động và được phép sử dụng trong nghiệp vụ.
+    - name: is_current
+      description: Cờ xác định đây có phải phiên bản SCD2 hiện hành hay không.
+    - name: dbt_valid_from
+      description: Thời điểm phiên bản SCD2 bắt đầu có hiệu lực.
+    - name: dbt_valid_to
+      description: Thời điểm phiên bản SCD2 hết hiệu lực; NULL nghĩa là phiên bản hiện hành.
+    - name: source_cdc_ts_ms
+      description: CDC timestamp của nguồn source; dùng phát hiện thay đổi incremental.
+    - name: source_cdc_lsn
+      description: CDC LSN của nguồn source; dùng phân xử thứ tự sự kiện.
+    - name: enrichment_version_key
+      description: Khóa phiên bản sau enrichment, dùng phát hiện thay đổi từ các bảng tham chiếu đã join.
+    - name: enrichment_updated_at
+      description: Thời điểm dữ liệu enrichment được tính lại.
+
+  - name: sil_employee_enriched
+    description: |-
+      **Grain:** 1 version lịch sử của 1 contract (SCD2). Khi contract boundary hoặc employee/department/job/user mapping đổi, reload toàn bộ versions của contract đó.
+  
+      **Business value:** Cung cấp quan hệ nhân viên–hợp đồng–user để phân tích salesperson, buyer và nguồn lực.
+  
+      **Build logic:**
+      - Đọc `stg_hr_employee`, `stg_hr_department`, `stg_hr_job`, `stg_res_users`, `stg_hr_contract`, `snap_hr_contract` và join theo FK/business key Odoo trong SQL.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Incremental MERGE theo `dbt_scd_id`; version key phát hiện thay đổi từ mọi nguồn phụ thuộc và chỉ cập nhật row thực sự đổi.
+      - Loại record nguồn bị xóa logic khỏi population cuối hoặc lookup enrichment tương ứng.
+      - Giữ toàn bộ SCD2; boundary/current/enrichment đổi sẽ reload mọi version của business key liên quan.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - scd2_at_most_one_current:
+        arguments:
+          business_key: contract_id
+    - scd2_no_overlaps:
+        arguments:
+          business_key: contract_id
+    - scd2_valid_interval
+    - unique:
+        arguments:
+          column_name: dbt_scd_id
+    - not_null:
+        arguments:
+          column_name: dbt_scd_id
+    - not_null:
+        arguments:
+          column_name: employee_id
+    - not_null:
+        arguments:
+          column_name: is_current
+    - not_null:
+        arguments:
+          column_name: dbt_valid_from
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: dbt_scd_id
+      description: Khóa phiên bản SCD2 do dbt Snapshot tạo; mỗi phiên bản lịch sử có một giá trị duy nhất.
+    - name: contract_id
+      description: Mã định danh contract; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: employee_id
+      description: Mã định danh nhân viên; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: user_id
+      description: Mã định danh user; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: department_id
+      description: Mã định danh department; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: employee_name
+      description: Tên hiển thị của employee enriched.
+    - name: department_name
+      description: Tên hiển thị của employee enriched.
+    - name: job_title
+      description: Thuộc tính job title của employee enriched trong lớp Silver.
+    - name: wage_amount
+      description: Giá trị tiền wage đã chuẩn hóa theo naming convention của warehouse.
+    - name: wage_band
+      description: Thuộc tính wage band của employee enriched trong lớp Silver.
+    - name: employee_type
+      description: Thuộc tính nhân viên loại của employee enriched trong lớp Silver.
+    - name: contract_start
+      description: Thuộc tính contract start của employee enriched trong lớp Silver.
+    - name: contract_end
+      description: Thuộc tính contract end của employee enriched trong lớp Silver.
+    - name: first_contract_start
+      description: Thuộc tính first contract start của employee enriched trong lớp Silver.
+    - name: tenure_years
+      description: Thuộc tính tenure years của employee enriched trong lớp Silver.
+    - name: is_active
+      description: Cờ cho biết bản ghi đang hoạt động và được phép sử dụng trong nghiệp vụ.
+    - name: is_current
+      description: Cờ xác định đây có phải phiên bản SCD2 hiện hành hay không.
+    - name: dbt_valid_from
+      description: Thời điểm phiên bản SCD2 bắt đầu có hiệu lực.
+    - name: dbt_valid_to
+      description: Thời điểm phiên bản SCD2 hết hiệu lực; NULL nghĩa là phiên bản hiện hành.
+    - name: source_cdc_ts_ms
+      description: CDC timestamp của nguồn source; dùng phát hiện thay đổi incremental.
+    - name: source_cdc_lsn
+      description: CDC LSN của nguồn source; dùng phân xử thứ tự sự kiện.
+    - name: enrichment_version_key
+      description: Khóa phiên bản sau enrichment, dùng phát hiện thay đổi từ các bảng tham chiếu đã join.
+    - name: enrichment_updated_at
+      description: Thời điểm dữ liệu enrichment được tính lại.
+
+  - name: sil_order_lines_enriched
+    description: |-
+      **Grain:** 1 sale_order_line hiện hành. CDC của line/header chỉ dùng phát hiện thay đổi. silver_updated_at là thời điểm dòng thực sự được INSERT/UPDATE tại Silver; date_order chỉ phục vụ phân tích business time.
+  
+      **Business value:** Đo đơn bán, số lượng, doanh thu, giá vốn, lợi nhuận gộp và attribution bán hàng.
+  
+      **Build logic:**
+      - Đọc `stg_sale_order`, `stg_sale_order_line` và join theo FK/business key Odoo trong SQL.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Incremental MERGE theo `sale_order_line_id`; version key phát hiện thay đổi từ mọi nguồn phụ thuộc và chỉ cập nhật row thực sự đổi.
+      - Không loại tombstone; giữ `is_deleted` để Gold xử lý delete đúng nghiệp vụ.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: sale_order_line_id
+    - not_null:
+        arguments:
+          column_name: sale_order_line_id
+    - not_null:
+        arguments:
+          column_name: silver_updated_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: sale_order_line_id
+      description: Mã định danh sale đơn hàng line; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: order_id
+      description: Mã định danh đơn hàng; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: order_name
+      description: Tên hiển thị của order lines enriched.
+    - name: is_return
+      description: Cờ cho biết nghiệp vụ là hoàn trả.
+    - name: return_of_order_id
+      description: Mã định danh return of đơn hàng; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: user_id
+      description: Mã định danh user; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: warehouse_id
+      description: Mã định danh kho; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: medium_id
+      description: Mã định danh medium; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: opportunity_id
+      description: ID CRM opportunity liên kết với đơn bán hàng.
+    - name: date_order
+      description: Ngày đơn hàng của order lines enriched.
+    - name: quantity
+      description: Số lượng  tại grain của model.
+    - name: quantity_delivered
+      description: Số lượng delivered tại grain của model.
+    - name: price_unit
+      description: Thuộc tính giá unit của order lines enriched trong lớp Silver.
+    - name: discount_pct
+      description: Tỷ lệ discount; được biểu diễn dưới dạng số thập phân.
+    - name: revenue_amount
+      description: Giá trị tiền doanh thu đã chuẩn hóa theo naming convention của warehouse.
+    - name: order_state
+      description: Trạng thái nghiệp vụ của order lines enriched.
+    - name: invoice_status
+      description: Trạng thái xử lý của order lines enriched.
+    - name: delivery_status
+      description: Trạng thái xử lý của order lines enriched.
+    - name: is_cancelled
+      description: Cờ cho biết nghiệp vụ đã bị hủy.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: line_cdc_ts_ms
+      description: CDC timestamp của nguồn line; dùng phát hiện thay đổi incremental.
+    - name: line_cdc_lsn
+      description: CDC LSN của nguồn line; dùng phân xử thứ tự sự kiện.
+    - name: order_cdc_ts_ms
+      description: CDC timestamp của nguồn đơn hàng; dùng phát hiện thay đổi incremental.
+    - name: order_cdc_lsn
+      description: CDC LSN của nguồn đơn hàng; dùng phân xử thứ tự sự kiện.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: silver_updated_at
+      description: Thời điểm phiên bản Silver hiện tại được tạo hoặc cập nhật; dùng kích hoạt reprocess ở Gold.
+
+  - name: sil_purchase_order_lines_enriched
+    description: |-
+      **Grain:** 1 purchase_order_line hiện hành. CDC của line/header chỉ dùng phát hiện thay đổi. silver_updated_at là thời điểm dòng thực sự được INSERT/UPDATE tại Silver; date_order/date_planned giữ nguyên cho business analysis.
+  
+      **Business value:** Đo đơn bán, số lượng, doanh thu, giá vốn, lợi nhuận gộp và attribution bán hàng.
+  
+      **Build logic:**
+      - Đọc `stg_purchase_order_line`, `stg_purchase_order` và join theo FK/business key Odoo trong SQL.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Incremental MERGE theo `purchase_order_line_id`; version key phát hiện thay đổi từ mọi nguồn phụ thuộc và chỉ cập nhật row thực sự đổi.
+      - Không loại tombstone; giữ `is_deleted` để Gold xử lý delete đúng nghiệp vụ.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: purchase_order_line_id
+    - not_null:
+        arguments:
+          column_name: purchase_order_line_id
+    - not_null:
+        arguments:
+          column_name: silver_updated_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: purchase_order_line_id
+      description: Mã định danh purchase đơn hàng line; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: order_id
+      description: Mã định danh đơn hàng; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: order_name
+      description: Tên hiển thị của purchase order lines enriched.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: user_id
+      description: Mã định danh user; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: date_order
+      description: Ngày đơn hàng của purchase order lines enriched.
+    - name: date_planned
+      description: Ngày dự kiến của purchase order lines enriched.
+    - name: product_qty
+      description: Số lượng sản phẩm tại grain của model.
+    - name: qty_received
+      description: Số lượng received tại grain của model.
+    - name: price_unit
+      description: Thuộc tính giá unit của purchase order lines enriched trong lớp Silver.
+    - name: discount
+      description: Thuộc tính discount của purchase order lines enriched trong lớp Silver.
+    - name: price_subtotal
+      description: Thuộc tính giá subtotal của purchase order lines enriched trong lớp Silver.
+    - name: po_state
+      description: Trạng thái nghiệp vụ của purchase order lines enriched.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: line_cdc_ts_ms
+      description: CDC timestamp của nguồn line; dùng phát hiện thay đổi incremental.
+    - name: line_cdc_lsn
+      description: CDC LSN của nguồn line; dùng phân xử thứ tự sự kiện.
+    - name: order_cdc_ts_ms
+      description: CDC timestamp của nguồn đơn hàng; dùng phát hiện thay đổi incremental.
+    - name: order_cdc_lsn
+      description: CDC LSN của nguồn đơn hàng; dùng phân xử thứ tự sự kiện.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: silver_updated_at
+      description: Thời điểm phiên bản Silver hiện tại được tạo hoặc cập nhật; dùng kích hoạt reprocess ở Gold.
+
+  - name: sil_crm_lead_enriched
+    description: |-
+      **Grain:** 1 crm_lead hiện hành. CDC chỉ dùng phát hiện thay đổi. silver_updated_at là thời điểm dòng thực sự được INSERT/UPDATE tại Silver; date_open/date_closed vẫn là business time và không chọn SCD2 version.
+  
+      **Business value:** Cung cấp dữ liệu phễu Lead → Opportunity → Won để đo conversion, win/loss và hiệu quả campaign/channel.
+  
+      **Build logic:**
+      - Đọc `stg_crm_lead`.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Incremental MERGE theo `crm_lead_id`; version key phát hiện thay đổi từ mọi nguồn phụ thuộc và chỉ cập nhật row thực sự đổi.
+      - Không loại tombstone; giữ `is_deleted` để Gold xử lý delete đúng nghiệp vụ.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: crm_lead_id
+    - not_null:
+        arguments:
+          column_name: crm_lead_id
+    - not_null:
+        arguments:
+          column_name: silver_updated_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: crm_lead_id
+      description: Mã định danh crm lead; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: name
+      description: Tên hiển thị của crm lead enriched.
+    - name: type
+      description: Thuộc tính loại của crm lead enriched trong lớp Silver.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: user_id
+      description: Mã định danh user; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: team_id
+      description: Mã định danh team; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: stage_id
+      description: Mã định danh stage; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: medium_id
+      description: Mã định danh medium; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: source_id
+      description: Mã định danh source; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: probability
+      description: Thuộc tính probability của crm lead enriched trong lớp Silver.
+    - name: expected_revenue
+      description: Thuộc tính expected doanh thu của crm lead enriched trong lớp Silver.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: date_open
+      description: Ngày open của crm lead enriched.
+    - name: date_closed
+      description: Ngày closed của crm lead enriched.
+    - name: date_conversion
+      description: Ngày conversion của crm lead enriched.
+    - name: date_last_stage_update
+      description: Ngày last stage update của crm lead enriched.
+    - name: create_date
+      description: Ngày create của crm lead enriched.
+    - name: lost_reason_id
+      description: Mã định danh lost reason; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: write_date
+      description: Ngày write của crm lead enriched.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: silver_updated_at
+      description: Thời điểm phiên bản Silver hiện tại được tạo hoặc cập nhật; dùng kích hoạt reprocess ở Gold.
+
+  - name: sil_stock_valuation_enriched
+    description: |-
+      **Grain:** 1 stock_valuation_layer hiện hành, enriched với stock_move hiện hành. CDC của valuation/move chỉ dùng phát hiện thay đổi. silver_updated_at là thời điểm dòng thực sự được INSERT/UPDATE tại Silver; create_date chỉ phục vụ reporting.
+  
+      **Business value:** Theo dõi quantity, unit cost, value và remaining value của các valuation event.
+  
+      **Build logic:**
+      - Đọc `stg_stock_valuation_layer`, `stg_stock_move` và join theo FK/business key Odoo trong SQL.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Incremental MERGE theo `stock_valuation_layer_id`; version key phát hiện thay đổi từ mọi nguồn phụ thuộc và chỉ cập nhật row thực sự đổi.
+      - Không loại tombstone; giữ `is_deleted` để Gold xử lý delete đúng nghiệp vụ.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: stock_valuation_layer_id
+    - not_null:
+        arguments:
+          column_name: stock_valuation_layer_id
+    - not_null:
+        arguments:
+          column_name: silver_updated_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: stock_valuation_layer_id
+      description: Mã định danh stock valuation layer; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: stock_move_id
+      description: Mã định danh stock dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: description
+      description: Thuộc tính description của stock valuation enriched trong lớp Silver.
+    - name: quantity
+      description: Số lượng  tại grain của model.
+    - name: unit_cost
+      description: Thuộc tính unit chi phí của stock valuation enriched trong lớp Silver.
+    - name: value
+      description: Thuộc tính value của stock valuation enriched trong lớp Silver.
+    - name: remaining_qty
+      description: Số lượng còn lại từ stock_valuation_layer sau khi deduplicate CDC.
+    - name: remaining_value
+      description: Giá trị còn lại từ stock_valuation_layer sau khi deduplicate CDC.
+    - name: create_date
+      description: Ngày create của stock valuation enriched.
+    - name: cdc_status
+      description: Trạng thái CDC của bản ghi, ví dụ ACTIVE hoặc DELETED.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+    - name: reference
+      description: Thuộc tính reference của stock valuation enriched trong lớp Silver.
+    - name: location_id
+      description: Mã định danh vị trí kho; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: location_dest_id
+      description: Mã định danh vị trí kho dest; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: move_cdc_ts_ms
+      description: CDC timestamp của nguồn dịch chuyển; dùng phát hiện thay đổi incremental.
+    - name: move_cdc_lsn
+      description: CDC LSN của nguồn dịch chuyển; dùng phân xử thứ tự sự kiện.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: silver_updated_at
+      description: Thời điểm phiên bản Silver hiện tại được tạo hoặc cập nhật; dùng kích hoạt reprocess ở Gold.
+
+  - name: sil_journal_entries_enriched
+    description: |-
+      **Grain:** 1 account_move_line hiện hành. CDC của line/header/account/journal chỉ dùng phát hiện thay đổi. silver_updated_at chỉ đổi khi một source thực sự làm thay đổi Silver row. am.date là business time, không dùng để chọn version SCD2.
+  
+      **Business value:** Cung cấp sổ cái chi tiết để đối chiếu Nợ/Có và lập báo cáo tài chính.
+  
+      **Build logic:**
+      - Đọc `stg_account_move_line`, `stg_account_move`, `stg_account_account`, `stg_account_journal` và join theo FK/business key Odoo trong SQL.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Incremental MERGE theo `account_move_line_id`; version key phát hiện thay đổi từ mọi nguồn phụ thuộc và chỉ cập nhật row thực sự đổi.
+      - Không loại tombstone; giữ `is_deleted` để Gold xử lý delete đúng nghiệp vụ.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: account_move_line_id
+    - not_null:
+        arguments:
+          column_name: account_move_line_id
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    - not_null:
+        arguments:
+          column_name: silver_updated_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: account_move_line_id
+      description: Mã định danh tài khoản kế toán dịch chuyển line; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: move_id
+      description: Mã định danh dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: account_id
+      description: Mã định danh tài khoản kế toán; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: journal_id
+      description: Mã định danh sổ nhật ký; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: date
+      description: Thuộc tính ngày của journal entries enriched trong lớp Silver.
+    - name: move_type
+      description: Thuộc tính dịch chuyển loại của journal entries enriched trong lớp Silver.
+    - name: move_state
+      description: Trạng thái nghiệp vụ của journal entries enriched.
+    - name: ref
+      description: Thuộc tính ref của journal entries enriched trong lớp Silver.
+    - name: debit
+      description: Thuộc tính debit của journal entries enriched trong lớp Silver.
+    - name: credit
+      description: Thuộc tính credit của journal entries enriched trong lớp Silver.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: account_code
+      description: Mã nghiệp vụ của journal entries enriched, dùng nhận diện hoặc mapping dữ liệu.
+    - name: journal_code
+      description: Mã nghiệp vụ của journal entries enriched, dùng nhận diện hoặc mapping dữ liệu.
+    - name: line_cdc_ts_ms
+      description: CDC timestamp của nguồn line; dùng phát hiện thay đổi incremental.
+    - name: line_cdc_lsn
+      description: CDC LSN của nguồn line; dùng phân xử thứ tự sự kiện.
+    - name: move_cdc_ts_ms
+      description: CDC timestamp của nguồn dịch chuyển; dùng phát hiện thay đổi incremental.
+    - name: move_cdc_lsn
+      description: CDC LSN của nguồn dịch chuyển; dùng phân xử thứ tự sự kiện.
+    - name: account_cdc_ts_ms
+      description: CDC timestamp của nguồn tài khoản kế toán; dùng phát hiện thay đổi incremental.
+    - name: account_cdc_lsn
+      description: CDC LSN của nguồn tài khoản kế toán; dùng phân xử thứ tự sự kiện.
+    - name: journal_cdc_ts_ms
+      description: CDC timestamp của nguồn sổ nhật ký; dùng phát hiện thay đổi incremental.
+    - name: journal_cdc_lsn
+      description: CDC LSN của nguồn sổ nhật ký; dùng phân xử thứ tự sự kiện.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: silver_updated_at
+      description: Thời điểm phiên bản Silver hiện tại được tạo hoặc cập nhật; dùng kích hoạt reprocess ở Gold.
+
+  - name: sil_campaign_enriched
+    description: |-
+      **Grain:** 1 campaign (static — không SCD2). campaign_id của CSV là utm_campaign.id thật. JOIN bằng ID kỹ thuật đã xác minh; tên chỉ là thuộc tính hiển thị, không dùng làm khóa. source_name lấy qua crm_lead.source_id phổ biến nhất của campaign (utm_campaign không có FK trực tiếp tới utm_source) — có thể NULL nếu campaign chưa gắn lead nào.
+  
+      **Business value:** Chuẩn hóa campaign Odoo và marketing ngoài hệ thống để attribution dùng chung một định danh.
+  
+      **Build logic:**
+      - Đọc `stg_marketing_campaigns_master`, `stg_utm_campaign`, `stg_crm_lead`, `stg_utm_source`, `stg_utm_medium` và join theo FK/business key Odoo trong SQL.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Rebuild toàn bảng; correction và row biến mất khỏi full-file snapshot được phản ánh, không để dữ liệu cũ tồn tại.
+      - Loại record nguồn bị xóa logic khỏi population cuối hoặc lookup enrichment tương ứng.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - not_null:
+        arguments:
+          column_name: campaign_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: utm_campaign_id
+      description: Mã định danh utm chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_name
+      description: Tên hiển thị của campaign enriched.
+    - name: campaign_title
+      description: Thuộc tính chiến dịch title của campaign enriched trong lớp Silver.
+    - name: source_name
+      description: Tên hiển thị của campaign enriched.
+    - name: medium_name
+      description: Tên hiển thị của campaign enriched.
+    - name: status
+      description: Trạng thái xử lý của campaign enriched.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+
+  - name: sil_channel_enriched
+    description: |-
+      **Grain:** 1 channel (static — không SCD2). Nguồn chính: explode cột channels của campaign master. Bổ sung direct/organic/referral từ UTM medium để đơn không có paid campaign vẫn có attribution trung thực và không bị dồn vào NULL. utm_medium mặc định của Odoo (VD "Email", "Google Adwords") không khớp channel_code snake_case của CSV. superstore_data_generator.py tạo/bổ sung các code chuẩn qua ORM; lower(name) bảo vệ riêng trường hợp medium mặc định "Direct" dùng title case. channel_group là business classification tự derive (Paid/Organic/Email theo tiền tố channel_code), KHÔNG phải field nguồn nào — cần xác nhận với BA trước khi dùng production.
+  
+      **Business value:** Chuẩn hóa source/medium/channel để so sánh và attribution hiệu quả đa kênh.
+  
+      **Build logic:**
+      - Đọc `stg_marketing_campaigns_master`, `stg_utm_medium` và join theo FK/business key Odoo trong SQL.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Rebuild toàn bảng; correction và row biến mất khỏi full-file snapshot được phản ánh, không để dữ liệu cũ tồn tại.
+      - Loại record nguồn bị xóa logic khỏi population cuối hoặc lookup enrichment tương ứng.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: channel_code
+    - not_null:
+        arguments:
+          column_name: channel_code
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: channel_code
+      description: Mã nghiệp vụ của channel enriched, dùng nhận diện hoặc mapping dữ liệu.
+    - name: channel_name
+      description: Tên hiển thị của channel enriched.
+    - name: medium_name
+      description: Tên hiển thị của channel enriched.
+    - name: channel_group
+      description: Thuộc tính kênh group của channel enriched trong lớp Silver.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+
+  - name: sil_invoice_payment_status
+    description: |-
+      **Grain:** 1 account_partial_reconcile hiện hành = 1 allocation nối payment line với invoice line. CDC của reconcile/invoice/payment/journal chỉ dùng phát hiện thay đổi. silver_updated_at chỉ đổi khi source_version_key hoặc aging_bucket thực sự đổi. invoice_date/payment_date là business time, không dùng để chọn version SCD2.
+  
+      **Business value:** Nối payment với invoice để tính allocation, DSO, overdue, aging và dòng tiền thu.
+  
+      **Build logic:**
+      - Đọc `stg_account_move`, `stg_account_payment`, `stg_account_journal`, `stg_account_partial_reconcile` và join theo FK/business key Odoo trong SQL.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Incremental MERGE theo `account_partial_reconcile_id`; version key phát hiện thay đổi từ mọi nguồn phụ thuộc và chỉ cập nhật row thực sự đổi.
+      - Không loại tombstone; giữ `is_deleted` để Gold xử lý delete đúng nghiệp vụ.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: account_partial_reconcile_id
+    - not_null:
+        arguments:
+          column_name: account_partial_reconcile_id
+    - not_null:
+        arguments:
+          column_name: payment_id
+    - not_null:
+        arguments:
+          column_name: invoice_move_id
+    - not_null:
+        arguments:
+          column_name: partner_id
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    - not_null:
+        arguments:
+          column_name: silver_updated_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: account_partial_reconcile_id
+      description: Mã định danh tài khoản kế toán partial reconcile; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: debit_move_id
+      description: Mã định danh debit dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: credit_move_id
+      description: Mã định danh credit dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: payment_id
+      description: Mã định danh thanh toán; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: invoice_move_id
+      description: Mã định danh hóa đơn dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: amount
+      description: Thuộc tính giá trị tiền của invoice payment status trong lớp Silver.
+    - name: max_date
+      description: Ngày max của invoice payment status.
+    - name: invoice_amount
+      description: Giá trị tiền hóa đơn đã chuẩn hóa theo naming convention của warehouse.
+    - name: invoice_move_type
+      description: Thuộc tính hóa đơn dịch chuyển loại của invoice payment status trong lớp Silver.
+    - name: invoice_date
+      description: Ngày hóa đơn của invoice payment status.
+    - name: invoice_date_due
+      description: Thuộc tính hóa đơn ngày due của invoice payment status trong lớp Silver.
+    - name: outstanding_amount
+      description: Số tiền hóa đơn còn chưa được thanh toán tại trạng thái hiện tại.
+    - name: payment_date
+      description: Ngày thanh toán của invoice payment status.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: journal_id
+      description: Mã định danh sổ nhật ký; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: payment_type
+      description: Thuộc tính thanh toán loại của invoice payment status trong lớp Silver.
+    - name: payment_state
+      description: Trạng thái nghiệp vụ của invoice payment status.
+    - name: journal_code
+      description: Mã nghiệp vụ của invoice payment status, dùng nhận diện hoặc mapping dữ liệu.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: reconcile_cdc_ts_ms
+      description: CDC timestamp của nguồn reconcile; dùng phát hiện thay đổi incremental.
+    - name: reconcile_cdc_lsn
+      description: CDC LSN của nguồn reconcile; dùng phân xử thứ tự sự kiện.
+    - name: invoice_cdc_ts_ms
+      description: CDC timestamp của nguồn hóa đơn; dùng phát hiện thay đổi incremental.
+    - name: invoice_cdc_lsn
+      description: CDC LSN của nguồn hóa đơn; dùng phân xử thứ tự sự kiện.
+    - name: payment_cdc_ts_ms
+      description: CDC timestamp của nguồn thanh toán; dùng phát hiện thay đổi incremental.
+    - name: payment_cdc_lsn
+      description: CDC LSN của nguồn thanh toán; dùng phân xử thứ tự sự kiện.
+    - name: journal_cdc_ts_ms
+      description: CDC timestamp của nguồn sổ nhật ký; dùng phát hiện thay đổi incremental.
+    - name: journal_cdc_lsn
+      description: CDC LSN của nguồn sổ nhật ký; dùng phân xử thứ tự sự kiện.
+    - name: aging_bucket
+      description: Nhóm tuổi nợ được xác định từ ngày đến hạn và ngày chốt dữ liệu.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: silver_updated_at
+      description: Thời điểm phiên bản Silver hiện tại được tạo hoặc cập nhật; dùng kích hoạt reprocess ở Gold.
+
+  - name: sil_customer_invoices_enriched
+    description: |-
+      **Grain:** 1 account_move khách hàng hiện hành (invoice/refund), kể cả tombstone.
+  
+      **Business value:** Theo dõi vòng đời hóa đơn/refund, ngày đến hạn, số dư còn lại và trạng thái thanh toán.
+  
+      **Build logic:**
+      - Đọc `stg_account_move`.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Incremental MERGE theo `move_id`; version key phát hiện thay đổi từ mọi nguồn phụ thuộc và chỉ cập nhật row thực sự đổi.
+      - Không loại tombstone; giữ `is_deleted` để Gold xử lý delete đúng nghiệp vụ.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: move_id
+    - not_null:
+        arguments:
+          column_name: move_id
+    - not_null:
+        arguments:
+          column_name: partner_id
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    - not_null:
+        arguments:
+          column_name: silver_updated_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: move_id
+      description: Mã định danh dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: invoice_number
+      description: Thuộc tính hóa đơn number của customer invoices enriched trong lớp Silver.
+    - name: accounting_date
+      description: Ngày accounting của customer invoices enriched.
+    - name: invoice_date
+      description: Ngày hóa đơn của customer invoices enriched.
+    - name: invoice_date_due
+      description: Thuộc tính hóa đơn ngày due của customer invoices enriched trong lớp Silver.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: journal_id
+      description: Mã định danh sổ nhật ký; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: currency_id
+      description: Mã định danh currency; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: company_id
+      description: Mã định danh company; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: move_type
+      description: Thuộc tính dịch chuyển loại của customer invoices enriched trong lớp Silver.
+    - name: move_state
+      description: Trạng thái nghiệp vụ của customer invoices enriched.
+    - name: payment_state
+      description: Trạng thái nghiệp vụ của customer invoices enriched.
+    - name: amount_untaxed
+      description: Thuộc tính giá trị tiền untaxed của customer invoices enriched trong lớp Silver.
+    - name: amount_tax
+      description: Thuộc tính giá trị tiền tax của customer invoices enriched trong lớp Silver.
+    - name: amount_total
+      description: Thuộc tính giá trị tiền tổng của customer invoices enriched trong lớp Silver.
+    - name: amount_residual
+      description: Thuộc tính giá trị tiền residual của customer invoices enriched trong lớp Silver.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: silver_updated_at
+      description: Thời điểm phiên bản Silver hiện tại được tạo hoặc cập nhật; dùng kích hoạt reprocess ở Gold.
+
+  - name: sil_stock_movement_enriched
+    description: |-
+      **Grain:** 1 stock_move. JOIN: stg_stock_move + stg_stock_picking (header, cross-lane) + stg_stock_location (src/dest, cross-lane) — không cần SCD2 riêng nên join thẳng vào SILVER.
+  
+      **Business value:** Theo dõi luồng nhập/xuất/chuyển kho và SLA giao nhận.
+  
+      **Build logic:**
+      - Đọc `stg_stock_move`, `stg_stock_picking`, `stg_delivery_carrier`, `stg_stock_location` và join theo FK/business key Odoo trong SQL.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Incremental MERGE theo `stock_move_id`; version key phát hiện thay đổi từ mọi nguồn phụ thuộc và chỉ cập nhật row thực sự đổi.
+      - Không loại tombstone; giữ `is_deleted` để Gold xử lý delete đúng nghiệp vụ.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: stock_move_id
+    - not_null:
+        arguments:
+          column_name: stock_move_id
+    - not_null:
+        arguments:
+          column_name: silver_updated_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: stock_move_id
+      description: Mã định danh stock dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: purchase_order_line_id
+      description: Mã định danh purchase đơn hàng line; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: sale_order_line_id
+      description: Mã định danh sale đơn hàng line; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: date
+      description: Thuộc tính ngày của stock movement enriched trong lớp Silver.
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: qty_done
+      description: Số lượng done tại grain của model.
+    - name: origin
+      description: Thuộc tính origin của stock movement enriched trong lớp Silver.
+    - name: reference
+      description: Thuộc tính reference của stock movement enriched trong lớp Silver.
+    - name: state
+      description: Trạng thái nghiệp vụ của stock movement enriched.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: picking_id
+      description: Mã định danh picking; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: carrier_id
+      description: Mã định danh carrier; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: ship_mode
+      description: Tên carrier từ stock_picking.carrier_id; có thể NULL cho move không thuộc giao hàng.
+    - name: carrier_tracking_ref
+      description: Thuộc tính carrier tracking ref của stock movement enriched trong lớp Silver.
+    - name: carrier_price_amount
+      description: Giá trị tiền carrier giá đã chuẩn hóa theo naming convention của warehouse.
+    - name: picking_state
+      description: Trạng thái nghiệp vụ của stock movement enriched.
+    - name: scheduled_date
+      description: Ngày scheduled của stock movement enriched.
+    - name: date_done
+      description: Ngày done của stock movement enriched.
+    - name: date_deadline
+      description: Ngày deadline của stock movement enriched.
+    - name: odoo_has_deadline_issue
+      description: Cờ deadline gốc từ Odoo, giữ lại để đối chiếu với KPI tự tính.
+    - name: location_id
+      description: Mã định danh vị trí kho; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: location_dest_id
+      description: Mã định danh vị trí kho dest; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: src_usage
+      description: Thuộc tính src usage của stock movement enriched trong lớp Silver.
+    - name: dest_usage
+      description: Thuộc tính dest usage của stock movement enriched trong lớp Silver.
+    - name: movement_type
+      description: Loại dịch chuyển kho được suy từ vị trí nguồn và đích, ví dụ sale_out, purchase_in hoặc internal.
+    - name: move_cdc_ts_ms
+      description: CDC timestamp của nguồn dịch chuyển; dùng phát hiện thay đổi incremental.
+    - name: move_cdc_lsn
+      description: CDC LSN của nguồn dịch chuyển; dùng phân xử thứ tự sự kiện.
+    - name: picking_cdc_ts_ms
+      description: CDC timestamp của nguồn picking; dùng phát hiện thay đổi incremental.
+    - name: picking_cdc_lsn
+      description: CDC LSN của nguồn picking; dùng phân xử thứ tự sự kiện.
+    - name: carrier_cdc_ts_ms
+      description: CDC timestamp của nguồn carrier; dùng phát hiện thay đổi incremental.
+    - name: carrier_cdc_lsn
+      description: CDC LSN của nguồn carrier; dùng phân xử thứ tự sự kiện.
+    - name: src_location_cdc_ts_ms
+      description: CDC timestamp của nguồn src vị trí kho; dùng phát hiện thay đổi incremental.
+    - name: src_location_cdc_lsn
+      description: CDC LSN của nguồn src vị trí kho; dùng phân xử thứ tự sự kiện.
+    - name: dest_location_cdc_ts_ms
+      description: CDC timestamp của nguồn dest vị trí kho; dùng phát hiện thay đổi incremental.
+    - name: dest_location_cdc_lsn
+      description: CDC LSN của nguồn dest vị trí kho; dùng phân xử thứ tự sự kiện.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: silver_updated_at
+      description: Thời điểm phiên bản Silver hiện tại được tạo hoặc cập nhật; dùng kích hoạt reprocess ở Gold.
+
+  - name: sil_manufacturing_enriched
+    description: |-
+      **Grain:** 1 mrp_production đã hoàn thành. CDC của MO và toàn bộ scrap thuộc MO dùng để phát hiện thay đổi. silver_updated_at chỉ đổi khi MO hoặc tập scrap thực sự đổi.
+  
+      **Business value:** Đo sản lượng, scrap, cycle time và hiệu quả lệnh sản xuất.
+  
+      **Build logic:**
+      - Đọc `stg_mrp_production`, `stg_mrp_workorder`, `stg_stock_scrap` và join theo FK/business key Odoo trong SQL.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Incremental MERGE theo `mrp_production_id`; version key phát hiện thay đổi từ mọi nguồn phụ thuộc và chỉ cập nhật row thực sự đổi.
+      - Không loại tombstone; giữ `is_deleted` để Gold xử lý delete đúng nghiệp vụ.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: mrp_production_id
+    - not_null:
+        arguments:
+          column_name: mrp_production_id
+    - not_null:
+        arguments:
+          column_name: product_id
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    - not_null:
+        arguments:
+          column_name: silver_updated_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: mrp_production_id
+      description: Mã định danh mrp lệnh sản xuất; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: location_dest_id
+      description: Mã định danh vị trí kho dest; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: mo_name
+      description: Tên hiển thị của manufacturing enriched.
+    - name: qty_planned
+      description: Số lượng dự kiến tại grain của model.
+    - name: qty_produced
+      description: Số lượng produced tại grain của model.
+    - name: scrap_qty
+      description: Số lượng phế phẩm tại grain của model.
+    - name: date_start
+      description: Ngày start của manufacturing enriched.
+    - name: date_finished
+      description: Ngày finished của manufacturing enriched.
+    - name: bom_id
+      description: Mã định danh bom; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: mo_state
+      description: Trạng thái nghiệp vụ của manufacturing enriched.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: mo_cdc_ts_ms
+      description: CDC timestamp của nguồn mo; dùng phát hiện thay đổi incremental.
+    - name: mo_cdc_lsn
+      description: CDC LSN của nguồn mo; dùng phân xử thứ tự sự kiện.
+    - name: scrap_cdc_ts_ms
+      description: CDC timestamp của nguồn phế phẩm; dùng phát hiện thay đổi incremental.
+    - name: scrap_cdc_lsn
+      description: CDC LSN của nguồn phế phẩm; dùng phân xử thứ tự sự kiện.
+    - name: scrap_version_signature
+      description: Chữ ký phiên bản của các bản ghi scrap liên quan, dùng phát hiện thay đổi nguồn con.
+    - name: workorder_version_signature
+      description: Chữ ký phiên bản work order liên quan, dùng phát hiện thay đổi nguồn con.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: silver_updated_at
+      description: Thời điểm phiên bản Silver hiện tại được tạo hoặc cập nhật; dùng kích hoạt reprocess ở Gold.
+
+  - name: sil_workorder_enriched
+    description: |-
+      **Grain:** 1 mrp_workorder đã hoàn thành. duration_actual chỉ cộng productivity block có loss_type='productive'. silver_updated_at chỉ đổi khi Work Order hoặc tập productive block thực sự đổi.
+  
+      **Business value:** Theo dõi thời lượng dự kiến và productive thực tế của work order.
+  
+      **Build logic:**
+      - Đọc `stg_mrp_workorder`, `stg_mrp_workcenter_productivity`, `stg_mrp_workcenter_productivity_loss` và join theo FK/business key Odoo trong SQL.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Incremental MERGE theo `mrp_workorder_id`; version key phát hiện thay đổi từ mọi nguồn phụ thuộc và chỉ cập nhật row thực sự đổi.
+      - Không loại tombstone; giữ `is_deleted` để Gold xử lý delete đúng nghiệp vụ.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: mrp_workorder_id
+    - not_null:
+        arguments:
+          column_name: mrp_workorder_id
+    - not_null:
+        arguments:
+          column_name: workcenter_id
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    - not_null:
+        arguments:
+          column_name: silver_updated_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: mrp_workorder_id
+      description: Mã định danh mrp work order; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: production_id
+      description: Mã định danh lệnh sản xuất; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: workcenter_id
+      description: Mã định danh workcenter; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: operation_name
+      description: Tên hiển thị của workorder enriched.
+    - name: date_start
+      description: Ngày start của workorder enriched.
+    - name: date_finished
+      description: Ngày finished của workorder enriched.
+    - name: qty_produced
+      description: Số lượng produced tại grain của model.
+    - name: duration_est
+      description: Thuộc tính thời lượng est của workorder enriched trong lớp Silver.
+    - name: duration_actual
+      description: Thuộc tính thời lượng thực tế của workorder enriched trong lớp Silver.
+    - name: wo_state
+      description: Trạng thái nghiệp vụ của workorder enriched.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: workorder_cdc_ts_ms
+      description: CDC timestamp của nguồn work order; dùng phát hiện thay đổi incremental.
+    - name: workorder_cdc_lsn
+      description: CDC LSN của nguồn work order; dùng phân xử thứ tự sự kiện.
+    - name: productivity_cdc_ts_ms
+      description: CDC timestamp của nguồn productivity; dùng phát hiện thay đổi incremental.
+    - name: productivity_cdc_lsn
+      description: CDC LSN của nguồn productivity; dùng phân xử thứ tự sự kiện.
+    - name: productive_version_signature
+      description: Chữ ký phiên bản của các productivity block liên quan, dùng phát hiện thay đổi nguồn con.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: silver_updated_at
+      description: Thời điểm phiên bản Silver hiện tại được tạo hoặc cập nhật; dùng kích hoạt reprocess ở Gold.
+
+  - name: sil_oee_blocks_enriched
+    description: |-
+      **Grain:** 1 mrp_workcenter_productivity block hiện hành. Enrich loss type, Work Order và MO/scrap nhưng không aggregate OEE tại đây. silver_updated_at chỉ đổi khi một source ảnh hưởng tới block thực sự đổi.
+  
+      **Business value:** Cung cấp dữ liệu Availability, Performance, Quality, OEE và tổn thất sản xuất.
+  
+      **Build logic:**
+      - Đọc `stg_mrp_workcenter_productivity`, `stg_mrp_workcenter_productivity_loss`, `stg_mrp_workorder`, `sil_manufacturing_enriched` và join theo FK/business key Odoo trong SQL.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Incremental MERGE theo `productivity_block_id`; version key phát hiện thay đổi từ mọi nguồn phụ thuộc và chỉ cập nhật row thực sự đổi.
+      - Không loại tombstone; giữ `is_deleted` để Gold xử lý delete đúng nghiệp vụ.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: productivity_block_id
+    - not_null:
+        arguments:
+          column_name: productivity_block_id
+    - not_null:
+        arguments:
+          column_name: mrp_workorder_id
+    - not_null:
+        arguments:
+          column_name: mrp_production_id
+    - not_null:
+        arguments:
+          column_name: workcenter_id
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    - not_null:
+        arguments:
+          column_name: silver_updated_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: productivity_block_id
+      description: Mã định danh productivity block; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: mrp_workorder_id
+      description: Mã định danh mrp work order; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: mrp_production_id
+      description: Mã định danh mrp lệnh sản xuất; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: workcenter_id
+      description: Mã định danh workcenter; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: date_start
+      description: Ngày start của oee blocks enriched.
+    - name: date_end
+      description: Ngày end của oee blocks enriched.
+    - name: loss_type
+      description: Thuộc tính loss loại của oee blocks enriched trong lớp Silver.
+    - name: loss_reason
+      description: Thuộc tính loss reason của oee blocks enriched trong lớp Silver.
+    - name: duration_minutes
+      description: Thuộc tính thời lượng minutes của oee blocks enriched trong lớp Silver.
+    - name: duration_est
+      description: Thuộc tính thời lượng est của oee blocks enriched trong lớp Silver.
+    - name: qty_produced
+      description: Số lượng produced tại grain của model.
+    - name: scrap_qty
+      description: Số lượng phế phẩm tại grain của model.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: block_cdc_ts_ms
+      description: CDC timestamp của nguồn block; dùng phát hiện thay đổi incremental.
+    - name: block_cdc_lsn
+      description: CDC LSN của nguồn block; dùng phân xử thứ tự sự kiện.
+    - name: loss_cdc_ts_ms
+      description: CDC timestamp của nguồn loss; dùng phát hiện thay đổi incremental.
+    - name: loss_cdc_lsn
+      description: CDC LSN của nguồn loss; dùng phân xử thứ tự sự kiện.
+    - name: workorder_cdc_ts_ms
+      description: CDC timestamp của nguồn work order; dùng phát hiện thay đổi incremental.
+    - name: workorder_cdc_lsn
+      description: CDC LSN của nguồn work order; dùng phân xử thứ tự sự kiện.
+    - name: manufacturing_source_version_key
+      description: Khóa phiên bản tổng hợp các nguồn sản xuất phụ thuộc.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: silver_updated_at
+      description: Thời điểm phiên bản Silver hiện tại được tạo hoặc cập nhật; dùng kích hoạt reprocess ở Gold.
+
+  - name: sil_ad_performance_daily_enriched
+    description: |-
+      **Grain:** 1 campaign × 1 date × 1 channel trong snapshot CSV mới nhất. Rebuild table có chủ đích: CSV là full snapshot, vì vậy row bị xóa khỏi file phải biến mất khỏi Silver thay vì tồn tại mãi trong incremental MERGE.
+  
+      **Business value:** Đo spend, reach, impression, click, lead, conversion và ROAS của quảng cáo theo campaign/channel.
+  
+      **Build logic:**
+      - Đọc `stg_ad_performance_daily`.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Rebuild toàn bảng; correction và row biến mất khỏi full-file snapshot được phản ánh, không để dữ liệu cũ tồn tại.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - campaign_id
+          - date
+          - channel
+    - not_null:
+        arguments:
+          column_name: campaign_id
+    - not_null:
+        arguments:
+          column_name: date
+    - not_null:
+        arguments:
+          column_name: channel
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    - not_null:
+        arguments:
+          column_name: silver_updated_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: source_campaign_id
+      description: Mã định danh source chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_name
+      description: Tên hiển thị của ad performance daily enriched.
+    - name: date
+      description: Thuộc tính ngày của ad performance daily enriched trong lớp Silver.
+    - name: channel
+      description: Thuộc tính kênh của ad performance daily enriched trong lớp Silver.
+    - name: channel_label
+      description: Thuộc tính kênh label của ad performance daily enriched trong lớp Silver.
+    - name: channel_type
+      description: Thuộc tính kênh loại của ad performance daily enriched trong lớp Silver.
+    - name: year
+      description: Thuộc tính year của ad performance daily enriched trong lớp Silver.
+    - name: month
+      description: Thuộc tính month của ad performance daily enriched trong lớp Silver.
+    - name: quarter
+      description: Thuộc tính quarter của ad performance daily enriched trong lớp Silver.
+    - name: spend_usd
+      description: Giá trị spend theo đơn vị USD từ nguồn.
+    - name: impressions
+      description: Thuộc tính impressions của ad performance daily enriched trong lớp Silver.
+    - name: reach
+      description: Thuộc tính reach của ad performance daily enriched trong lớp Silver.
+    - name: clicks
+      description: Thuộc tính clicks của ad performance daily enriched trong lớp Silver.
+    - name: ctr
+      description: Click-through rate, bằng clicks chia impressions.
+    - name: cpc_usd
+      description: Giá trị cpc theo đơn vị USD từ nguồn.
+    - name: cpm_usd
+      description: Giá trị cpm theo đơn vị USD từ nguồn.
+    - name: frequency
+      description: Thuộc tính frequency của ad performance daily enriched trong lớp Silver.
+    - name: leads
+      description: Thuộc tính leads của ad performance daily enriched trong lớp Silver.
+    - name: conversions
+      description: Thuộc tính conversions của ad performance daily enriched trong lớp Silver.
+    - name: conv_rate
+      description: Tỷ lệ conv từ nguồn hoặc được model tính toán.
+    - name: cpa_usd
+      description: Giá trị cpa theo đơn vị USD từ nguồn.
+    - name: cpl_usd
+      description: Giá trị cpl theo đơn vị USD từ nguồn.
+    - name: revenue_usd
+      description: Giá trị doanh thu theo đơn vị USD từ nguồn.
+    - name: roas
+      description: Return on Ad Spend, bằng doanh thu quy gán chia cho chi phí quảng cáo.
+    - name: lead_quality_score
+      description: Thuộc tính lead quality score của ad performance daily enriched trong lớp Silver.
+    - name: is_underperformer
+      description: Cờ đánh dấu campaign hoặc ngày quảng cáo hoạt động dưới ngưỡng kỳ vọng.
+    - name: source_batch_id
+      description: Mã lô nạp nguồn, dùng truy vết các bản ghi được xử lý cùng một lần.
+    - name: source_file_hash
+      description: Hash của tệp nguồn, dùng nhận diện và chống nạp lặp cùng một tệp.
+    - name: source_loaded_at
+      description: Thời điểm dữ liệu nguồn được loader ghi vào kho dữ liệu.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: silver_updated_at
+      description: Thời điểm phiên bản Silver hiện tại được tạo hoặc cập nhật; dùng kích hoạt reprocess ở Gold.
+
+  - name: sil_email_campaigns_enriched
+    description: |-
+      **Grain:** 1 email campaign/blast trong snapshot CSV mới nhất. Rebuild table để correction và row bị xóa trong full-file snapshot được phản ánh đúng.
+  
+      **Business value:** Đo deliverability, open, click, conversion, revenue và cost của email marketing.
+  
+      **Build logic:**
+      - Đọc `stg_email_campaigns`.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Rebuild toàn bảng; correction và row biến mất khỏi full-file snapshot được phản ánh, không để dữ liệu cũ tồn tại.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: email_id
+    - not_null:
+        arguments:
+          column_name: email_id
+    - not_null:
+        arguments:
+          column_name: campaign_id
+    - not_null:
+        arguments:
+          column_name: send_date
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    - not_null:
+        arguments:
+          column_name: silver_updated_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: email_id
+      description: Mã định danh email; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: source_campaign_id
+      description: Mã định danh source chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: year
+      description: Thuộc tính year của email campaigns enriched trong lớp Silver.
+    - name: send_date
+      description: Ngày send của email campaigns enriched.
+    - name: month
+      description: Thuộc tính month của email campaigns enriched trong lớp Silver.
+    - name: quarter
+      description: Thuộc tính quarter của email campaigns enriched trong lớp Silver.
+    - name: email_type
+      description: Thuộc tính email loại của email campaigns enriched trong lớp Silver.
+    - name: goal
+      description: Thuộc tính goal của email campaigns enriched trong lớp Silver.
+    - name: list_name
+      description: Tên hiển thị của email campaigns enriched.
+    - name: subject_line
+      description: Thuộc tính subject line của email campaigns enriched trong lớp Silver.
+    - name: sent
+      description: Thuộc tính sent của email campaigns enriched trong lớp Silver.
+    - name: list_size
+      description: Thuộc tính list size của email campaigns enriched trong lớp Silver.
+    - name: delivered
+      description: Thuộc tính delivered của email campaigns enriched trong lớp Silver.
+    - name: bounced_total
+      description: Thuộc tính bounced tổng của email campaigns enriched trong lớp Silver.
+    - name: hard_bounce
+      description: Thuộc tính hard bounce của email campaigns enriched trong lớp Silver.
+    - name: soft_bounce
+      description: Thuộc tính soft bounce của email campaigns enriched trong lớp Silver.
+    - name: deliverability
+      description: Thuộc tính deliverability của email campaigns enriched trong lớp Silver.
+    - name: opens
+      description: Thuộc tính opens của email campaigns enriched trong lớp Silver.
+    - name: unique_opens
+      description: Thuộc tính unique opens của email campaigns enriched trong lớp Silver.
+    - name: open_rate
+      description: Tỷ lệ open từ nguồn hoặc được model tính toán.
+    - name: clicks
+      description: Thuộc tính clicks của email campaigns enriched trong lớp Silver.
+    - name: unique_clicks
+      description: Thuộc tính unique clicks của email campaigns enriched trong lớp Silver.
+    - name: ctr
+      description: Click-through rate, bằng clicks chia impressions.
+    - name: ctor
+      description: Click-to-open rate, bằng unique clicks chia unique opens.
+    - name: unsubscribes
+      description: Thuộc tính unsubscribes của email campaigns enriched trong lớp Silver.
+    - name: unsubscribe_rate
+      description: Tỷ lệ unsubscribe từ nguồn hoặc được model tính toán.
+    - name: spam_reports
+      description: Thuộc tính spam reports của email campaigns enriched trong lớp Silver.
+    - name: conversions
+      description: Thuộc tính conversions của email campaigns enriched trong lớp Silver.
+    - name: revenue_usd
+      description: Giá trị doanh thu theo đơn vị USD từ nguồn.
+    - name: cost_usd
+      description: Giá trị chi phí theo đơn vị USD từ nguồn.
+    - name: roas
+      description: Return on Ad Spend, bằng doanh thu quy gán chia cho chi phí quảng cáo.
+    - name: revenue_per_email
+      description: Thuộc tính doanh thu per email của email campaigns enriched trong lớp Silver.
+    - name: source_batch_id
+      description: Mã lô nạp nguồn, dùng truy vết các bản ghi được xử lý cùng một lần.
+    - name: source_file_hash
+      description: Hash của tệp nguồn, dùng nhận diện và chống nạp lặp cùng một tệp.
+    - name: source_loaded_at
+      description: Thời điểm dữ liệu nguồn được loader ghi vào kho dữ liệu.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: silver_updated_at
+      description: Thời điểm phiên bản Silver hiện tại được tạo hoặc cập nhật; dùng kích hoạt reprocess ở Gold.
+
+  - name: sil_ab_test_enriched
+    description: |-
+      **Grain:** 1 A/B test variant trong snapshot CSV mới nhất. Rebuild table để correction và row bị xóa trong full-file snapshot được phản ánh đúng.
+  
+      **Business value:** So sánh traffic, conversion, revenue, cost và winner giữa các variant thử nghiệm.
+  
+      **Build logic:**
+      - Đọc `stg_ab_test`.
+      - Deduplicate nguồn CDC bằng `row_number()` theo business key, ưu tiên `_cdc_ts_ms DESC, _cdc_lsn DESC`.
+      - Rebuild toàn bảng; correction và row biến mất khỏi full-file snapshot được phản ánh, không để dữ liệu cũ tồn tại.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - test_id
+          - variant_name
+    - unique:
+        arguments:
+          column_name: variant_id
+    - not_null:
+        arguments:
+          column_name: variant_id
+    - not_null:
+        arguments:
+          column_name: test_id
+    - not_null:
+        arguments:
+          column_name: campaign_id
+    - not_null:
+        arguments:
+          column_name: channel
+    - not_null:
+        arguments:
+          column_name: start_date
+    - not_null:
+        arguments:
+          column_name: end_date
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    - not_null:
+        arguments:
+          column_name: silver_updated_at
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: test_id
+      description: Mã định danh test; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: variant_id
+      description: Mã định danh variant; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: source_campaign_id
+      description: Mã định danh source chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: year
+      description: Thuộc tính year của ab test enriched trong lớp Silver.
+    - name: test_name
+      description: Tên hiển thị của ab test enriched.
+    - name: channel
+      description: Thuộc tính kênh của ab test enriched trong lớp Silver.
+    - name: start_date
+      description: Ngày start của ab test enriched.
+    - name: end_date
+      description: Ngày end của ab test enriched.
+    - name: duration_days
+      description: Thuộc tính thời lượng days của ab test enriched trong lớp Silver.
+    - name: variant_name
+      description: Tên hiển thị của ab test enriched.
+    - name: is_winner
+      description: Cờ xác định variant thắng trong A/B test.
+    - name: budget_usd
+      description: Giá trị budget theo đơn vị USD từ nguồn.
+    - name: impressions
+      description: Thuộc tính impressions của ab test enriched trong lớp Silver.
+    - name: clicks
+      description: Thuộc tính clicks của ab test enriched trong lớp Silver.
+    - name: ctr
+      description: Click-through rate, bằng clicks chia impressions.
+    - name: conversions
+      description: Thuộc tính conversions của ab test enriched trong lớp Silver.
+    - name: conv_rate
+      description: Tỷ lệ conv từ nguồn hoặc được model tính toán.
+    - name: revenue_usd
+      description: Giá trị doanh thu theo đơn vị USD từ nguồn.
+    - name: roas
+      description: Return on Ad Spend, bằng doanh thu quy gán chia cho chi phí quảng cáo.
+    - name: cpa_usd
+      description: Giá trị cpa theo đơn vị USD từ nguồn.
+    - name: insight
+      description: Thuộc tính insight của ab test enriched trong lớp Silver.
+    - name: source_batch_id
+      description: Mã lô nạp nguồn, dùng truy vết các bản ghi được xử lý cùng một lần.
+    - name: source_file_hash
+      description: Hash của tệp nguồn, dùng nhận diện và chống nạp lặp cùng một tệp.
+    - name: source_loaded_at
+      description: Thời điểm dữ liệu nguồn được loader ghi vào kho dữ liệu.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: silver_updated_at
+      description: Thời điểm phiên bản Silver hiện tại được tạo hoặc cập nhật; dùng kích hoạt reprocess ở Gold.

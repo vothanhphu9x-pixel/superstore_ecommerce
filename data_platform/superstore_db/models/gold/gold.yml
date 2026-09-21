@@ -1,0 +1,2620 @@
+version: 2
+
+# File này tách rõ hai khu vực trong từng resource:
+# 1) TEST: điều kiện kiểm thử dữ liệu.
+# 2) DESCRIPTION: metadata mô tả bảng/cột cho dbt Docs.
+models:
+  - name: dim_customer
+    description: |
+      **Grain:** 1 hàng = 1 phiên bản lịch sử SCD2 của một `partner_id`.
+      Một partner có thể có nhiều hàng theo thời gian; `dbt_scd_id` và `customer_sk`
+      xác định duy nhất từng phiên bản.
+  
+      **Business value:** Cung cấp dimension khách hàng/nhà cung cấp dùng chung cho
+      Sales, CRM, Purchase, Invoice và Payment. Bảng hỗ trợ phân tích đúng lịch sử
+      theo thời điểm phát sinh giao dịch, đồng thời cung cấp phân khúc khách hàng,
+      khu vực địa lý, loại partner và trạng thái hoạt động.
+  
+      **Build logic:** Gold đọc toàn bộ phiên bản từ `sil_customer_enriched` và MERGE
+      theo `dbt_scd_id`; không lọc chỉ lấy bản hiện hành. Silver lấy SCD2 từ
+      `snap_res_partner`, loại `is_deleted = true`, sau đó enrich bằng tag khách hàng,
+      state và country. Các lookup được deduplicate bằng `row_number()` theo business
+      key, sắp xếp `_cdc_ts_ms` và `_cdc_lsn` giảm dần. Segment được tổng hợp từ các
+      tag Consumer, Corporate và Home Office; region được suy từ state/country.
+      Khi xuất hiện version mới, version cũ bị đóng, trạng thái `is_current` thay đổi
+      hoặc lookup enrichment thay đổi, Silver tải lại toàn bộ lịch sử của partner đó.
+      Gold tạo `customer_sk`, giữ `dbt_valid_from/dbt_valid_to` và bổ sung timestamp
+      vận hành để Fact có thể temporal join và reprocess khi dimension thay đổi.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - scd2_at_most_one_current:
+        arguments:
+          business_key: partner_id
+    - scd2_no_overlaps:
+        arguments:
+          business_key: partner_id
+    - scd2_valid_interval
+    - unique:
+        arguments:
+          column_name: customer_sk
+    - not_null:
+        arguments:
+          column_name: customer_sk
+    - unique:
+        arguments:
+          column_name: dbt_scd_id
+    - not_null:
+        arguments:
+          column_name: dbt_scd_id
+    - not_null:
+        arguments:
+          column_name: partner_id
+    - not_null:
+        arguments:
+          column_name: commercial_partner_id
+    - not_null:
+        arguments:
+          column_name: is_current
+    - not_null:
+        arguments:
+          column_name: dbt_valid_from
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: customer_sk
+      description: Khóa thay thế của khách hàng, dùng join trong mô hình dimensional.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: commercial_partner_id
+      description: ID đối tác thương mại gốc trong Odoo, dùng gom các contact thuộc cùng một tổ chức.
+    - name: customer_name
+      description: Tên hiển thị của customer.
+    - name: segment
+      description: Thuộc tính segment của customer trong lớp Gold.
+    - name: city
+      description: Thuộc tính city của customer trong lớp Gold.
+    - name: state
+      description: Trạng thái nghiệp vụ của customer.
+    - name: zip
+      description: Thuộc tính zip của customer trong lớp Gold.
+    - name: country
+      description: Thuộc tính country của customer trong lớp Gold.
+    - name: region
+      description: Thuộc tính region của customer trong lớp Gold.
+    - name: is_company
+      description: Cờ phân biệt doanh nghiệp với cá nhân trong res.partner.
+    - name: customer_rank
+      description: Điểm xếp hạng khách hàng của Odoo; giá trị lớn hơn 0 cho biết đã có vai trò khách hàng.
+    - name: supplier_rank
+      description: Điểm xếp hạng nhà cung cấp của Odoo; giá trị lớn hơn 0 cho biết đã có vai trò vendor.
+    - name: partner_type
+      description: 'Phân loại đối tác theo customer_rank và supplier_rank: customer, vendor hoặc both.'
+    - name: email
+      description: Thuộc tính email của customer trong lớp Gold.
+    - name: phone
+      description: Thuộc tính phone của customer trong lớp Gold.
+    - name: rfm_profile
+      description: Thuộc tính rfm profile của customer trong lớp Gold.
+    - name: is_active
+      description: Cờ cho biết bản ghi đang hoạt động và được phép sử dụng trong nghiệp vụ.
+    - name: is_current
+      description: Cờ xác định đây có phải phiên bản SCD2 hiện hành hay không.
+    - name: dbt_valid_from
+      description: Thời điểm phiên bản SCD2 bắt đầu có hiệu lực.
+    - name: dbt_valid_to
+      description: Thời điểm phiên bản SCD2 hết hiệu lực; NULL nghĩa là phiên bản hiện hành.
+    - name: dbt_scd_id
+      description: Khóa phiên bản SCD2 do dbt Snapshot tạo; mỗi phiên bản lịch sử có một giá trị duy nhất.
+    - name: source_cdc_ts_ms
+      description: CDC timestamp của nguồn source; dùng phát hiện thay đổi incremental.
+    - name: source_cdc_lsn
+      description: CDC LSN của nguồn source; dùng phân xử thứ tự sự kiện.
+    - name: enrichment_version_key
+      description: Khóa phiên bản sau enrichment, dùng phát hiện thay đổi từ các bảng tham chiếu đã join.
+    - name: enrichment_updated_at
+      description: Thời điểm dữ liệu enrichment được tính lại.
+    - name: dim_updated_at
+      description: Thời điểm phiên bản Dimension được refresh; dùng phát hiện dimension thay đổi để re-key Fact.
+    - name: dbt_updated_at
+      description: Thời điểm nguồn thay đổi mà dbt Snapshot dùng để quản lý phiên bản.
+    - name: gold_refreshed_at
+      description: Thời điểm model Gold được refresh; chỉ phục vụ vận hành, không xác định hiệu lực business.
+
+  - name: dim_product
+    description: |-
+      **Grain:** 1 product_id × 1 captured product_template version.
+  
+      **Business value:** Cung cấp thông tin SKU, danh mục, UOM, giá và standard cost cho phân tích bán, mua, kho và sản xuất.
+  
+      **Build logic:**
+      - Đọc `sil_product_enriched`.
+      - Incremental MERGE theo `product_version_id`; reprocess khi source, surrogate key hoặc `dim_updated_at` thay đổi.
+      - Tạo surrogate key; SCD2 dimension giữ lịch sử, SCD1 dimension giữ trạng thái hiện hành theo thiết kế.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - scd2_at_most_one_current:
+        arguments:
+          business_key: product_id
+    - scd2_no_overlaps:
+        arguments:
+          business_key: product_id
+    - scd2_valid_interval
+    - unique:
+        arguments:
+          column_name: product_sk
+    - not_null:
+        arguments:
+          column_name: product_sk
+    - unique:
+        arguments:
+          column_name: product_version_id
+    - not_null:
+        arguments:
+          column_name: product_version_id
+    - not_null:
+        arguments:
+          column_name: product_tmpl_id
+    - not_null:
+        arguments:
+          column_name: product_id
+    - not_null:
+        arguments:
+          column_name: is_current
+    - not_null:
+        arguments:
+          column_name: dbt_valid_from
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: product_sk
+      description: Khóa thay thế của sản phẩm, dùng join trong mô hình dimensional.
+    - name: product_version_id
+      description: Khóa duy nhất cho một product_id tại một phiên bản lịch sử của product template.
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_tmpl_id
+      description: Mã định danh sản phẩm tmpl; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_name
+      description: Tên hiển thị của product.
+    - name: sku
+      description: Thuộc tính sku của product trong lớp Gold.
+    - name: barcode
+      description: Thuộc tính barcode của product trong lớp Gold.
+    - name: category_l1
+      description: Thuộc tính category l1 của product trong lớp Gold.
+    - name: category_l2
+      description: Thuộc tính category l2 của product trong lớp Gold.
+    - name: category_l3
+      description: Thuộc tính category l3 của product trong lớp Gold.
+    - name: list_price_amount
+      description: Giá trị tiền list giá đã chuẩn hóa theo naming convention của warehouse.
+    - name: standard_cost_amount
+      description: Giá trị tiền standard chi phí đã chuẩn hóa theo naming convention của warehouse.
+    - name: is_manufactured
+      description: Cờ cho biết sản phẩm có BOM hoạt động và có thể được sản xuất.
+    - name: is_storable
+      description: Cờ cho biết sản phẩm được quản lý tồn kho.
+    - name: tracking
+      description: Thuộc tính tracking của product trong lớp Gold.
+    - name: uom_name
+      description: Tên hiển thị của product.
+    - name: sale_ok
+      description: Thuộc tính sale ok của product trong lớp Gold.
+    - name: purchase_ok
+      description: Thuộc tính purchase ok của product trong lớp Gold.
+    - name: is_active
+      description: Cờ cho biết bản ghi đang hoạt động và được phép sử dụng trong nghiệp vụ.
+    - name: is_current
+      description: Cờ xác định đây có phải phiên bản SCD2 hiện hành hay không.
+    - name: dbt_valid_from
+      description: Thời điểm phiên bản SCD2 bắt đầu có hiệu lực.
+    - name: dbt_valid_to
+      description: Thời điểm phiên bản SCD2 hết hiệu lực; NULL nghĩa là phiên bản hiện hành.
+    - name: dbt_scd_id
+      description: Khóa phiên bản SCD2 do dbt Snapshot tạo; mỗi phiên bản lịch sử có một giá trị duy nhất.
+    - name: source_cdc_ts_ms
+      description: CDC timestamp của nguồn source; dùng phát hiện thay đổi incremental.
+    - name: source_cdc_lsn
+      description: CDC LSN của nguồn source; dùng phân xử thứ tự sự kiện.
+    - name: enrichment_version_key
+      description: Khóa phiên bản sau enrichment, dùng phát hiện thay đổi từ các bảng tham chiếu đã join.
+    - name: enrichment_updated_at
+      description: Thời điểm dữ liệu enrichment được tính lại.
+    - name: dim_updated_at
+      description: Thời điểm phiên bản Dimension được refresh; dùng phát hiện dimension thay đổi để re-key Fact.
+    - name: dbt_updated_at
+      description: Thời điểm nguồn thay đổi mà dbt Snapshot dùng để quản lý phiên bản.
+    - name: gold_refreshed_at
+      description: Thời điểm model Gold được refresh; chỉ phục vụ vận hành, không xác định hiệu lực business.
+
+  - name: dim_employee
+    description: |-
+      **Grain:** 1 hàng = 1 VERSION LỊCH SỬ của 1 hr_contract (SCD2 đầy đủ — xem giải thích đổi kiến trúc ở dim_customer, cùng lý do/cùng ngày). is_current=true = bản hiện hành.
+  
+      **Business value:** Cung cấp quan hệ nhân viên–hợp đồng–user để phân tích salesperson, buyer và nguồn lực.
+  
+      **Build logic:**
+      - Đọc `sil_employee_enriched`.
+      - Incremental MERGE theo `dbt_scd_id`; reprocess khi source, surrogate key hoặc `dim_updated_at` thay đổi.
+      - Tạo surrogate key; SCD2 dimension giữ lịch sử, SCD1 dimension giữ trạng thái hiện hành theo thiết kế.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - scd2_at_most_one_current:
+        arguments:
+          business_key: contract_id
+    - scd2_no_overlaps:
+        arguments:
+          business_key: contract_id
+    - scd2_valid_interval
+    - scd2_no_overlaps:
+        arguments:
+          business_key: user_id
+    - scd2_at_most_one_current:
+        arguments:
+          business_key: user_id
+    - unique:
+        arguments:
+          column_name: employee_sk
+    - not_null:
+        arguments:
+          column_name: employee_sk
+    - unique:
+        arguments:
+          column_name: dbt_scd_id
+    - not_null:
+        arguments:
+          column_name: dbt_scd_id
+    - not_null:
+        arguments:
+          column_name: contract_id
+    - not_null:
+        arguments:
+          column_name: is_current
+    - not_null:
+        arguments:
+          column_name: dbt_valid_from
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: employee_sk
+      description: Khóa thay thế của nhân viên, dùng join trong mô hình dimensional.
+    - name: employee_id
+      description: Mã định danh nhân viên; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: contract_id
+      description: Mã định danh contract; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: user_id
+      description: Mã định danh user; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: employee_name
+      description: Tên hiển thị của employee.
+    - name: department_name
+      description: Tên hiển thị của employee.
+    - name: job_title
+      description: Thuộc tính job title của employee trong lớp Gold.
+    - name: wage_amount
+      description: Giá trị tiền wage đã chuẩn hóa theo naming convention của warehouse.
+    - name: wage_band
+      description: Thuộc tính wage band của employee trong lớp Gold.
+    - name: employee_type
+      description: Thuộc tính nhân viên loại của employee trong lớp Gold.
+    - name: contract_start
+      description: Thuộc tính contract start của employee trong lớp Gold.
+    - name: contract_end
+      description: Thuộc tính contract end của employee trong lớp Gold.
+    - name: first_contract_start
+      description: Thuộc tính first contract start của employee trong lớp Gold.
+    - name: tenure_years
+      description: Thuộc tính tenure years của employee trong lớp Gold.
+    - name: is_active
+      description: Cờ cho biết bản ghi đang hoạt động và được phép sử dụng trong nghiệp vụ.
+    - name: is_current
+      description: Cờ xác định đây có phải phiên bản SCD2 hiện hành hay không.
+    - name: dbt_valid_from
+      description: Thời điểm phiên bản SCD2 bắt đầu có hiệu lực.
+    - name: dbt_valid_to
+      description: Thời điểm phiên bản SCD2 hết hiệu lực; NULL nghĩa là phiên bản hiện hành.
+    - name: dbt_scd_id
+      description: Khóa phiên bản SCD2 do dbt Snapshot tạo; mỗi phiên bản lịch sử có một giá trị duy nhất.
+    - name: source_cdc_ts_ms
+      description: CDC timestamp của nguồn source; dùng phát hiện thay đổi incremental.
+    - name: source_cdc_lsn
+      description: CDC LSN của nguồn source; dùng phân xử thứ tự sự kiện.
+    - name: enrichment_version_key
+      description: Khóa phiên bản sau enrichment, dùng phát hiện thay đổi từ các bảng tham chiếu đã join.
+    - name: enrichment_updated_at
+      description: Thời điểm dữ liệu enrichment được tính lại.
+    - name: dim_updated_at
+      description: Thời điểm phiên bản Dimension được refresh; dùng phát hiện dimension thay đổi để re-key Fact.
+    - name: dbt_updated_at
+      description: Thời điểm nguồn thay đổi mà dbt Snapshot dùng để quản lý phiên bản.
+    - name: gold_refreshed_at
+      description: Thời điểm model Gold được refresh; chỉ phục vụ vận hành, không xác định hiệu lực business.
+
+  - name: dim_campaign
+    description: |-
+      **Grain:** 1 campaign (static — không SCD2).
+  
+      **Business value:** Chuẩn hóa campaign Odoo và marketing ngoài hệ thống để attribution dùng chung một định danh.
+  
+      **Build logic:**
+      - Đọc `sil_campaign_enriched`.
+      - Rebuild toàn bảng để correction, reclassification và row/group biến mất được phản ánh đầy đủ.
+      - Tạo surrogate key; SCD2 dimension giữ lịch sử, SCD1 dimension giữ trạng thái hiện hành theo thiết kế.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: campaign_sk
+    - not_null:
+        arguments:
+          column_name: campaign_sk
+    - unique:
+        arguments:
+          column_name: campaign_id
+    - not_null:
+        arguments:
+          column_name: campaign_id
+    - unique:
+        arguments:
+          column_name: utm_campaign_id
+    - not_null:
+        arguments:
+          column_name: utm_campaign_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: campaign_sk
+      description: Khóa thay thế của chiến dịch, dùng join trong mô hình dimensional.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: utm_campaign_id
+      description: Mã định danh utm chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_name
+      description: Tên hiển thị của campaign.
+    - name: campaign_title
+      description: Thuộc tính chiến dịch title của campaign trong lớp Gold.
+    - name: source_name
+      description: Tên hiển thị của campaign.
+    - name: medium_name
+      description: Tên hiển thị của campaign.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: gold_refreshed_at
+      description: Thời điểm model Gold được refresh; chỉ phục vụ vận hành, không xác định hiệu lực business.
+
+  - name: dim_channel
+    description: |-
+      **Grain:** 1 channel (static — không SCD2).
+  
+      **Business value:** Chuẩn hóa source/medium/channel để so sánh và attribution hiệu quả đa kênh.
+  
+      **Build logic:**
+      - Đọc `sil_channel_enriched`.
+      - Rebuild toàn bảng để correction, reclassification và row/group biến mất được phản ánh đầy đủ.
+      - Tạo surrogate key; SCD2 dimension giữ lịch sử, SCD1 dimension giữ trạng thái hiện hành theo thiết kế.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: channel_sk
+    - not_null:
+        arguments:
+          column_name: channel_sk
+    - unique:
+        arguments:
+          column_name: channel_code
+    - not_null:
+        arguments:
+          column_name: channel_code
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: channel_sk
+      description: Khóa thay thế của kênh, dùng join trong mô hình dimensional.
+    - name: channel_code
+      description: Mã nghiệp vụ của channel, dùng nhận diện hoặc mapping dữ liệu.
+    - name: channel_name
+      description: Tên hiển thị của channel.
+    - name: medium_name
+      description: Tên hiển thị của channel.
+    - name: channel_group
+      description: Thuộc tính kênh group của channel trong lớp Gold.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: gold_refreshed_at
+      description: Thời điểm model Gold được refresh; chỉ phục vụ vận hành, không xác định hiệu lực business.
+
+  - name: dim_date
+    description: |-
+      **Grain:** 1 hàng = 1 ngày lịch.
+  
+      **Business value:** Cung cấp lịch dùng chung để phân tích theo ngày, tuần, tháng, quý, năm và fiscal period.
+  
+      **Build logic:**
+      - Đọc nguồn khai báo trong SQL.
+      - Rebuild toàn bảng để correction, reclassification và row/group biến mất được phản ánh đầy đủ.
+      - Tạo surrogate key; SCD2 dimension giữ lịch sử, SCD1 dimension giữ trạng thái hiện hành theo thiết kế.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: date_key
+    - not_null:
+        arguments:
+          column_name: date_key
+    - unique:
+        arguments:
+          column_name: date_actual
+    - not_null:
+        arguments:
+          column_name: date_actual
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: date_key
+      description: Khóa ngày dạng YYYYMMDD của dimension lịch.
+    - name: date_actual
+      description: Ngày thực tế của date.
+    - name: day_of_week
+      description: Thuộc tính day of week của date trong lớp Gold.
+    - name: day_name
+      description: Tên hiển thị của date.
+    - name: day_of_month
+      description: Thuộc tính day of month của date trong lớp Gold.
+    - name: day_of_year
+      description: Thuộc tính day of year của date trong lớp Gold.
+    - name: week_number
+      description: Thuộc tính week number của date trong lớp Gold.
+    - name: month
+      description: Thuộc tính month của date trong lớp Gold.
+    - name: month_name
+      description: Tên hiển thị của date.
+    - name: quarter
+      description: Thuộc tính quarter của date trong lớp Gold.
+    - name: year
+      description: Thuộc tính year của date trong lớp Gold.
+    - name: fiscal_year
+      description: Thuộc tính fiscal year của date trong lớp Gold.
+    - name: fiscal_quarter
+      description: Thuộc tính fiscal quarter của date trong lớp Gold.
+    - name: is_weekend
+      description: Cờ cho biết ngày thuộc cuối tuần.
+    - name: is_holiday
+      description: Cờ cho biết ngày được đánh dấu là ngày lễ.
+
+  - name: dim_account
+    description: |-
+      **Grain:** 1 tài khoản kế toán (CoA) hiện hành.
+  
+      **Business value:** Chuẩn hóa Chart of Accounts và dấu Nợ/Có để lập P&L và các báo cáo tài chính.
+  
+      **Build logic:**
+      - Đọc `stg_account_account`.
+      - Rebuild toàn bảng để correction, reclassification và row/group biến mất được phản ánh đầy đủ.
+      - Chỉ dùng record/lookup hiện hành chưa bị xóa logic.
+      - Tạo surrogate key; SCD2 dimension giữ lịch sử, SCD1 dimension giữ trạng thái hiện hành theo thiết kế.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: account_sk
+    - not_null:
+        arguments:
+          column_name: account_sk
+    - unique:
+        arguments:
+          column_name: account_code
+    - not_null:
+        arguments:
+          column_name: account_code
+    - not_null:
+        arguments:
+          column_name: internal_group
+    - not_null:
+        arguments:
+          column_name: report_line
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: account_sk
+      description: Khóa thay thế của tài khoản kế toán, dùng join trong mô hình dimensional.
+    - name: account_code
+      description: Mã nghiệp vụ của account, dùng nhận diện hoặc mapping dữ liệu.
+    - name: account_name
+      description: Tên hiển thị của account.
+    - name: account_type
+      description: Thuộc tính tài khoản kế toán loại của account trong lớp Gold.
+    - name: internal_group
+      description: Nhóm kế toán nội bộ của tài khoản, dùng phân loại tài sản, nợ, vốn, doanh thu và chi phí.
+    - name: report_line
+      description: Nhóm trình bày P&L của tài khoản, ví dụ Revenue, COGS hoặc OpEx.
+    - name: statement
+      description: Thuộc tính statement của account trong lớp Gold.
+    - name: bs_section
+      description: Thuộc tính bs section của account trong lớp Gold.
+    - name: is_quick_asset
+      description: Cờ boolean cho biết quick asset.
+    - name: is_cash_account
+      description: Cờ boolean cho biết cash tài khoản kế toán.
+    - name: is_debit_normal
+      description: Cờ xác định tài khoản có số dư thông thường bên Nợ để tính đúng dấu báo cáo.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: gold_refreshed_at
+      description: Thời điểm model Gold được refresh; chỉ phục vụ vận hành, không xác định hiệu lực business.
+
+  - name: dim_journal
+    description: |-
+      **Grain:** 1 sổ nhật ký kế toán hiện hành.
+  
+      **Business value:** Phân loại bút toán và thanh toán theo sổ nhật ký kế toán.
+  
+      **Build logic:**
+      - Đọc `stg_account_journal`.
+      - Rebuild toàn bảng để correction, reclassification và row/group biến mất được phản ánh đầy đủ.
+      - Chỉ dùng record/lookup hiện hành chưa bị xóa logic.
+      - Tạo surrogate key; SCD2 dimension giữ lịch sử, SCD1 dimension giữ trạng thái hiện hành theo thiết kế.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: journal_sk
+    - not_null:
+        arguments:
+          column_name: journal_sk
+    - unique:
+        arguments:
+          column_name: journal_code
+    - not_null:
+        arguments:
+          column_name: journal_code
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: journal_sk
+      description: Khóa thay thế của sổ nhật ký, dùng join trong mô hình dimensional.
+    - name: journal_code
+      description: Mã nghiệp vụ của journal, dùng nhận diện hoặc mapping dữ liệu.
+    - name: journal_name
+      description: Tên hiển thị của journal.
+    - name: journal_type
+      description: Thuộc tính sổ nhật ký loại của journal trong lớp Gold.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: gold_refreshed_at
+      description: Thời điểm model Gold được refresh; chỉ phục vụ vận hành, không xác định hiệu lực business.
+
+  - name: dim_warehouse
+    description: |-
+      **Grain:** 1 warehouse hiện hành.
+  
+      **Business value:** Cung cấp danh mục kho để phân tích tồn kho, mua hàng và giao nhận theo warehouse.
+  
+      **Build logic:**
+      - Đọc `stg_stock_warehouse`.
+      - Rebuild toàn bảng để correction, reclassification và row/group biến mất được phản ánh đầy đủ.
+      - Chỉ dùng record/lookup hiện hành chưa bị xóa logic.
+      - Tạo surrogate key; SCD2 dimension giữ lịch sử, SCD1 dimension giữ trạng thái hiện hành theo thiết kế.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: warehouse_sk
+    - not_null:
+        arguments:
+          column_name: warehouse_sk
+    - unique:
+        arguments:
+          column_name: warehouse_id
+    - not_null:
+        arguments:
+          column_name: warehouse_id
+    - unique:
+        arguments:
+          column_name: warehouse_code
+    - not_null:
+        arguments:
+          column_name: warehouse_code
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: warehouse_sk
+      description: Khóa thay thế của kho, dùng join trong mô hình dimensional.
+    - name: warehouse_id
+      description: Mã định danh kho; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: warehouse_code
+      description: Mã nghiệp vụ của warehouse, dùng nhận diện hoặc mapping dữ liệu.
+    - name: warehouse_name
+      description: Tên hiển thị của warehouse.
+    - name: city
+      description: Thuộc tính city của warehouse trong lớp Gold.
+    - name: state
+      description: Trạng thái nghiệp vụ của warehouse.
+    - name: region
+      description: Thuộc tính region của warehouse trong lớp Gold.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: gold_refreshed_at
+      description: Thời điểm model Gold được refresh; chỉ phục vụ vận hành, không xác định hiệu lực business.
+
+  - name: dim_location
+    description: |-
+      **Grain:** 1 stock_location hiện hành.
+  
+      **Business value:** Cung cấp vị trí nguồn/đích để truy vết movement và balance trong kho.
+  
+      **Build logic:**
+      - Đọc `stg_stock_location`, `dim_warehouse` và join dimension/lookup theo khóa trong SQL.
+      - Rebuild toàn bảng để correction, reclassification và row/group biến mất được phản ánh đầy đủ.
+      - Chỉ dùng record/lookup hiện hành chưa bị xóa logic.
+      - Tạo surrogate key; SCD2 dimension giữ lịch sử, SCD1 dimension giữ trạng thái hiện hành theo thiết kế.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: location_sk
+    - not_null:
+        arguments:
+          column_name: location_sk
+    - unique:
+        arguments:
+          column_name: location_id
+    - not_null:
+        arguments:
+          column_name: location_id
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: location_sk
+      description: Khóa thay thế của vị trí kho, dùng join trong mô hình dimensional.
+    - name: location_id
+      description: Mã định danh vị trí kho; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: location_name
+      description: Tên hiển thị của location.
+    - name: usage
+      description: Thuộc tính usage của location trong lớp Gold.
+    - name: warehouse_sk
+      description: Khóa thay thế của kho, dùng join trong mô hình dimensional.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: dim_updated_at
+      description: Thời điểm phiên bản Dimension được refresh; dùng phát hiện dimension thay đổi để re-key Fact.
+    - name: gold_refreshed_at
+      description: Thời điểm model Gold được refresh; chỉ phục vụ vận hành, không xác định hiệu lực business.
+
+  - name: dim_workcenter
+    description: |-
+      **Grain:** 1 work center hiện hành.
+  
+      **Business value:** Cung cấp danh mục work center và loss type cho phân tích vận hành sản xuất.
+  
+      **Build logic:**
+      - Đọc `stg_mrp_workcenter`.
+      - Rebuild toàn bảng để correction, reclassification và row/group biến mất được phản ánh đầy đủ.
+      - Chỉ dùng record/lookup hiện hành chưa bị xóa logic.
+      - Tạo surrogate key; SCD2 dimension giữ lịch sử, SCD1 dimension giữ trạng thái hiện hành theo thiết kế.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: workcenter_sk
+    - not_null:
+        arguments:
+          column_name: workcenter_sk
+    - unique:
+        arguments:
+          column_name: workcenter_id
+    - not_null:
+        arguments:
+          column_name: workcenter_id
+    - unique:
+        arguments:
+          column_name: workcenter_code
+    - not_null:
+        arguments:
+          column_name: workcenter_code
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: workcenter_sk
+      description: Khóa thay thế của workcenter, dùng join trong mô hình dimensional.
+    - name: workcenter_id
+      description: Mã định danh workcenter; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: workcenter_code
+      description: Mã nghiệp vụ của workcenter, dùng nhận diện hoặc mapping dữ liệu.
+    - name: workcenter_name
+      description: Tên hiển thị của workcenter.
+    - name: default_capacity
+      description: Thuộc tính default capacity của workcenter trong lớp Gold.
+    - name: time_efficiency
+      description: Thuộc tính thời gian efficiency của workcenter trong lớp Gold.
+    - name: active
+      description: Trạng thái active gốc từ Odoo.
+    - name: gold_refreshed_at
+      description: Thời điểm model Gold được refresh; chỉ phục vụ vận hành, không xác định hiệu lực business.
+
+  - name: fact_sales
+    description: |-
+      **Grain:** 1 hàng = 1 order line (sale_order_line_id).
+  
+      **Business value:** Đo đơn bán, số lượng, doanh thu, giá vốn, lợi nhuận gộp và attribution bán hàng.
+  
+      **Build logic:**
+      - Đọc `sil_order_lines_enriched`, `dim_customer`, `dim_product`, `dim_employee`, `dim_warehouse`, `dim_campaign`, `stg_utm_medium`, `dim_channel` và join dimension/lookup theo khóa trong SQL.
+      - Temporal join SCD2 bằng business ID và processing time nằm trong `[dbt_valid_from, dbt_valid_to)`; không kẹp Fact cũ vào version đầu tiên.
+      - Incremental MERGE theo `sale_order_line_id`; reprocess khi source, surrogate key hoặc `dim_updated_at` thay đổi.
+      - Giữ `is_deleted` trong Fact; Mart chủ động loại tombstone theo ngữ cảnh KPI.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: fact_sales_sk
+    - not_null:
+        arguments:
+          column_name: fact_sales_sk
+    - unique:
+        arguments:
+          column_name: sale_order_line_id
+    - not_null:
+        arguments:
+          column_name: sale_order_line_id
+    - relationships:
+        arguments:
+          column_name: opportunity_id
+          to: ref('fact_crm_funnel')
+          field: crm_lead_id
+    - not_null:
+        arguments:
+          column_name: source_silver_updated_at
+    - not_null:
+        arguments:
+          column_name: is_deleted
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_sales_sk
+      description: Khóa thay thế duy nhất của Fact tại grain sales.
+    - name: sale_order_line_id
+      description: Mã định danh sale đơn hàng line; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: order_id
+      description: Mã định danh đơn hàng; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: opportunity_id
+      description: Nullable FK từ sale_order.opportunity_id về CRM lead/opportunity nguồn.
+    - name: order_name
+      description: Tên hiển thị của sales.
+    - name: order_date_key
+      description: Khóa ngày đặt hàng dạng YYYYMMDD.
+    - name: customer_sk
+      description: Khóa thay thế của khách hàng, dùng join trong mô hình dimensional.
+    - name: product_sk
+      description: Khóa thay thế của sản phẩm, dùng join trong mô hình dimensional.
+    - name: warehouse_sk
+      description: Khóa thay thế của kho, dùng join trong mô hình dimensional.
+    - name: campaign_sk
+      description: Khóa thay thế của chiến dịch, dùng join trong mô hình dimensional.
+    - name: channel_sk
+      description: Khóa thay thế của kênh, dùng join trong mô hình dimensional.
+    - name: salesperson_sk
+      description: Khóa thay thế của salesperson, dùng join trong mô hình dimensional.
+    - name: quantity
+      description: Số lượng  tại grain của model.
+    - name: quantity_delivered
+      description: Số lượng delivered tại grain của model.
+    - name: price_unit
+      description: Thuộc tính giá unit của sales trong lớp Gold.
+    - name: discount_pct
+      description: Tỷ lệ discount; được biểu diễn dưới dạng số thập phân.
+    - name: revenue_amount
+      description: Giá trị tiền doanh thu đã chuẩn hóa theo naming convention của warehouse.
+    - name: cost_amount
+      description: Giá trị tiền chi phí đã chuẩn hóa theo naming convention của warehouse.
+    - name: gross_profit_amount
+      description: Lợi nhuận gộp, được tính bằng revenue_amount trừ cost_amount.
+    - name: order_state
+      description: Trạng thái nghiệp vụ của sales.
+    - name: invoice_status
+      description: Trạng thái xử lý của sales.
+    - name: delivery_status
+      description: Trạng thái xử lý của sales.
+    - name: is_cancelled
+      description: Cờ cho biết nghiệp vụ đã bị hủy.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: source_silver_updated_at
+      description: Thời điểm cập nhật Silver được Fact lưu lại để phát hiện source thay đổi ở lần chạy sau.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: line_cdc_ts_ms
+      description: CDC timestamp của nguồn line; dùng phát hiện thay đổi incremental.
+    - name: line_cdc_lsn
+      description: CDC LSN của nguồn line; dùng phân xử thứ tự sự kiện.
+    - name: order_cdc_ts_ms
+      description: CDC timestamp của nguồn đơn hàng; dùng phát hiện thay đổi incremental.
+    - name: order_cdc_lsn
+      description: CDC LSN của nguồn đơn hàng; dùng phân xử thứ tự sự kiện.
+    - name: customer_dim_updated_at
+      description: Thời điểm dimension khách hàng dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+    - name: product_dim_updated_at
+      description: Thời điểm dimension sản phẩm dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+    - name: employee_dim_updated_at
+      description: Thời điểm dimension nhân viên dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+
+  - name: fact_purchase
+    description: |-
+      **Grain:** 1 hàng = 1 purchase_order_line.
+  
+      **Business value:** Đo hoạt động mua hàng, số lượng đặt/nhận, giá trị mua và hiệu quả nhà cung cấp.
+  
+      **Build logic:**
+      - Đọc `sil_stock_movement_enriched`, `sil_purchase_order_lines_enriched`, `dim_customer`, `dim_employee`, `dim_product`, `dim_location` và join dimension/lookup theo khóa trong SQL.
+      - Temporal join SCD2 bằng business ID và processing time nằm trong `[dbt_valid_from, dbt_valid_to)`; không kẹp Fact cũ vào version đầu tiên.
+      - Incremental MERGE theo `purchase_order_line_id`; reprocess khi source, surrogate key hoặc `dim_updated_at` thay đổi.
+      - Giữ `is_deleted` trong Fact; Mart chủ động loại tombstone theo ngữ cảnh KPI.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: fact_purchase_sk
+    - not_null:
+        arguments:
+          column_name: fact_purchase_sk
+    - unique:
+        arguments:
+          column_name: purchase_order_line_id
+    - not_null:
+        arguments:
+          column_name: purchase_order_line_id
+    - not_null:
+        arguments:
+          column_name: source_silver_updated_at
+    - not_null:
+        arguments:
+          column_name: is_deleted
+    - relationships:
+        arguments:
+          column_name: warehouse_sk
+          to: ref('dim_warehouse')
+          field: warehouse_sk
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_purchase_sk
+      description: Khóa thay thế duy nhất của Fact tại grain purchase.
+    - name: purchase_order_line_id
+      description: Mã định danh purchase đơn hàng line; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: order_id
+      description: Mã định danh đơn hàng; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: order_name
+      description: Tên hiển thị của purchase.
+    - name: order_date_key
+      description: Khóa ngày đặt hàng dạng YYYYMMDD.
+    - name: planned_date_key
+      description: Khóa ngày dự kiến dạng YYYYMMDD.
+    - name: received_date_key
+      description: Ngày hoàn tất lần nhận hàng cuối cùng của PO line; NULL nếu chưa nhận.
+    - name: vendor_sk
+      description: Khóa thay thế của nhà cung cấp, dùng join trong mô hình dimensional.
+    - name: buyer_sk
+      description: Khóa thay thế của buyer, dùng join trong mô hình dimensional.
+    - name: warehouse_sk
+      description: Kho nhận resolve từ destination location của receipt cuối cùng.
+    - name: product_sk
+      description: Khóa thay thế của sản phẩm, dùng join trong mô hình dimensional.
+    - name: product_qty
+      description: Số lượng sản phẩm tại grain của model.
+    - name: qty_received
+      description: Số lượng received tại grain của model.
+    - name: price_unit
+      description: Thuộc tính giá unit của purchase trong lớp Gold.
+    - name: discount_pct
+      description: Tỷ lệ discount; được biểu diễn dưới dạng số thập phân.
+    - name: total_amount
+      description: Giá trị tiền tổng đã chuẩn hóa theo naming convention của warehouse.
+    - name: movement_received_qty
+      description: Số lượng movement received tại grain của model.
+    - name: receipt_move_count
+      description: Số lượng receipt dịch chuyển tại grain của model.
+    - name: days_vs_planned
+      description: Số ngày chênh giữa ngày thực tế và ngày dự kiến.
+    - name: days_late
+      description: 'Số ngày trễ không âm: greatest(received_date - planned_date, 0).'
+    - name: is_late_delivery
+      description: NULL nếu chưa đủ planned/received date; ngược lại cho biết receipt trễ kế hoạch.
+    - name: po_state
+      description: Trạng thái nghiệp vụ của purchase.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: source_silver_updated_at
+      description: Thời điểm cập nhật Silver được Fact lưu lại để phát hiện source thay đổi ở lần chạy sau.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: receipt_silver_updated_at
+      description: Thời điểm dữ liệu receipt Silver liên quan được cập nhật.
+    - name: line_cdc_ts_ms
+      description: CDC timestamp của nguồn line; dùng phát hiện thay đổi incremental.
+    - name: line_cdc_lsn
+      description: CDC LSN của nguồn line; dùng phân xử thứ tự sự kiện.
+    - name: order_cdc_ts_ms
+      description: CDC timestamp của nguồn đơn hàng; dùng phát hiện thay đổi incremental.
+    - name: order_cdc_lsn
+      description: CDC LSN của nguồn đơn hàng; dùng phân xử thứ tự sự kiện.
+    - name: vendor_dim_updated_at
+      description: Thời điểm dimension nhà cung cấp dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+    - name: buyer_dim_updated_at
+      description: Thời điểm dimension buyer dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+    - name: product_dim_updated_at
+      description: Thời điểm dimension sản phẩm dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+    - name: location_dim_updated_at
+      description: Thời điểm dimension vị trí kho dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+
+  - name: fact_crm_funnel
+    description: |-
+      **Grain:** 1 hàng = 1 crm_lead.
+  
+      **Business value:** Cung cấp dữ liệu phễu Lead → Opportunity → Won để đo conversion, win/loss và hiệu quả campaign/channel.
+  
+      **Build logic:**
+      - Đọc `stg_crm_stage`, `stg_crm_lost_reason`, `stg_utm_medium`, `sil_crm_lead_enriched`, `dim_channel`, `dim_customer`, `dim_campaign` và join dimension/lookup theo khóa trong SQL.
+      - Temporal join SCD2 bằng business ID và processing time nằm trong `[dbt_valid_from, dbt_valid_to)`; không kẹp Fact cũ vào version đầu tiên.
+      - Incremental MERGE theo `crm_lead_id`; reprocess khi source, surrogate key hoặc `dim_updated_at` thay đổi.
+      - Giữ `is_deleted` trong Fact; Mart chủ động loại tombstone theo ngữ cảnh KPI.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: fact_crm_sk
+    - not_null:
+        arguments:
+          column_name: fact_crm_sk
+    - unique:
+        arguments:
+          column_name: crm_lead_id
+    - not_null:
+        arguments:
+          column_name: crm_lead_id
+    - not_null:
+        arguments:
+          column_name: source_silver_updated_at
+    - not_null:
+        arguments:
+          column_name: is_deleted
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_crm_sk
+      description: Khóa thay thế duy nhất của Fact tại grain crm funnel.
+    - name: crm_lead_id
+      description: Mã định danh crm lead; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: open_date_key
+      description: Khóa ngày mở lead/opportunity dạng YYYYMMDD.
+    - name: closed_date_key
+      description: Khóa ngày đóng lead/opportunity dạng YYYYMMDD.
+    - name: customer_sk
+      description: Khóa thay thế của khách hàng, dùng join trong mô hình dimensional.
+    - name: campaign_sk
+      description: Khóa thay thế của chiến dịch, dùng join trong mô hình dimensional.
+    - name: channel_sk
+      description: Khóa thay thế của kênh, dùng join trong mô hình dimensional.
+    - name: lead_type
+      description: Thuộc tính lead loại của crm funnel trong lớp Gold.
+    - name: stage_name
+      description: Tên hiển thị của crm funnel.
+    - name: probability
+      description: Thuộc tính probability của crm funnel trong lớp Gold.
+    - name: expected_revenue_amount
+      description: Giá trị tiền expected doanh thu đã chuẩn hóa theo naming convention của warehouse.
+    - name: is_won
+      description: Cờ cho biết CRM opportunity đã chuyển sang trạng thái thắng.
+    - name: close_days
+      description: Thuộc tính close days của crm funnel trong lớp Gold.
+    - name: lost_reason
+      description: Thuộc tính lost reason của crm funnel trong lớp Gold.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: source_silver_updated_at
+      description: Thời điểm cập nhật Silver được Fact lưu lại để phát hiện source thay đổi ở lần chạy sau.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: lead_cdc_ts_ms
+      description: CDC timestamp của nguồn lead; dùng phát hiện thay đổi incremental.
+    - name: lead_cdc_lsn
+      description: CDC LSN của nguồn lead; dùng phân xử thứ tự sự kiện.
+    - name: customer_dim_updated_at
+      description: Thời điểm dimension khách hàng dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+
+  - name: fact_inventory_movement
+    description: |-
+      **Grain:** 1 hàng = 1 stock_move (done).
+  
+      **Business value:** Theo dõi luồng nhập/xuất/chuyển kho và SLA giao nhận.
+  
+      **Build logic:**
+      - Đọc `sil_stock_movement_enriched`, `dim_product`, `dim_location` và join dimension/lookup theo khóa trong SQL.
+      - Temporal join SCD2 bằng business ID và processing time nằm trong `[dbt_valid_from, dbt_valid_to)`; không kẹp Fact cũ vào version đầu tiên.
+      - Incremental MERGE theo `stock_move_id`; reprocess khi source, surrogate key hoặc `dim_updated_at` thay đổi.
+      - Giữ `is_deleted` trong Fact; Mart chủ động loại tombstone theo ngữ cảnh KPI.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: fact_inv_move_sk
+    - not_null:
+        arguments:
+          column_name: fact_inv_move_sk
+    - unique:
+        arguments:
+          column_name: stock_move_id
+    - not_null:
+        arguments:
+          column_name: stock_move_id
+    - not_null:
+        arguments:
+          column_name: source_silver_updated_at
+    - not_null:
+        arguments:
+          column_name: is_deleted
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_inv_move_sk
+      description: Khóa thay thế duy nhất của Fact tại grain inventory movement.
+    - name: stock_move_id
+      description: Mã định danh stock dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: picking_id
+      description: Nullable degenerate key từ stock_picking; dùng để aggregate delivery theo transfer thay vì đếm từng stock_move.
+    - name: purchase_order_line_id
+      description: Mã định danh purchase đơn hàng line; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: sale_order_line_id
+      description: Mã định danh sale đơn hàng line; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: move_date_key
+      description: Khóa ngày dịch chuyển kho dạng YYYYMMDD.
+    - name: product_sk
+      description: Khóa thay thế của sản phẩm, dùng join trong mô hình dimensional.
+    - name: warehouse_sk
+      description: Khóa thay thế của kho, dùng join trong mô hình dimensional.
+    - name: src_location_sk
+      description: Khóa thay thế của src vị trí kho, dùng join trong mô hình dimensional.
+    - name: dest_location_sk
+      description: Khóa thay thế của dest vị trí kho, dùng join trong mô hình dimensional.
+    - name: movement_type
+      description: Loại dịch chuyển kho được suy từ vị trí nguồn và đích, ví dụ sale_out, purchase_in hoặc internal.
+    - name: qty_done
+      description: Số lượng done tại grain của model.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: product_value_amount
+      description: Giá trị tiền sản phẩm value đã chuẩn hóa theo naming convention của warehouse.
+    - name: reference
+      description: Thuộc tính reference của inventory movement trong lớp Gold.
+    - name: carrier_id
+      description: FK nguồn stock_picking.carrier_id tới delivery_carrier.id.
+    - name: ship_mode
+      description: Tên delivery carrier; degenerate dimension dùng cho delivery KPI.
+    - name: carrier_tracking_ref
+      description: Thuộc tính carrier tracking ref của inventory movement trong lớp Gold.
+    - name: carrier_price_amount
+      description: Giá trị tiền carrier giá đã chuẩn hóa theo naming convention của warehouse.
+    - name: picking_state
+      description: Trạng thái nghiệp vụ của inventory movement.
+    - name: delivery_status
+      description: Trạng thái xử lý của inventory movement.
+    - name: receipt_status
+      description: Trạng thái xử lý của inventory movement.
+    - name: scheduled_date
+      description: Ngày scheduled của inventory movement.
+    - name: date_done
+      description: Ngày done của inventory movement.
+    - name: date_deadline
+      description: Ngày deadline của inventory movement.
+    - name: odoo_has_deadline_issue
+      description: Cờ deadline gốc từ Odoo, giữ lại để đối chiếu với KPI tự tính.
+    - name: days_vs_schedule
+      description: Số ngày chênh giữa ngày hoàn tất và ngày dự kiến xử lý.
+    - name: is_late_vs_schedule
+      description: Cờ cho biết transfer hoàn tất sau scheduled_date.
+    - name: days_vs_deadline
+      description: Số ngày chênh giữa ngày hoàn tất và deadline cam kết.
+    - name: is_late_vs_deadline
+      description: Cờ cho biết transfer hoàn tất sau date_deadline.
+    - name: source_silver_updated_at
+      description: Thời điểm cập nhật Silver được Fact lưu lại để phát hiện source thay đổi ở lần chạy sau.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: move_cdc_ts_ms
+      description: CDC timestamp của nguồn dịch chuyển; dùng phát hiện thay đổi incremental.
+    - name: move_cdc_lsn
+      description: CDC LSN của nguồn dịch chuyển; dùng phân xử thứ tự sự kiện.
+    - name: picking_cdc_ts_ms
+      description: CDC timestamp của nguồn picking; dùng phát hiện thay đổi incremental.
+    - name: picking_cdc_lsn
+      description: CDC LSN của nguồn picking; dùng phân xử thứ tự sự kiện.
+    - name: carrier_cdc_ts_ms
+      description: CDC timestamp của nguồn carrier; dùng phát hiện thay đổi incremental.
+    - name: carrier_cdc_lsn
+      description: CDC LSN của nguồn carrier; dùng phân xử thứ tự sự kiện.
+    - name: product_dim_updated_at
+      description: Thời điểm dimension sản phẩm dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+    - name: src_location_dim_updated_at
+      description: Thời điểm dimension src vị trí kho dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+    - name: dest_location_dim_updated_at
+      description: Thời điểm dimension dest vị trí kho dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+
+  - name: fact_inventory_valuation
+    description: |-
+      **Grain:** 1 hàng = 1 valuation event (stock_valuation_layer).
+  
+      **Business value:** Theo dõi quantity, unit cost, value và remaining value của các valuation event.
+  
+      **Build logic:**
+      - Đọc `sil_stock_valuation_enriched`, `dim_product`, `dim_location` và join dimension/lookup theo khóa trong SQL.
+      - Temporal join SCD2 bằng business ID và processing time nằm trong `[dbt_valid_from, dbt_valid_to)`; không kẹp Fact cũ vào version đầu tiên.
+      - Incremental MERGE theo `stock_valuation_layer_id`; reprocess khi source, surrogate key hoặc `dim_updated_at` thay đổi.
+      - Giữ `is_deleted` trong Fact; Mart chủ động loại tombstone theo ngữ cảnh KPI.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: fact_inv_val_sk
+    - not_null:
+        arguments:
+          column_name: fact_inv_val_sk
+    - unique:
+        arguments:
+          column_name: stock_valuation_layer_id
+    - not_null:
+        arguments:
+          column_name: stock_valuation_layer_id
+    - not_null:
+        arguments:
+          column_name: source_silver_updated_at
+    - not_null:
+        arguments:
+          column_name: is_deleted
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_inv_val_sk
+      description: Khóa thay thế duy nhất của Fact tại grain inventory valuation.
+    - name: stock_valuation_layer_id
+      description: Mã định danh stock valuation layer; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: stock_move_id
+      description: Mã định danh stock dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: valuation_date_key
+      description: Khóa ngày ghi nhận định giá tồn kho dạng YYYYMMDD.
+    - name: product_sk
+      description: Khóa thay thế của sản phẩm, dùng join trong mô hình dimensional.
+    - name: src_location_sk
+      description: Khóa thay thế của src vị trí kho, dùng join trong mô hình dimensional.
+    - name: dest_location_sk
+      description: Khóa thay thế của dest vị trí kho, dùng join trong mô hình dimensional.
+    - name: warehouse_sk
+      description: Khóa thay thế của kho, dùng join trong mô hình dimensional.
+    - name: transaction_type
+      description: 'Loại nghiệp vụ định giá tồn kho: in, out hoặc revaluation.'
+    - name: quantity
+      description: Số lượng  tại grain của model.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: unit_cost_amount
+      description: Giá trị tiền unit chi phí đã chuẩn hóa theo naming convention của warehouse.
+    - name: value_amount
+      description: Giá trị tiền value đã chuẩn hóa theo naming convention của warehouse.
+    - name: remaining_qty
+      description: Số lượng còn lại chưa được tiêu thụ trên valuation layer.
+    - name: remaining_value_amount
+      description: Giá trị tiền tệ còn lại tương ứng với remaining_qty.
+    - name: reference
+      description: Thuộc tính reference của inventory valuation trong lớp Gold.
+    - name: source_silver_updated_at
+      description: Thời điểm cập nhật Silver được Fact lưu lại để phát hiện source thay đổi ở lần chạy sau.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: valuation_cdc_ts_ms
+      description: CDC timestamp của nguồn valuation; dùng phát hiện thay đổi incremental.
+    - name: valuation_cdc_lsn
+      description: CDC LSN của nguồn valuation; dùng phân xử thứ tự sự kiện.
+    - name: move_cdc_ts_ms
+      description: CDC timestamp của nguồn dịch chuyển; dùng phát hiện thay đổi incremental.
+    - name: move_cdc_lsn
+      description: CDC LSN của nguồn dịch chuyển; dùng phân xử thứ tự sự kiện.
+    - name: product_dim_updated_at
+      description: Thời điểm dimension sản phẩm dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+    - name: src_location_dim_updated_at
+      description: Thời điểm dimension src vị trí kho dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+    - name: dest_location_dim_updated_at
+      description: Thời điểm dimension dest vị trí kho dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+
+  - name: fact_inventory_balance
+    description: |-
+      **Grain:** 1 hàng = 1 product × 1 location × 1 snapshot_date.
+  
+      **Business value:** Theo dõi tồn on-hand, reserved và available theo sản phẩm, vị trí và thời điểm.
+  
+      **Build logic:**
+      - Đọc `stg_stock_quant`, deduplicate theo `stock_quant_id`, loại tombstone rồi cộng về product × location; join `dim_product` theo processing time và `dim_location` theo location_id.
+      - Delete+insert partition ngày hiện tại giúp rerun cùng ngày idempotent và đưa quant biến mất về 0; `full_refresh=false` bảo vệ lịch sử ngày trước.
+      - Tạo `quantity_available = quantity - reserved_quantity` và `snapshot_captured_at` cho temporal join.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - product_id
+          - location_id
+          - snapshot_date_key
+    - unique:
+        arguments:
+          column_name: fact_inv_bal_sk
+    - not_null:
+        arguments:
+          column_name: fact_inv_bal_sk
+    - not_null:
+        arguments:
+          column_name: snapshot_date_key
+    - not_null:
+        arguments:
+          column_name: snapshot_captured_at
+    - not_null:
+        arguments:
+          column_name: product_id
+    - not_null:
+        arguments:
+          column_name: location_id
+    - not_null:
+        arguments:
+          column_name: product_sk
+    - not_null:
+        arguments:
+          column_name: location_sk
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_inv_bal_sk
+      description: Khóa thay thế duy nhất của Fact tại grain inventory balance.
+    - name: snapshot_date_key
+      description: Khóa ngày dạng YYYYMMDD của lần chụp snapshot.
+    - name: snapshot_captured_at
+      description: Thời điểm pipeline chụp trạng thái snapshot định kỳ.
+    - name: product_id
+      description: Mã định danh sản phẩm; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: location_id
+      description: Mã định danh vị trí kho; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: product_sk
+      description: Khóa thay thế của sản phẩm, dùng join trong mô hình dimensional.
+    - name: warehouse_sk
+      description: Khóa thay thế của kho, dùng join trong mô hình dimensional.
+    - name: location_sk
+      description: Khóa thay thế của vị trí kho, dùng join trong mô hình dimensional.
+    - name: quantity
+      description: Số lượng  tại grain của model.
+    - name: reserved_quantity
+      description: Số lượng reserved tại grain của model.
+    - name: quantity_available
+      description: Số lượng có thể sử dụng, được tính bằng quantity trừ reserved_quantity.
+
+  - name: fact_journal_entries
+    description: |-
+      **Grain:** 1 hàng = 1 account_move_line hiện hành.
+  
+      **Business value:** Cung cấp sổ cái chi tiết để đối chiếu Nợ/Có và lập báo cáo tài chính.
+  
+      **Build logic:**
+      - Đọc `sil_journal_entries_enriched`, `dim_account`, `dim_journal`, `dim_customer` và join dimension/lookup theo khóa trong SQL.
+      - Temporal join SCD2 bằng business ID và processing time nằm trong `[dbt_valid_from, dbt_valid_to)`; không kẹp Fact cũ vào version đầu tiên.
+      - Incremental MERGE theo `account_move_line_id`; reprocess khi source, surrogate key hoặc `dim_updated_at` thay đổi.
+      - Giữ `is_deleted` trong Fact; Mart chủ động loại tombstone theo ngữ cảnh KPI.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: fact_je_sk
+    - not_null:
+        arguments:
+          column_name: fact_je_sk
+    - unique:
+        arguments:
+          column_name: account_move_line_id
+    - not_null:
+        arguments:
+          column_name: account_move_line_id
+    - not_null:
+        arguments:
+          column_name: move_id
+    - not_null:
+        arguments:
+          column_name: entry_date_key
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: account_sk
+    - relationships:
+        arguments:
+          column_name: account_sk
+          to: ref('dim_account')
+          field: account_sk
+        config:
+          where: is_deleted = false
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: journal_sk
+    - relationships:
+        arguments:
+          column_name: journal_sk
+          to: ref('dim_journal')
+          field: journal_sk
+        config:
+          where: is_deleted = false
+    - not_null:
+        arguments:
+          column_name: source_silver_updated_at
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    - not_null:
+        arguments:
+          column_name: is_deleted
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_je_sk
+      description: Khóa thay thế duy nhất của Fact tại grain journal entries.
+    - name: account_move_line_id
+      description: Mã định danh tài khoản kế toán dịch chuyển line; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: move_id
+      description: Mã định danh dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: account_id
+      description: Mã định danh tài khoản kế toán; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: journal_id
+      description: Mã định danh sổ nhật ký; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: entry_date_key
+      description: Khóa ngày bút toán dạng YYYYMMDD.
+    - name: customer_sk
+      description: Khóa thay thế của khách hàng, dùng join trong mô hình dimensional.
+    - name: account_sk
+      description: Khóa thay thế của tài khoản kế toán, dùng join trong mô hình dimensional.
+    - name: journal_sk
+      description: Khóa thay thế của sổ nhật ký, dùng join trong mô hình dimensional.
+    - name: debit_amount
+      description: Giá trị tiền debit đã chuẩn hóa theo naming convention của warehouse.
+    - name: credit_amount
+      description: Giá trị tiền credit đã chuẩn hóa theo naming convention của warehouse.
+    - name: balance_amount
+      description: Số dư bút toán, được tính bằng debit_amount trừ credit_amount.
+    - name: move_type
+      description: Thuộc tính dịch chuyển loại của journal entries trong lớp Gold.
+    - name: move_state
+      description: Trạng thái nghiệp vụ của journal entries.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: ref
+      description: Thuộc tính ref của journal entries trong lớp Gold.
+    - name: source_silver_updated_at
+      description: Thời điểm cập nhật Silver được Fact lưu lại để phát hiện source thay đổi ở lần chạy sau.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: line_cdc_ts_ms
+      description: CDC timestamp của nguồn line; dùng phát hiện thay đổi incremental.
+    - name: line_cdc_lsn
+      description: CDC LSN của nguồn line; dùng phân xử thứ tự sự kiện.
+    - name: move_cdc_ts_ms
+      description: CDC timestamp của nguồn dịch chuyển; dùng phát hiện thay đổi incremental.
+    - name: move_cdc_lsn
+      description: CDC LSN của nguồn dịch chuyển; dùng phân xử thứ tự sự kiện.
+    - name: account_cdc_ts_ms
+      description: CDC timestamp của nguồn tài khoản kế toán; dùng phát hiện thay đổi incremental.
+    - name: account_cdc_lsn
+      description: CDC LSN của nguồn tài khoản kế toán; dùng phân xử thứ tự sự kiện.
+    - name: journal_cdc_ts_ms
+      description: CDC timestamp của nguồn sổ nhật ký; dùng phát hiện thay đổi incremental.
+    - name: journal_cdc_lsn
+      description: CDC LSN của nguồn sổ nhật ký; dùng phân xử thứ tự sự kiện.
+    - name: customer_dim_updated_at
+      description: Thời điểm dimension khách hàng dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+
+  - name: fact_payment_allocation
+    description: |-
+      **Grain:** 1 hàng = 1 account_partial_reconcile allocation.
+  
+      **Business value:** Nối payment với invoice để tính allocation, DSO, overdue, aging và dòng tiền thu.
+  
+      **Build logic:**
+      - Đọc `sil_invoice_payment_status`, `dim_journal`, `dim_customer` và join dimension/lookup theo khóa trong SQL.
+      - Temporal join SCD2 bằng business ID và processing time nằm trong `[dbt_valid_from, dbt_valid_to)`; không kẹp Fact cũ vào version đầu tiên.
+      - Incremental MERGE theo `account_partial_reconcile_id`; reprocess khi source, surrogate key hoặc `dim_updated_at` thay đổi.
+      - Giữ `is_deleted` trong Fact; Mart chủ động loại tombstone theo ngữ cảnh KPI.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: fact_payment_alloc_sk
+    - not_null:
+        arguments:
+          column_name: fact_payment_alloc_sk
+    - unique:
+        arguments:
+          column_name: account_partial_reconcile_id
+    - not_null:
+        arguments:
+          column_name: account_partial_reconcile_id
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: payment_id
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: invoice_move_id
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: payment_date_key
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: invoice_date_key
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: customer_sk
+    - relationships:
+        arguments:
+          column_name: customer_sk
+          to: ref('dim_customer')
+          field: customer_sk
+        config:
+          where: is_deleted = false
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: journal_sk
+    - relationships:
+        arguments:
+          column_name: journal_sk
+          to: ref('dim_journal')
+          field: journal_sk
+        config:
+          where: is_deleted = false
+    - not_null:
+        arguments:
+          column_name: source_silver_updated_at
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    - not_null:
+        arguments:
+          column_name: is_deleted
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_payment_alloc_sk
+      description: Khóa thay thế duy nhất của Fact tại grain payment allocation.
+    - name: account_partial_reconcile_id
+      description: Mã định danh tài khoản kế toán partial reconcile; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: payment_id
+      description: Mã định danh thanh toán; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: invoice_move_id
+      description: Mã định danh hóa đơn dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: invoice_move_type
+      description: Thuộc tính hóa đơn dịch chuyển loại của payment allocation trong lớp Gold.
+    - name: payment_date_key
+      description: Khóa ngày thanh toán dạng YYYYMMDD.
+    - name: invoice_date_key
+      description: Khóa ngày hóa đơn dạng YYYYMMDD.
+    - name: customer_sk
+      description: Khóa thay thế của khách hàng, dùng join trong mô hình dimensional.
+    - name: journal_sk
+      description: Khóa thay thế của sổ nhật ký, dùng join trong mô hình dimensional.
+    - name: allocated_amount
+      description: Số tiền của payment được phân bổ cho hóa đơn qua account_partial_reconcile.
+    - name: payment_type
+      description: Thuộc tính thanh toán loại của payment allocation trong lớp Gold.
+    - name: payment_state
+      description: Trạng thái nghiệp vụ của payment allocation.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: dso_days
+      description: Số ngày từ ngày hóa đơn đến ngày thanh toán.
+    - name: is_overdue
+      description: Cờ cho biết khoản phải thu đã quá hạn tại ngày thanh toán hoặc ngày chốt.
+    - name: outstanding_amount
+      description: Số tiền hóa đơn còn chưa được thanh toán tại trạng thái hiện tại.
+    - name: aging_bucket
+      description: Nhóm tuổi nợ được xác định từ ngày đến hạn và ngày chốt dữ liệu.
+    - name: source_silver_updated_at
+      description: Thời điểm cập nhật Silver được Fact lưu lại để phát hiện source thay đổi ở lần chạy sau.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: reconcile_cdc_ts_ms
+      description: CDC timestamp của nguồn reconcile; dùng phát hiện thay đổi incremental.
+    - name: reconcile_cdc_lsn
+      description: CDC LSN của nguồn reconcile; dùng phân xử thứ tự sự kiện.
+    - name: invoice_cdc_ts_ms
+      description: CDC timestamp của nguồn hóa đơn; dùng phát hiện thay đổi incremental.
+    - name: invoice_cdc_lsn
+      description: CDC LSN của nguồn hóa đơn; dùng phân xử thứ tự sự kiện.
+    - name: payment_cdc_ts_ms
+      description: CDC timestamp của nguồn thanh toán; dùng phát hiện thay đổi incremental.
+    - name: payment_cdc_lsn
+      description: CDC LSN của nguồn thanh toán; dùng phân xử thứ tự sự kiện.
+    - name: journal_cdc_ts_ms
+      description: CDC timestamp của nguồn sổ nhật ký; dùng phát hiện thay đổi incremental.
+    - name: journal_cdc_lsn
+      description: CDC LSN của nguồn sổ nhật ký; dùng phân xử thứ tự sự kiện.
+    - name: customer_dim_updated_at
+      description: Thời điểm dimension khách hàng dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+
+  - name: fact_customer_invoice
+    description: |-
+      **Grain:** 1 customer invoice/refund (account_move) hiện hành.
+  
+      **Business value:** Theo dõi vòng đời hóa đơn/refund, ngày đến hạn, số dư còn lại và trạng thái thanh toán.
+  
+      **Build logic:**
+      - Đọc `sil_customer_invoices_enriched`, `dim_customer` và join dimension/lookup theo khóa trong SQL.
+      - Temporal join SCD2 bằng business ID và processing time nằm trong `[dbt_valid_from, dbt_valid_to)`; không kẹp Fact cũ vào version đầu tiên.
+      - Incremental MERGE theo `move_id`; reprocess khi source, surrogate key hoặc `dim_updated_at` thay đổi.
+      - Giữ `is_deleted` trong Fact; Mart chủ động loại tombstone theo ngữ cảnh KPI.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: fact_customer_invoice_sk
+    - not_null:
+        arguments:
+          column_name: fact_customer_invoice_sk
+    - unique:
+        arguments:
+          column_name: move_id
+    - not_null:
+        arguments:
+          column_name: move_id
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: invoice_date_key
+    - relationships:
+        arguments:
+          column_name: invoice_date_key
+          to: ref('dim_date')
+          field: date_key
+        config:
+          where: is_deleted = false
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: customer_sk
+    - relationships:
+        arguments:
+          column_name: customer_sk
+          to: ref('dim_customer')
+          field: customer_sk
+        config:
+          where: is_deleted = false
+    - not_null:
+        arguments:
+          column_name: move_type
+    - accepted_values:
+        arguments:
+          column_name: move_type
+          values:
+          - out_invoice
+          - out_refund
+    - not_null:
+        arguments:
+          column_name: source_silver_updated_at
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    - not_null:
+        arguments:
+          column_name: is_deleted
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_customer_invoice_sk
+      description: Khóa thay thế duy nhất của Fact tại grain customer invoice.
+    - name: move_id
+      description: Mã định danh dịch chuyển; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: invoice_number
+      description: Thuộc tính hóa đơn number của customer invoice trong lớp Gold.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: move_type
+      description: Thuộc tính dịch chuyển loại của customer invoice trong lớp Gold.
+    - name: move_state
+      description: Trạng thái nghiệp vụ của customer invoice.
+    - name: payment_state
+      description: Trạng thái nghiệp vụ của customer invoice.
+    - name: accounting_date_key
+      description: Khóa ngày kế toán dạng YYYYMMDD.
+    - name: invoice_date_key
+      description: Khóa ngày hóa đơn dạng YYYYMMDD.
+    - name: due_date_key
+      description: Khóa ngày đến hạn thanh toán dạng YYYYMMDD.
+    - name: customer_sk
+      description: Khóa thay thế của khách hàng, dùng join trong mô hình dimensional.
+    - name: journal_id
+      description: Mã định danh sổ nhật ký; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: currency_id
+      description: Mã định danh currency; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: company_id
+      description: Mã định danh company; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: net_revenue_amount
+      description: Doanh thu thuần sau các khoản giảm trừ được model áp dụng.
+    - name: invoice_amount
+      description: Giá trị tiền hóa đơn đã chuẩn hóa theo naming convention của warehouse.
+    - name: outstanding_amount
+      description: Số tiền hóa đơn còn chưa được thanh toán tại trạng thái hiện tại.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: source_silver_updated_at
+      description: Thời điểm cập nhật Silver được Fact lưu lại để phát hiện source thay đổi ở lần chạy sau.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: _cdc_ts_ms
+      description: Timestamp của sự kiện CDC theo epoch milliseconds từ Debezium; dùng xác định thứ tự thay đổi nguồn.
+    - name: _cdc_lsn
+      description: PostgreSQL Log Sequence Number của sự kiện CDC; dùng phân xử khi nhiều sự kiện có cùng CDC timestamp.
+    - name: customer_dim_updated_at
+      description: Thời điểm dimension khách hàng dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+
+  - name: fact_manufacturing
+    description: |-
+      **Grain:** 1 hàng = 1 mrp_production đã hoàn thành.
+  
+      **Business value:** Đo sản lượng, scrap, cycle time và hiệu quả lệnh sản xuất.
+  
+      **Build logic:**
+      - Đọc `sil_manufacturing_enriched`, `dim_product`, `dim_location` và join dimension/lookup theo khóa trong SQL.
+      - Temporal join SCD2 bằng business ID và processing time nằm trong `[dbt_valid_from, dbt_valid_to)`; không kẹp Fact cũ vào version đầu tiên.
+      - Incremental MERGE theo `mrp_production_id`; reprocess khi source, surrogate key hoặc `dim_updated_at` thay đổi.
+      - Giữ `is_deleted` trong Fact; Mart chủ động loại tombstone theo ngữ cảnh KPI.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: fact_mfg_sk
+    - not_null:
+        arguments:
+          column_name: fact_mfg_sk
+    - unique:
+        arguments:
+          column_name: mrp_production_id
+    - not_null:
+        arguments:
+          column_name: mrp_production_id
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: completion_date_key
+    - relationships:
+        arguments:
+          column_name: completion_date_key
+          to: ref('dim_date')
+          field: date_key
+        config:
+          where: is_deleted = false
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: product_sk
+    - relationships:
+        arguments:
+          column_name: product_sk
+          to: ref('dim_product')
+          field: product_sk
+        config:
+          where: is_deleted = false
+    - relationships:
+        arguments:
+          column_name: warehouse_sk
+          to: ref('dim_warehouse')
+          field: warehouse_sk
+        config:
+          where: is_deleted = false
+    - not_null:
+        arguments:
+          column_name: source_silver_updated_at
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    - not_null:
+        arguments:
+          column_name: is_deleted
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_mfg_sk
+      description: Khóa thay thế duy nhất của Fact tại grain manufacturing.
+    - name: mrp_production_id
+      description: Mã định danh mrp lệnh sản xuất; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: completion_date_key
+      description: Khóa ngày hoàn thành sản xuất dạng YYYYMMDD.
+    - name: product_sk
+      description: Khóa thay thế của sản phẩm, dùng join trong mô hình dimensional.
+    - name: warehouse_sk
+      description: Khóa thay thế của kho, dùng join trong mô hình dimensional.
+    - name: mo_name
+      description: Tên hiển thị của manufacturing.
+    - name: qty_planned
+      description: Số lượng dự kiến tại grain của model.
+    - name: qty_produced
+      description: Số lượng produced tại grain của model.
+    - name: scrap_qty
+      description: Số lượng phế phẩm tại grain của model.
+    - name: cycle_time_minutes
+      description: Thuộc tính cycle thời gian minutes của manufacturing trong lớp Gold.
+    - name: bom_id
+      description: Mã định danh bom; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: mo_state
+      description: Trạng thái nghiệp vụ của manufacturing.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: source_silver_updated_at
+      description: Thời điểm cập nhật Silver được Fact lưu lại để phát hiện source thay đổi ở lần chạy sau.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: mo_cdc_ts_ms
+      description: CDC timestamp của nguồn mo; dùng phát hiện thay đổi incremental.
+    - name: mo_cdc_lsn
+      description: CDC LSN của nguồn mo; dùng phân xử thứ tự sự kiện.
+    - name: scrap_cdc_ts_ms
+      description: CDC timestamp của nguồn phế phẩm; dùng phát hiện thay đổi incremental.
+    - name: scrap_cdc_lsn
+      description: CDC LSN của nguồn phế phẩm; dùng phân xử thứ tự sự kiện.
+    - name: product_dim_updated_at
+      description: Thời điểm dimension sản phẩm dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+    - name: location_dim_updated_at
+      description: Thời điểm dimension vị trí kho dim updated at được cập nhật; Fact lưu lại để quyết định reprocess.
+
+  - name: fact_workorder
+    description: |-
+      **Grain:** 1 hàng = 1 mrp_workorder đã hoàn thành.
+  
+      **Business value:** Theo dõi thời lượng dự kiến và productive thực tế của work order.
+  
+      **Build logic:**
+      - Đọc `sil_workorder_enriched`, `dim_workcenter` và join dimension/lookup theo khóa trong SQL.
+      - Incremental MERGE theo `mrp_workorder_id`; reprocess khi source, surrogate key hoặc `dim_updated_at` thay đổi.
+      - Giữ `is_deleted` trong Fact; Mart chủ động loại tombstone theo ngữ cảnh KPI.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: fact_wo_sk
+    - not_null:
+        arguments:
+          column_name: fact_wo_sk
+    - unique:
+        arguments:
+          column_name: mrp_workorder_id
+    - not_null:
+        arguments:
+          column_name: mrp_workorder_id
+    - not_null:
+        arguments:
+          column_name: mrp_production_id
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: start_date_key
+    - relationships:
+        arguments:
+          column_name: start_date_key
+          to: ref('dim_date')
+          field: date_key
+        config:
+          where: is_deleted = false
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: workcenter_sk
+    - relationships:
+        arguments:
+          column_name: workcenter_sk
+          to: ref('dim_workcenter')
+          field: workcenter_sk
+        config:
+          where: is_deleted = false
+    - not_null:
+        arguments:
+          column_name: source_silver_updated_at
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    - not_null:
+        arguments:
+          column_name: is_deleted
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_wo_sk
+      description: Khóa thay thế duy nhất của Fact tại grain workorder.
+    - name: mrp_workorder_id
+      description: Mã định danh mrp work order; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: mrp_production_id
+      description: Mã định danh mrp lệnh sản xuất; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: start_date_key
+      description: Khóa ngày bắt đầu dạng YYYYMMDD.
+    - name: workcenter_sk
+      description: Khóa thay thế của workcenter, dùng join trong mô hình dimensional.
+    - name: operation_name
+      description: Tên hiển thị của workorder.
+    - name: sequence
+      description: Thuộc tính sequence của workorder trong lớp Gold.
+    - name: qty_producing
+      description: Số lượng producing tại grain của model.
+    - name: duration_est
+      description: Thuộc tính thời lượng est của workorder trong lớp Gold.
+    - name: duration_actual
+      description: Thuộc tính thời lượng thực tế của workorder trong lớp Gold.
+    - name: wo_state
+      description: Trạng thái nghiệp vụ của workorder.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: source_silver_updated_at
+      description: Thời điểm cập nhật Silver được Fact lưu lại để phát hiện source thay đổi ở lần chạy sau.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: workorder_cdc_ts_ms
+      description: CDC timestamp của nguồn work order; dùng phát hiện thay đổi incremental.
+    - name: workorder_cdc_lsn
+      description: CDC LSN của nguồn work order; dùng phân xử thứ tự sự kiện.
+    - name: productivity_cdc_ts_ms
+      description: CDC timestamp của nguồn productivity; dùng phát hiện thay đổi incremental.
+    - name: productivity_cdc_lsn
+      description: CDC LSN của nguồn productivity; dùng phân xử thứ tự sự kiện.
+
+  - name: fact_manufacturing_oee
+    description: |-
+      **Grain:** 1 hàng = 1 mrp_workcenter_productivity block.
+  
+      **Business value:** Cung cấp dữ liệu Availability, Performance, Quality, OEE và tổn thất sản xuất.
+  
+      **Build logic:**
+      - Đọc `sil_oee_blocks_enriched`, `dim_workcenter` và join dimension/lookup theo khóa trong SQL.
+      - Incremental MERGE theo `productivity_block_id`; reprocess khi source, surrogate key hoặc `dim_updated_at` thay đổi.
+      - Giữ `is_deleted` trong Fact; Mart chủ động loại tombstone theo ngữ cảnh KPI.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: fact_oee_sk
+    - not_null:
+        arguments:
+          column_name: fact_oee_sk
+    - unique:
+        arguments:
+          column_name: productivity_block_id
+    - not_null:
+        arguments:
+          column_name: productivity_block_id
+    - not_null:
+        arguments:
+          column_name: mrp_workorder_id
+    - not_null:
+        arguments:
+          column_name: mrp_production_id
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: block_date_key
+    - relationships:
+        arguments:
+          column_name: block_date_key
+          to: ref('dim_date')
+          field: date_key
+        config:
+          where: is_deleted = false
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: workcenter_sk
+    - relationships:
+        arguments:
+          column_name: workcenter_sk
+          to: ref('dim_workcenter')
+          field: workcenter_sk
+        config:
+          where: is_deleted = false
+    - not_null:
+        config:
+          where: is_deleted = false
+        arguments:
+          column_name: loss_type
+    - accepted_values:
+        arguments:
+          column_name: loss_type
+          values:
+          - productive
+          - availability
+          - performance
+          - quality
+        config:
+          where: is_deleted = false
+    - not_null:
+        arguments:
+          column_name: source_silver_updated_at
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    - not_null:
+        arguments:
+          column_name: is_deleted
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_oee_sk
+      description: Khóa thay thế duy nhất của Fact tại grain manufacturing oee.
+    - name: productivity_block_id
+      description: Mã định danh productivity block; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: mrp_workorder_id
+      description: Mã định danh mrp work order; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: mrp_production_id
+      description: Mã định danh mrp lệnh sản xuất; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: block_date_key
+      description: Khóa ngày của productivity block dạng YYYYMMDD.
+    - name: workcenter_sk
+      description: Khóa thay thế của workcenter, dùng join trong mô hình dimensional.
+    - name: loss_type
+      description: Thuộc tính loss loại của manufacturing oee trong lớp Gold.
+    - name: loss_reason
+      description: Thuộc tính loss reason của manufacturing oee trong lớp Gold.
+    - name: duration_minutes
+      description: Thuộc tính thời lượng minutes của manufacturing oee trong lớp Gold.
+    - name: duration_est
+      description: Thuộc tính thời lượng est của manufacturing oee trong lớp Gold.
+    - name: qty_produced
+      description: Số lượng produced tại grain của model.
+    - name: scrap_qty
+      description: Số lượng phế phẩm tại grain của model.
+    - name: is_deleted
+      description: Cờ xóa logic lấy từ CDC; true nghĩa là bản ghi đã bị xóa ở nguồn.
+    - name: source_silver_updated_at
+      description: Thời điểm cập nhật Silver được Fact lưu lại để phát hiện source thay đổi ở lần chạy sau.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+    - name: block_cdc_ts_ms
+      description: CDC timestamp của nguồn block; dùng phát hiện thay đổi incremental.
+    - name: block_cdc_lsn
+      description: CDC LSN của nguồn block; dùng phân xử thứ tự sự kiện.
+    - name: loss_cdc_ts_ms
+      description: CDC timestamp của nguồn loss; dùng phát hiện thay đổi incremental.
+    - name: loss_cdc_lsn
+      description: CDC LSN của nguồn loss; dùng phân xử thứ tự sự kiện.
+    - name: workorder_cdc_ts_ms
+      description: CDC timestamp của nguồn work order; dùng phát hiện thay đổi incremental.
+    - name: workorder_cdc_lsn
+      description: CDC LSN của nguồn work order; dùng phân xử thứ tự sự kiện.
+    - name: manufacturing_source_version_key
+      description: Khóa phiên bản tổng hợp các nguồn sản xuất phụ thuộc.
+
+  - name: fact_ad_spend
+    description: |-
+      **Grain:** 1 campaign × 1 date × 1 channel.
+  
+      **Business value:** Đo spend, reach, impression, click, lead, conversion và ROAS của quảng cáo theo campaign/channel.
+  
+      **Build logic:**
+      - Đọc `sil_ad_performance_daily_enriched`, `dim_campaign`, `dim_channel` và join dimension/lookup theo khóa trong SQL.
+      - Rebuild toàn bảng để correction, reclassification và row/group biến mất được phản ánh đầy đủ.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - campaign_id
+          - spend_date
+          - channel
+    - unique:
+        arguments:
+          column_name: fact_ad_spend_sk
+    - not_null:
+        arguments:
+          column_name: fact_ad_spend_sk
+    - not_null:
+        arguments:
+          column_name: campaign_id
+    - not_null:
+        arguments:
+          column_name: spend_date
+    - not_null:
+        arguments:
+          column_name: channel
+    - not_null:
+        arguments:
+          column_name: spend_date_key
+    - relationships:
+        arguments:
+          column_name: spend_date_key
+          to: ref('dim_date')
+          field: date_key
+    - not_null:
+        arguments:
+          column_name: campaign_sk
+    - relationships:
+        arguments:
+          column_name: campaign_sk
+          to: ref('dim_campaign')
+          field: campaign_sk
+    - not_null:
+        arguments:
+          column_name: channel_sk
+    - relationships:
+        arguments:
+          column_name: channel_sk
+          to: ref('dim_channel')
+          field: channel_sk
+    - not_null:
+        arguments:
+          column_name: source_silver_updated_at
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_ad_spend_sk
+      description: Khóa thay thế duy nhất của Fact tại grain ad spend.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: spend_date
+      description: Ngày spend của ad spend.
+    - name: channel
+      description: Thuộc tính kênh của ad spend trong lớp Gold.
+    - name: spend_date_key
+      description: Khóa ngày ghi nhận chi tiêu quảng cáo dạng YYYYMMDD.
+    - name: campaign_sk
+      description: Khóa thay thế của chiến dịch, dùng join trong mô hình dimensional.
+    - name: channel_sk
+      description: Khóa thay thế của kênh, dùng join trong mô hình dimensional.
+    - name: campaign_name
+      description: Tên hiển thị của ad spend.
+    - name: channel_label
+      description: Thuộc tính kênh label của ad spend trong lớp Gold.
+    - name: channel_type
+      description: Thuộc tính kênh loại của ad spend trong lớp Gold.
+    - name: spend_amount
+      description: Giá trị tiền spend đã chuẩn hóa theo naming convention của warehouse.
+    - name: reported_revenue_amount
+      description: Doanh thu do nguồn marketing báo cáo, dùng so sánh với doanh thu quy gán từ đơn hàng.
+    - name: impressions
+      description: Thuộc tính impressions của ad spend trong lớp Gold.
+    - name: reach
+      description: Thuộc tính reach của ad spend trong lớp Gold.
+    - name: clicks
+      description: Thuộc tính clicks của ad spend trong lớp Gold.
+    - name: leads
+      description: Thuộc tính leads của ad spend trong lớp Gold.
+    - name: conversions
+      description: Thuộc tính conversions của ad spend trong lớp Gold.
+    - name: is_underperformer
+      description: Cờ đánh dấu campaign hoặc ngày quảng cáo hoạt động dưới ngưỡng kỳ vọng.
+    - name: ctr
+      description: Click-through rate, bằng clicks chia impressions.
+    - name: cpc_amount
+      description: Chi phí trung bình cho một click.
+    - name: cpm_amount
+      description: Chi phí trên một nghìn impressions.
+    - name: frequency
+      description: Thuộc tính frequency của ad spend trong lớp Gold.
+    - name: conversion_rate
+      description: Tỷ lệ conversion từ nguồn hoặc được model tính toán.
+    - name: cpa_amount
+      description: Chi phí trung bình cho một conversion.
+    - name: cpl_amount
+      description: Chi phí trung bình cho một lead.
+    - name: roas
+      description: Return on Ad Spend, bằng doanh thu quy gán chia cho chi phí quảng cáo.
+    - name: lead_quality_score
+      description: Thuộc tính lead quality score của ad spend trong lớp Gold.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+    - name: source_silver_updated_at
+      description: Thời điểm cập nhật Silver được Fact lưu lại để phát hiện source thay đổi ở lần chạy sau.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+
+  - name: fact_email_campaign
+    description: |-
+      **Grain:** 1 email campaign/blast (email_id), không phải 1 recipient.
+  
+      **Business value:** Đo deliverability, open, click, conversion, revenue và cost của email marketing.
+  
+      **Build logic:**
+      - Đọc `sil_email_campaigns_enriched`, `dim_campaign`, `dim_channel` và join dimension/lookup theo khóa trong SQL.
+      - Rebuild toàn bảng để correction, reclassification và row/group biến mất được phản ánh đầy đủ.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: fact_email_sk
+    - not_null:
+        arguments:
+          column_name: fact_email_sk
+    - unique:
+        arguments:
+          column_name: email_id
+    - not_null:
+        arguments:
+          column_name: email_id
+    - not_null:
+        arguments:
+          column_name: campaign_id
+    - not_null:
+        arguments:
+          column_name: send_date_key
+    - relationships:
+        arguments:
+          column_name: send_date_key
+          to: ref('dim_date')
+          field: date_key
+    - not_null:
+        arguments:
+          column_name: campaign_sk
+    - relationships:
+        arguments:
+          column_name: campaign_sk
+          to: ref('dim_campaign')
+          field: campaign_sk
+    - not_null:
+        arguments:
+          column_name: channel_sk
+    - relationships:
+        arguments:
+          column_name: channel_sk
+          to: ref('dim_channel')
+          field: channel_sk
+    - not_null:
+        arguments:
+          column_name: source_silver_updated_at
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_email_sk
+      description: Khóa thay thế duy nhất của Fact tại grain email campaign.
+    - name: email_id
+      description: Mã định danh email; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: channel_code
+      description: Mã nghiệp vụ của email campaign, dùng nhận diện hoặc mapping dữ liệu.
+    - name: campaign_sk
+      description: Khóa thay thế của chiến dịch, dùng join trong mô hình dimensional.
+    - name: channel_sk
+      description: Khóa thay thế của kênh, dùng join trong mô hình dimensional.
+    - name: send_date_key
+      description: Khóa ngày gửi email campaign dạng YYYYMMDD.
+    - name: email_type
+      description: Thuộc tính email loại của email campaign trong lớp Gold.
+    - name: goal
+      description: Thuộc tính goal của email campaign trong lớp Gold.
+    - name: list_name
+      description: Tên hiển thị của email campaign.
+    - name: subject_line
+      description: Thuộc tính subject line của email campaign trong lớp Gold.
+    - name: sent
+      description: Thuộc tính sent của email campaign trong lớp Gold.
+    - name: list_size
+      description: Thuộc tính list size của email campaign trong lớp Gold.
+    - name: delivered
+      description: Thuộc tính delivered của email campaign trong lớp Gold.
+    - name: bounced_total
+      description: Thuộc tính bounced tổng của email campaign trong lớp Gold.
+    - name: hard_bounce
+      description: Thuộc tính hard bounce của email campaign trong lớp Gold.
+    - name: soft_bounce
+      description: Thuộc tính soft bounce của email campaign trong lớp Gold.
+    - name: opens
+      description: Thuộc tính opens của email campaign trong lớp Gold.
+    - name: unique_opens
+      description: Thuộc tính unique opens của email campaign trong lớp Gold.
+    - name: clicks
+      description: Thuộc tính clicks của email campaign trong lớp Gold.
+    - name: unique_clicks
+      description: Thuộc tính unique clicks của email campaign trong lớp Gold.
+    - name: unsubscribes
+      description: Thuộc tính unsubscribes của email campaign trong lớp Gold.
+    - name: spam_reports
+      description: Thuộc tính spam reports của email campaign trong lớp Gold.
+    - name: conversions
+      description: Thuộc tính conversions của email campaign trong lớp Gold.
+    - name: revenue_amount
+      description: Giá trị tiền doanh thu đã chuẩn hóa theo naming convention của warehouse.
+    - name: cost_amount
+      description: Giá trị tiền chi phí đã chuẩn hóa theo naming convention của warehouse.
+    - name: deliverability_pct
+      description: Tỷ lệ deliverability; được biểu diễn dưới dạng số thập phân.
+    - name: open_pct
+      description: Tỷ lệ email được mở trên số email gửi thành công.
+    - name: ctr
+      description: Click-through rate, bằng clicks chia impressions.
+    - name: ctor
+      description: Click-to-open rate, bằng unique clicks chia unique opens.
+    - name: unsubscribe_pct
+      description: Tỷ lệ người nhận hủy đăng ký email.
+    - name: roas
+      description: Return on Ad Spend, bằng doanh thu quy gán chia cho chi phí quảng cáo.
+    - name: revenue_per_email
+      description: Thuộc tính doanh thu per email của email campaign trong lớp Gold.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+    - name: source_silver_updated_at
+      description: Thời điểm cập nhật Silver được Fact lưu lại để phát hiện source thay đổi ở lần chạy sau.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+
+  - name: fact_customer_acquisition
+    description: |-
+      **Grain:** 1 commercial customer đã có ít nhất 1 confirmed order.
+  
+      **Business value:** Theo dõi nguồn thu hút khách hàng, CAC, LTV, payback và hành vi mua lại để đánh giá chất lượng tăng trưởng.
+  
+      **Build logic:**
+      - Rebuild từ `fact_sales`, `dim_customer` và `fact_ad_spend`; xác định confirmed order đầu tiên của commercial customer.
+      - Gán campaign/channel của đơn đầu tiên và phân bổ paid spend cùng ngày cho khách mới trong cùng campaign × channel.
+      - Full recompute để order/spend mới cập nhật LTV, payback và attribution của khách cũ.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - unique:
+        arguments:
+          column_name: fact_cac_sk
+    - not_null:
+        arguments:
+          column_name: fact_cac_sk
+    - unique:
+        arguments:
+          column_name: partner_id
+    - not_null:
+        arguments:
+          column_name: partner_id
+    - unique:
+        arguments:
+          column_name: customer_sk
+    - not_null:
+        arguments:
+          column_name: customer_sk
+    - relationships:
+        arguments:
+          column_name: customer_sk
+          to: ref('dim_customer')
+          field: customer_sk
+    - relationships:
+        arguments:
+          column_name: campaign_sk
+          to: ref('dim_campaign')
+          field: campaign_sk
+    - relationships:
+        arguments:
+          column_name: channel_sk
+          to: ref('dim_channel')
+          field: channel_sk
+    - not_null:
+        arguments:
+          column_name: acquisition_date_key
+    - relationships:
+        arguments:
+          column_name: acquisition_date_key
+          to: ref('dim_date')
+          field: date_key
+    - not_null:
+        arguments:
+          column_name: as_of_date_key
+    - relationships:
+        arguments:
+          column_name: as_of_date_key
+          to: ref('dim_date')
+          field: date_key
+    - not_null:
+        arguments:
+          column_name: first_order_id
+    - not_null:
+        arguments:
+          column_name: first_order_value_amount
+    - not_null:
+        arguments:
+          column_name: ltv_to_date_amount
+    - not_null:
+        arguments:
+          column_name: order_count
+    - not_null:
+        arguments:
+          column_name: months_active
+    - not_null:
+        arguments:
+          column_name: attribution_model
+    - accepted_values:
+        arguments:
+          column_name: attribution_model
+          values:
+          - first_order_utm
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_cac_sk
+      description: Khóa thay thế duy nhất của Fact tại grain customer acquisition.
+    - name: partner_id
+      description: Mã định danh partner; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: customer_sk
+      description: Khóa thay thế của khách hàng, dùng join trong mô hình dimensional.
+    - name: campaign_sk
+      description: Khóa thay thế của chiến dịch, dùng join trong mô hình dimensional.
+    - name: channel_sk
+      description: Khóa thay thế của kênh, dùng join trong mô hình dimensional.
+    - name: acquisition_date_key
+      description: Khóa ngày khách hàng được ghi nhận acquisition dạng YYYYMMDD.
+    - name: as_of_date_key
+      description: Khóa ngày chốt dữ liệu dùng để tính metric tại một thời điểm.
+    - name: first_order_id
+      description: ID đơn hàng đầu tiên được dùng để xác định thời điểm acquisition của khách hàng.
+    - name: customer_segment
+      description: Thuộc tính khách hàng segment của customer acquisition trong lớp Gold.
+    - name: first_order_value_amount
+      description: Giá trị tiền first đơn hàng value đã chuẩn hóa theo naming convention của warehouse.
+    - name: cac_amount
+      description: Chi phí acquisition trung bình cho một khách hàng mới.
+    - name: ltv_to_date_amount
+      description: Giá trị tiền ltv to ngày đã chuẩn hóa theo naming convention của warehouse.
+    - name: order_count
+      description: Số lượng đơn hàng tại grain của model.
+    - name: months_active
+      description: Thuộc tính months active của customer acquisition trong lớp Gold.
+    - name: actual_orders_per_year
+      description: Thuộc tính thực tế orders per year của customer acquisition trong lớp Gold.
+    - name: last_order_date_key
+      description: Khóa ngày dạng YYYYMMDD cho last đơn hàng ngày; dùng join dim_date.
+    - name: is_repeat_customer
+      description: Cờ xác định khách hàng đã phát sinh đơn mua lặp lại.
+    - name: payback_date_key
+      description: Khóa ngày thu hồi chi phí acquisition dạng YYYYMMDD.
+    - name: payback_period_days
+      description: Thuộc tính payback period days của customer acquisition trong lớp Gold.
+    - name: is_cac_recovered
+      description: Cờ cho biết giá trị khách hàng đã bù được chi phí acquisition.
+    - name: ltv_cac_ratio
+      description: Tỷ lệ giá trị vòng đời khách hàng trên chi phí acquisition.
+    - name: attribution_model
+      description: Phương pháp gán nguồn marketing cho khách hàng hoặc doanh thu.
+
+  - name: fact_ab_test
+    description: |-
+      **Grain:** 1 hàng = 1 A/B test variant (variant_id thuộc test_id).
+  
+      **Business value:** So sánh traffic, conversion, revenue, cost và winner giữa các variant thử nghiệm.
+  
+      **Build logic:**
+      - Đọc `sil_ab_test_enriched`, `dim_channel`, `dim_campaign` và join dimension/lookup theo khóa trong SQL.
+      - Rebuild toàn bảng để correction, reclassification và row/group biến mất được phản ánh đầy đủ.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - test_id
+          - variant_name
+    - unique:
+        arguments:
+          column_name: fact_ab_test_sk
+    - not_null:
+        arguments:
+          column_name: fact_ab_test_sk
+    - unique:
+        arguments:
+          column_name: variant_id
+    - not_null:
+        arguments:
+          column_name: variant_id
+    - not_null:
+        arguments:
+          column_name: test_id
+    - not_null:
+        arguments:
+          column_name: start_date_key
+    - relationships:
+        arguments:
+          column_name: start_date_key
+          to: ref('dim_date')
+          field: date_key
+    - not_null:
+        arguments:
+          column_name: end_date_key
+    - relationships:
+        arguments:
+          column_name: end_date_key
+          to: ref('dim_date')
+          field: date_key
+    - not_null:
+        arguments:
+          column_name: campaign_sk
+    - relationships:
+        arguments:
+          column_name: campaign_sk
+          to: ref('dim_campaign')
+          field: campaign_sk
+    - not_null:
+        arguments:
+          column_name: channel_sk
+    - relationships:
+        arguments:
+          column_name: channel_sk
+          to: ref('dim_channel')
+          field: channel_sk
+    - not_null:
+        arguments:
+          column_name: is_winner
+    - not_null:
+        arguments:
+          column_name: source_silver_updated_at
+    - not_null:
+        arguments:
+          column_name: source_version_key
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_ab_test_sk
+      description: Khóa thay thế duy nhất của Fact tại grain ab test.
+    - name: variant_id
+      description: Mã định danh variant; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: test_id
+      description: Mã định danh test; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: test_name
+      description: Tên hiển thị của ab test.
+    - name: variant_name
+      description: Tên hiển thị của ab test.
+    - name: campaign_id
+      description: Mã định danh chiến dịch; dùng liên kết với bản ghi tương ứng ở hệ thống nguồn hoặc model liên quan.
+    - name: channel_code
+      description: Mã nghiệp vụ của ab test, dùng nhận diện hoặc mapping dữ liệu.
+    - name: start_date_key
+      description: Khóa ngày bắt đầu dạng YYYYMMDD.
+    - name: end_date_key
+      description: Khóa ngày kết thúc dạng YYYYMMDD.
+    - name: duration_days
+      description: Thuộc tính thời lượng days của ab test trong lớp Gold.
+    - name: channel_sk
+      description: Khóa thay thế của kênh, dùng join trong mô hình dimensional.
+    - name: campaign_sk
+      description: Khóa thay thế của chiến dịch, dùng join trong mô hình dimensional.
+    - name: is_winner
+      description: Cờ xác định variant thắng trong A/B test.
+    - name: budget_amount
+      description: Giá trị tiền budget đã chuẩn hóa theo naming convention của warehouse.
+    - name: impressions
+      description: Thuộc tính impressions của ab test trong lớp Gold.
+    - name: clicks
+      description: Thuộc tính clicks của ab test trong lớp Gold.
+    - name: conversion_count
+      description: Số lượng conversion tại grain của model.
+    - name: spend_amount
+      description: Giá trị tiền spend đã chuẩn hóa theo naming convention của warehouse.
+    - name: revenue_amount
+      description: Giá trị tiền doanh thu đã chuẩn hóa theo naming convention của warehouse.
+    - name: insight
+      description: Thuộc tính insight của ab test trong lớp Gold.
+    - name: ctr
+      description: Click-through rate, bằng clicks chia impressions.
+    - name: conv_pct
+      description: Tỷ lệ conv; được biểu diễn dưới dạng số thập phân.
+    - name: roas
+      description: Return on Ad Spend, bằng doanh thu quy gán chia cho chi phí quảng cáo.
+    - name: cpa_amount
+      description: Chi phí trung bình cho một conversion.
+    - name: ingested_at
+      description: Thời điểm bản ghi được nạp vào Snowflake Bronze/Staging.
+    - name: source_silver_updated_at
+      description: Thời điểm cập nhật Silver được Fact lưu lại để phát hiện source thay đổi ở lần chạy sau.
+    - name: source_version_key
+      description: Khóa phiên bản của toàn bộ dữ liệu nguồn phụ thuộc; thay đổi khi nội dung business của bản ghi hoặc nguồn join thay đổi.
+
+  - name: fact_marketing_funnel
+    description: |-
+      **Grain:** 1 hàng = 1 month × 1 channel.
+  
+      **Business value:** Cung cấp dữ liệu phễu Lead → Opportunity → Won để đo conversion, win/loss và hiệu quả campaign/channel.
+  
+      **Build logic:**
+      - Rebuild từ `fact_ad_spend`, `fact_crm_funnel`, `fact_sales` và `fact_customer_acquisition`, quy về channel × tháng.
+      - CRM/Sales dùng cohort tháng mở lead; Ads dùng calendar month vì chưa có identity bridge cấp impression/click.
+      - Tính lại ratio từ aggregate; reach unique không được cộng theo ngày và `source_daily_reach_sum` chỉ dùng audit.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - month_date_key
+          - channel_sk
+    - unique:
+        arguments:
+          column_name: fact_funnel_sk
+    - not_null:
+        arguments:
+          column_name: fact_funnel_sk
+    - not_null:
+        arguments:
+          column_name: month_date_key
+    - relationships:
+        arguments:
+          column_name: month_date_key
+          to: ref('dim_date')
+          field: date_key
+    - relationships:
+        arguments:
+          column_name: channel_sk
+          to: ref('dim_channel')
+          field: channel_sk
+    - not_null:
+        arguments:
+          column_name: impressions
+    - not_null:
+        arguments:
+          column_name: clicks
+    - not_null:
+        arguments:
+          column_name: leads
+    - not_null:
+        arguments:
+          column_name: conversions
+    - not_null:
+        arguments:
+          column_name: spend_amount
+    - not_null:
+        arguments:
+          column_name: revenue_amount
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: fact_funnel_sk
+      description: Khóa thay thế duy nhất của Fact tại grain marketing funnel.
+    - name: channel_sk
+      description: Khóa thay thế của kênh, dùng join trong mô hình dimensional.
+    - name: channel_code
+      description: Mã nghiệp vụ của marketing funnel, dùng nhận diện hoặc mapping dữ liệu.
+    - name: month_date_key
+      description: Khóa ngày đầu tháng dạng YYYYMMDD, đại diện kỳ tổng hợp tháng.
+    - name: impressions
+      description: Thuộc tính impressions của marketing funnel trong lớp Gold.
+    - name: reach
+      description: Thuộc tính reach của marketing funnel trong lớp Gold.
+    - name: source_daily_reach_sum
+      description: Tổng reach theo các dòng ngày của nguồn; dùng kiểm soát reconciliation.
+    - name: clicks
+      description: Thuộc tính clicks của marketing funnel trong lớp Gold.
+    - name: platform_leads
+      description: Thuộc tính platform leads của marketing funnel trong lớp Gold.
+    - name: platform_conversions
+      description: Thuộc tính platform conversions của marketing funnel trong lớp Gold.
+    - name: leads
+      description: Thuộc tính leads của marketing funnel trong lớp Gold.
+    - name: opportunities
+      description: Thuộc tính opportunities của marketing funnel trong lớp Gold.
+    - name: won_opportunities
+      description: Thuộc tính won opportunities của marketing funnel trong lớp Gold.
+    - name: conversions
+      description: Thuộc tính conversions của marketing funnel trong lớp Gold.
+    - name: confirmed_orders
+      description: Thuộc tính confirmed orders của marketing funnel trong lớp Gold.
+    - name: new_customers
+      description: Thuộc tính new customers của marketing funnel trong lớp Gold.
+    - name: spend_amount
+      description: Giá trị tiền spend đã chuẩn hóa theo naming convention của warehouse.
+    - name: revenue_amount
+      description: Giá trị tiền doanh thu đã chuẩn hóa theo naming convention của warehouse.
+    - name: ctr
+      description: Click-through rate, bằng clicks chia impressions.
+    - name: click_to_lead_pct
+      description: Tỷ lệ click chuyển thành lead.
+    - name: lead_to_opportunity_pct
+      description: Tỷ lệ lead được chuyển thành opportunity.
+    - name: win_pct
+      description: Tỷ lệ opportunity thắng trên tổng opportunity đã đánh giá.
+    - name: lead_to_order_pct
+      description: Tỷ lệ lead hoặc opportunity chuyển thành đơn hàng.
+    - name: end_to_end_pct
+      description: Tỷ lệ chuyển đổi toàn phễu từ impression đến conversion.
+    - name: roas
+      description: Return on Ad Spend, bằng doanh thu quy gán chia cho chi phí quảng cáo.
+    - name: cac_amount
+      description: Chi phí acquisition trung bình cho một khách hàng mới.
+    - name: cpl_amount
+      description: Chi phí trung bình cho một lead.
+    - name: cpc_amount
+      description: Chi phí trung bình cho một click.
+    - name: cpm_amount
+      description: Chi phí trên một nghìn impressions.
+    - name: revenue_per_lead
+      description: Thuộc tính doanh thu per lead của marketing funnel trong lớp Gold.

@@ -1,164 +1,165 @@
-# FRD-02 — YÊU CẦU CHỨC NĂNG: MARKETING
-## Superstore ERP · Phòng Marketing · Phiên bản 1.0 · 2026
+# FRD-02 — Marketing
 
----
+## 1. Mục tiêu và phạm vi
 
-## 1. Tổng quan phòng ban
+Marketing cần trả lời ba câu hỏi:
 
-**Sứ mệnh:** Thu hút khách hàng tiềm năng chất lượng cao với chi phí thấp nhất, đo lường hiệu quả từng kênh để phân bổ ngân sách tối ưu, và nuôi dưỡng khách cũ tái mua hàng.
+1. Kênh nào tạo được lead và khách hàng mới?
+2. Chi phí bỏ ra có tạo đủ doanh thu không?
+3. Campaign/email/A-B test nào cần tăng, giữ hoặc giảm ngân sách?
 
-**Nhân sự:**
-- 1 Marketing Manager (Anna Kowalski) — chiến lược, ngân sách, phê duyệt chiến dịch
-- 1 Digital Marketing Specialist — vận hành Google Ads, Meta, email campaign
+Phạm vi hiện tại gồm UTM trong Odoo và bốn file marketing production. Không dùng dữ liệu
+email từ module `mass_mailing`; không ingest hai file synthetic
+`customer_acquisition`/`marketing_funnel_monthly`.
 
-**Kênh hoạt động:**
-- **Google Ads** — tìm kiếm trả phí (Search) nhắm từ khóa sản phẩm văn phòng
-- **Meta Ads** — Facebook/Instagram nhắm doanh nghiệp nhỏ và home office
-- **Email Marketing** — bản tin tháng + chiến dịch khuyến mãi theo mùa
-- **Organic/Direct** — khách quay lại, giới thiệu — không trả phí, theo dõi qua UTM = none/direct
-- **Referral/Events** — hội chợ thương mại, đối tác giới thiệu
-
-**KPI phòng:**
-
-| KPI | Mục tiêu | Chu kỳ |
-|---|---|---|
-| Số lead tạo ra / tháng | ≥ 120 lead | Tháng |
-| ROAS (Return on Ad Spend) | ≥ 3.0× trên tổng paid | Tháng |
-| ROAS tối thiểu từng kênh | ≥ 2.0× (dưới cắt ngân sách) | Tháng |
-| CAC (Chi phí thu hút 1 khách mới) | ≤ $85 | Tháng |
-| Tỷ lệ mở email (Email Open Rate) | ≥ 22% | Chiến dịch |
-| Tỷ lệ click email (CTR) | ≥ 3.5% | Chiến dịch |
-| Tỷ lệ chuyển đổi Lead → SO | ≥ 25% (phối hợp Sales) | Tháng |
-
----
-
-## 2. Kiến trúc tracking dữ liệu marketing
-
-Superstore dùng mô hình **multi-source tracking**: dữ liệu từ 2 nguồn riêng biệt, kết hợp trong data warehouse để tính ROAS và CAC đầy đủ.
-
-**Nguồn 1 — UTM trong Odoo (internal):**
-Mọi lead và sales order có cột `campaign_id`, `source_id`, `medium_id` (từ bảng `utm_campaign`, `utm_source`, `utm_medium`). Khi rep nhập lead từ chiến dịch nào → gắn campaign. Khi khách click link quảng cáo → UTM tự điền vào form web → lead tạo kèm UTM.
-
-**Nguồn 2 — Ad Spend data (external CSV/API):**
-Google Ads và Meta ghi `impressions`, `clicks`, `spend` hằng ngày theo `campaign_id`. File export từ Google Ads Console / Meta Ads Manager → ingest vào data warehouse riêng (không vào Odoo). Join với revenue từ Odoo theo `campaign_id` và `date` → tính ROAS.
-
-```
-Google Ads / Meta Ads
-        │ daily export (CSV)
-        ▼
-   MinIO / Staging
-        │ dbt model
-        ▼
-   fact_ad_spend (Snowflake)
-        │
-        ├── JOIN fact_sales ON campaign_id
-        ▼
-   mart_roas_by_channel (Power BI)
-```
-
----
-
-## 3. Sơ đồ luồng nghiệp vụ
+## 2. Bức tranh dữ liệu
 
 ```mermaid
-flowchart TD
-    A([Lập kế hoạch Marketing tháng]) --> B[Xác định ngân sách theo kênh]
-    B --> C[Tạo Campaign trong Odoo UTM]
-    C --> D[Triển khai quảng cáo Google/Meta\nvới UTM parameters]
-    D --> E([Khách click quảng cáo])
-    E --> F[Lead tạo với campaign_id/source_id]
-    F --> G[Sales xử lý Lead → SO]
+flowchart LR
+    subgraph EXT[Marketing platforms]
+        ADS[Ads daily]
+        EMAIL[Email campaigns]
+        AB[A/B test]
+        MASTER[Campaign master]
+    end
 
-    C --> H[Soạn Email Campaign]
-    H --> I[Gửi email qua mass_mailing]
-    I --> J[Theo dõi open/click/bounce]
-    J --> K[Khách click link trong email → Lead]
+    subgraph ODOO[Odoo]
+        UTM[utm_campaign/source/medium]
+        CRM[crm_lead]
+        SO[sale_order + lines]
+    end
 
-    G --> L[Cuối tháng: Export ad spend\nGoogle + Meta CSV]
-    L --> M[Ingest vào data warehouse]
-    M --> N[Join spend với revenue theo campaign]
-    N --> O[Tính ROAS, CAC từng kênh]
-    O --> P{ROAS < 2.0?}
-    P -->|Có| Q[Đề xuất cắt/điều chỉnh kênh đó]
-    P -->|Không| R[Giữ hoặc tăng ngân sách kênh tốt]
-    Q --> A
-    R --> A
+    EXT -->|4 CSV| RAW[MinIO → Snowflake Bronze]
+    ODOO -->|Debezium CDC| RAW
+    RAW --> STG[Staging]
+    STG --> SIL[Silver enriched]
+    SIL --> GOLD[Gold facts + dimensions]
+
+    GOLD --> FAD[fact_ad_spend]
+    GOLD --> FCRM[fact_crm_funnel]
+    GOLD --> FSALE[fact_sales]
+    GOLD --> FCAC[fact_customer_acquisition]
+    GOLD --> FFUNNEL[fact_marketing_funnel]
+    GOLD --> FEMAIL[fact_email_campaign]
+
+    FAD --> ROAS[mart_roas_by_channel]
+    FSALE --> ROAS
+    FCAC --> ROAS
+    FCAC --> CAC[mart_customer_acquisition]
+    FEMAIL --> EM[mart_email_performance]
 ```
 
----
+Khóa dùng để nối campaign là `campaign_id` của CSV = `utm_campaign.id` trong Odoo. Tên
+campaign chỉ để hiển thị, không dùng làm khóa.
 
-## 4. SOP — Quy trình chuẩn từng bước
+## 3. Phễu chuyển đổi
 
-| Bước | Ai | Hành động | Trên Odoo / Tool | Bảng DB ghi | Kết quả |
-|---|---|---|---|---|---|
-| 1 | Marketing Mgr | Lập kế hoạch ngân sách tháng theo kênh | Spreadsheet nội bộ | — | Budget plan |
-| 2 | Marketing Mgr | Tạo campaign trong Odoo | Marketing → UTM → Campaigns → New | `utm_campaign` INSERT | Campaign có ID |
-| 3 | Digital Specialist | Cấu hình UTM links cho Google/Meta | Google Ads / Meta Ads Manager | — | Links có `?utm_source=google&utm_campaign=xxx` |
-| 4 | Digital Specialist | Kích hoạt chiến dịch, thiết lập targeting | Google Ads Console / Meta Ads Manager | External | Quảng cáo chạy |
-| 5 | CRM tự động / Sales Rep | Lead tạo kèm UTM khi khách điền form | CRM → Leads (auto từ web form) | `crm_lead` với campaign_id | Lead tracked |
-| 6 | Digital Specialist | Soạn và lên lịch email campaign | Email Marketing → Campaigns → New | `mass_mailing`, `mailing_list` | Email scheduled |
-| 7 | Hệ thống tự động | Gửi email, ghi nhận open/click/bounce | — | `mass_mailing_stats` | Engagement tracked |
-| 8 | Digital Specialist | Cuối tháng: export spend từ Google/Meta | Google Ads → Reports; Meta → Ads Manager | CSV file | Ad spend data |
-| 9 | Data Analyst | Ingest CSV vào data warehouse | MinIO → dbt staging | `stg_ad_spend` Snowflake | Dữ liệu warehouse |
-| 10 | Data Analyst | Chạy dbt model tính ROAS, CAC | dbt run `mart_roas_by_channel` | `mart_roas` Snowflake | Dashboard sẵn sàng |
-| 11 | Marketing Mgr | Review ROAS/CAC từng kênh | Power BI Dashboard | — | Quyết định phân bổ ngân sách |
+```mermaid
+flowchart LR
+    A[Impression] --> B[Click]
+    B --> C[Platform lead]
+    C --> D[Odoo lead]
+    D --> E[Opportunity]
+    E --> F[Won]
+    F --> G[Confirmed order]
+    G --> H[Customer acquisition]
+    H --> I[Repeat purchase]
 
----
+    A -. Ads CSV .-> X[fact_ad_spend]
+    D -. crm_lead .-> Y[fact_crm_funnel]
+    G -. sale_order .-> Z[fact_sales]
+    H -. derived .-> W[fact_customer_acquisition]
+```
 
-## 5. Quy tắc nghiệp vụ (Business Rules)
+`platform_leads` và Odoo `leads` được giữ riêng vì khác định nghĩa và grain. Không ép hai
+số này bằng nhau.
 
-| Mã | Quy tắc | Chi tiết |
+## 4. Vai trò và bàn giao
+
+| Vai trò | Trách nhiệm | Bàn giao |
 |---|---|---|
-| BR-MKT-01 | Bắt buộc gắn campaign | Mọi lead từ paid channel phải có campaign_id; nếu thiếu → hệ thống cảnh báo |
-| BR-MKT-02 | Ngưỡng cắt kênh | ROAS < 2.0 liên tiếp 2 tháng → Marketing Mgr đề xuất tạm dừng kênh đó |
-| BR-MKT-03 | CAC ceiling | Nếu CAC > $120 bất kỳ kênh nào → review ngay, không chờ cuối tháng |
-| BR-MKT-04 | Email frequency | Tối đa 2 email campaign/tháng đến cùng 1 danh sách; tránh spam |
-| BR-MKT-05 | Mùa vụ | Tăng ngân sách 30–50% trong Aug–Sep (back-to-school) và Nov–Dec (year-end) |
-| BR-MKT-06 | Phân tích attribution | Dùng last-click attribution (nguồn cuối cùng trước khi mua được ghi công) |
-| BR-MKT-07 | Dữ liệu riêng biệt | Ad spend data KHÔNG lưu trong Odoo — chỉ trong data warehouse. Tránh làm nặng Odoo |
+| Marketing Manager | Phê duyệt campaign, ngân sách và quyết định tối ưu | Campaign plan, KPI target |
+| Digital Specialist | Chạy Ads/email/A-B test, gắn UTM, xuất file | 4 CSV đúng schema và đúng lịch |
+| Sales/CRM | Xử lý lead, chuyển opportunity, xác nhận đơn | `crm_lead`, `sale_order.opportunity_id` |
+| Data Engineer | Ingest, kiểm tra khóa, vận hành dbt | Gold/Mart đã qua test |
+| Data Analyst | Phân tích funnel, ROAS, CAC, email | Dashboard và khuyến nghị |
 
----
+```mermaid
+sequenceDiagram
+    participant M as Marketing
+    participant P as Platform
+    participant O as Odoo CRM/Sales
+    participant D as Data Platform
+    participant B as BI
 
-## 6. Handoff Matrix
+    M->>O: Tạo/đồng bộ UTM campaign
+    M->>P: Chạy campaign với campaign_id chuẩn
+    P-->>M: Xuất 4 CSV production
+    O-->>D: CDC lead, opportunity, order
+    M-->>D: CSV campaign/ads/email/A-B
+    D->>D: Reconcile campaign_id + dbt tests
+    D-->>B: Funnel, ROAS, CAC, email KPI
+    B-->>M: Quyết định tăng/giữ/giảm ngân sách
+```
 
-| Nhận từ | Giao cho | Trigger | Dữ liệu chuyển |
-|---|---|---|---|
-| External (Google/Meta) | Marketing (Data) | Cuối tháng | CSV ad spend: campaign, date, spend, clicks, impressions |
-| Marketing | Sales/CRM | Lead đủ điều kiện (qualified lead) | `crm_lead` với campaign_id, source_id, score |
-| Sales | Marketing | SO confirmed từ lead marketing | `sale_order.campaign_id` → revenue attribution |
-| Data Analyst | Marketing Mgr | Dashboard ROAS/CAC sẵn sàng | Power BI report link |
+## 5. Hợp đồng dữ liệu nguồn
 
----
+| File | Grain | Khóa | Nội dung chính | Người tạo |
+|---|---|---|---|---|
+| `marketing_campaigns_master.csv` | 1 campaign | `campaign_id` | tên, kênh, mục tiêu, trạng thái | Marketing Manager |
+| `ad_performance_daily.csv` | 1 campaign × date × channel | `campaign_id,date,channel` | spend, impression, reach, click, lead, conversion | Digital Specialist |
+| `email_campaigns.csv` | 1 email blast | `email_id` | delivered, open, click, bounce, revenue, cost | Digital Specialist |
+| `ab_test_results.csv` | 1 variant | `variant_id` | budget, impression, click, conversion, winner | Digital Specialist |
 
-## 7. Exception Flows
+Quy tắc nạp:
 
-**Ngoại lệ 1 — UTM bị thiếu trên lead:**
-Sales rep nhập lead thủ công không gắn campaign → cuối tháng có "Unknown" source trong báo cáo. Giải pháp: Data Ops tạo data quality rule cảnh báo `crm_lead` không có source_id trong tháng hoạt động chiến dịch.
+- File phải đầy đủ khóa, không trùng grain và không rỗng.
+- Ingest lại file giống hệt được bỏ qua bằng file hash.
+- Khi nội dung thay đổi, `_source_batch_id`, `_source_loaded_at` và `record_hash` tạo version mới.
+- Airflow kiểm tra toàn bộ `campaign_id` tồn tại trong Odoo trước khi nạp.
 
-**Ngoại lệ 2 — Google/Meta thay đổi cấu trúc export CSV:**
-Column names thay đổi → dbt staging model lỗi. Giải pháp: Schema test trong dbt; alert khi model fail.
+## 6. KPI và nguồn tính
 
-**Ngoại lệ 3 — Email campaign bounce rate cao > 10%:**
-Danh sách email cũ/không hợp lệ. Hành động: xóa unsubscribe & hard bounce khỏi mailing list; báo cáo tình trạng danh sách cho Marketing Mgr.
-
----
-
-## 8. Data Footprint
-
-| Bảng / Nguồn | Vai trò | Loại |
+| KPI | Công thức | Model chuẩn |
 |---|---|---|
-| `utm_campaign` | Danh mục chiến dịch | Master |
-| `utm_source` | Nguồn (Google, Facebook, Email...) | Master |
-| `utm_medium` | Kênh (cpc, email, organic...) | Master |
-| `crm_lead.campaign_id` | Gắn lead vào chiến dịch | Transaction |
-| `sale_order.campaign_id` | Gắn doanh thu vào chiến dịch | Transaction |
-| `mass_mailing` | Email campaign | Transaction |
-| `mass_mailing_stats` | Engagement email (open, click, bounce) | Transaction |
-| `stg_ad_spend` (Snowflake) | Chi tiêu quảng cáo hằng ngày (external) | Transaction |
-| `mart_roas_by_channel` | ROAS/CAC đã tính (Gold layer) | Mart |
+| CTR | clicks / impressions | `fact_marketing_funnel` |
+| Lead → Opportunity | opportunities / leads | `fact_marketing_funnel` |
+| Win rate | won opportunities / opportunities | `fact_marketing_funnel` |
+| Lead → Order | converted leads / leads | `fact_marketing_funnel` |
+| ROAS | attributed revenue / ad spend | `mart_roas_by_channel` |
+| CAC | ad spend / new customers | `mart_roas_by_channel` |
+| LTV/CAC | total LTV / total CAC | `mart_customer_acquisition` |
+| Email open rate | unique opens / delivered | `mart_email_performance` |
+| Email click rate | unique clicks / delivered | `mart_email_performance` |
 
-**Phân tích downstream:**
-- Marketing funnel: Impressions → Clicks → Leads → SO → Revenue
-- ROAS, CAC theo kênh × tháng × category
-- Email engagement trend
-- Mùa vụ quảng cáo (seasonal campaign effectiveness)
+`reach` tháng để `NULL` vì daily reach không cộng được thành monthly unique reach;
+`source_daily_reach_sum` chỉ dùng audit.
+
+## 7. Business rules
+
+| Mã | Quy tắc |
+|---|---|
+| BR-MKT-01 | Paid lead/order phải có campaign, source và medium hợp lệ. |
+| BR-MKT-02 | `sale_order.opportunity_id` phải trỏ đúng CRM lead của cùng partner. |
+| BR-MKT-03 | Revenue attribution dùng channel/campaign của first confirmed order cho acquisition. |
+| BR-MKT-04 | KPI ratio phải tính lại từ tổng tử số/mẫu số; không lấy trung bình ratio từng dòng. |
+| BR-MKT-05 | Campaign name không phải candidate key; chỉ dùng ID đã reconcile. |
+| BR-MKT-06 | Dữ liệu platform và Odoo được so sánh nhưng không giả định cùng định nghĩa lead/conversion. |
+
+## 8. Ngoại lệ và cách xử lý
+
+| Ngoại lệ | Xử lý |
+|---|---|
+| Campaign ID không có trong Odoo | Dừng DAG trước ingest; Marketing sửa mapping. |
+| File đổi schema/thiếu khóa/trùng grain | Dừng loader; không ghi đè batch hợp lệ trước đó. |
+| Order không có medium | Gắn `direct`/`organic`/`referral` đúng nghiệp vụ; không tự đoán paid channel. |
+| Lead không nối được order | Giữ ở CRM funnel; không tính là conversion ERP. |
+| Spend có nhưng chưa có doanh thu | Giữ group với ROAS thấp/0; không loại khỏi Mart. |
+
+## 9. Tiêu chí nghiệm thu
+
+- 100% campaign ID trong bốn file tồn tại ở `utm_campaign`.
+- Không có campaign FK mồ côi ở `crm_lead`, `sale_order`, `account_move`.
+- Confirmed order có `medium_id` và `opportunity_id`; opportunity khớp partner.
+- Fact giữ đúng grain, không duplicate sau join.
+- Funnel, ROAS, CAC và email Mart vượt toàn bộ dbt tests trước khi refresh BI.

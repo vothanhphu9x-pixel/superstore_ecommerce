@@ -1,0 +1,814 @@
+version: 2
+
+# File này tách rõ hai khu vực trong từng resource:
+# 1) TEST: điều kiện kiểm thử dữ liệu.
+# 2) DESCRIPTION: metadata mô tả bảng/cột cho dbt Docs.
+models:
+  - name: mart_revenue_monthly
+    description: |-
+      **Grain:** 1 month × 1 customer region × 1 product category_l1.
+  
+      **Business value:** Cung cấp doanh thu, COGS và lợi nhuận gộp theo tháng, khu vực và danh mục sản phẩm.
+  
+      **Build logic:**
+      - Đọc `fact_sales`, `dim_date`, `dim_customer`, `dim_product`, join bằng surrogate key đã resolve tại Gold và aggregate về grain báo cáo.
+      - Rebuild toàn bảng để correction/backfill và aggregate group biến mất không bị sót.
+      - Tính lại ratio từ tổng tử số/mẫu số; loại tombstone, trạng thái hủy hoặc dòng thiếu điều kiện KPI theo WHERE của mart.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - month_date_key
+          - region
+          - category_l1
+    - unique:
+        arguments:
+          column_name: mart_revenue_sk
+    - not_null:
+        arguments:
+          column_name: mart_revenue_sk
+    - not_null:
+        arguments:
+          column_name: month_date_key
+    - relationships:
+        arguments:
+          column_name: month_date_key
+          to: ref('dim_date')
+          field: date_key
+    - not_null:
+        arguments:
+          column_name: region
+    - not_null:
+        arguments:
+          column_name: category_l1
+    - not_null:
+        arguments:
+          column_name: revenue_amount
+    - not_null:
+        arguments:
+          column_name: missing_cost_line_count
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: mart_revenue_sk
+      description: Khóa thay thế duy nhất của Mart tại grain tổng hợp revenue monthly.
+    - name: src_fact_sales_sk
+      description: Khóa Fact nguồn đại diện, dùng truy vết lineage từ mart về dữ liệu chi tiết.
+    - name: region
+      description: Thuộc tính region của revenue monthly trong lớp Mart.
+    - name: category_l1
+      description: Thuộc tính category l1 của revenue monthly trong lớp Mart.
+    - name: month_date_key
+      description: Khóa ngày đầu tháng dạng YYYYMMDD, đại diện kỳ tổng hợp tháng.
+    - name: sale_line_count
+      description: Số lượng sale line tại grain của model.
+    - name: sales_order_count
+      description: Số lượng sales đơn hàng tại grain của model.
+    - name: revenue_amount
+      description: Giá trị tiền doanh thu đã chuẩn hóa theo naming convention của warehouse.
+    - name: cogs_amount
+      description: Giá trị tiền cogs đã chuẩn hóa theo naming convention của warehouse.
+    - name: gross_profit_amount
+      description: Lợi nhuận gộp, được tính bằng revenue_amount trừ cost_amount.
+    - name: missing_cost_line_count
+      description: Số dòng doanh thu thiếu cost để tính lợi nhuận gộp.
+
+  - name: mart_vendor_performance
+    description: |-
+      **Grain:** 1 purchase order month × 1 vendor version key.
+  
+      **Business value:** Đánh giá vendor theo fill rate, receipt coverage và tỷ lệ nhận hàng trễ.
+  
+      **Build logic:**
+      - Đọc `fact_purchase`, `dim_date`, join bằng surrogate key đã resolve tại Gold và aggregate về grain báo cáo.
+      - Rebuild toàn bảng để correction/backfill và aggregate group biến mất không bị sót.
+      - Tính lại ratio từ tổng tử số/mẫu số; loại tombstone, trạng thái hủy hoặc dòng thiếu điều kiện KPI theo WHERE của mart.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - month_date_key
+          - vendor_sk
+    - unique:
+        arguments:
+          column_name: mart_vendor_perf_sk
+    - not_null:
+        arguments:
+          column_name: mart_vendor_perf_sk
+    - not_null:
+        arguments:
+          column_name: month_date_key
+    - relationships:
+        arguments:
+          column_name: month_date_key
+          to: ref('dim_date')
+          field: date_key
+    - not_null:
+        arguments:
+          column_name: vendor_sk
+    - relationships:
+        arguments:
+          column_name: vendor_sk
+          to: ref('dim_customer')
+          field: customer_sk
+    - not_null:
+        arguments:
+          column_name: po_count
+    - not_null:
+        arguments:
+          column_name: receipt_coverage_pct
+    - not_null:
+        arguments:
+          column_name: late_count
+    - accepted_values:
+        arguments:
+          column_name: late_measurement_status
+          values:
+          - available
+          - partial
+          - not_available
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: mart_vendor_perf_sk
+      description: Khóa thay thế duy nhất của Mart tại grain tổng hợp vendor performance.
+    - name: src_fact_purchase_sk
+      description: Khóa Fact nguồn đại diện, dùng truy vết lineage từ mart về dữ liệu chi tiết.
+    - name: vendor_sk
+      description: Khóa thay thế của nhà cung cấp, dùng join trong mô hình dimensional.
+    - name: month_date_key
+      description: Khóa ngày đầu tháng dạng YYYYMMDD, đại diện kỳ tổng hợp tháng.
+    - name: purchase_line_count
+      description: Số lượng purchase line tại grain của model.
+    - name: po_count
+      description: Số lượng po tại grain của model.
+    - name: qty_received
+      description: Số lượng received tại grain của model.
+    - name: product_qty
+      description: Số lượng sản phẩm tại grain của model.
+    - name: fill_rate_pct
+      description: Tỷ lệ số lượng đã nhận trên số lượng đặt mua.
+    - name: purchase_amount
+      description: Giá trị tiền purchase đã chuẩn hóa theo naming convention của warehouse.
+    - name: received_line_count
+      description: Số lượng received line tại grain của model.
+    - name: on_time_count
+      description: Số lượng on thời gian tại grain của model.
+    - name: late_count
+      description: Số lượng late tại grain của model.
+    - name: unmeasured_line_count
+      description: Số dòng không đủ dữ liệu để đo KPI yêu cầu.
+    - name: receipt_coverage_pct
+      description: Tỷ lệ dòng mua hàng có dữ liệu movement nhận hàng để đo SLA.
+    - name: on_time_delivery_pct
+      description: Tỷ lệ giao hoặc nhận hàng đúng hạn.
+    - name: late_delivery_pct
+      description: Tỷ lệ giao hoặc nhận hàng trễ.
+    - name: avg_days_late
+      description: Thuộc tính avg days late của vendor performance trong lớp Mart.
+    - name: late_measurement_status
+      description: Trạng thái mức độ sẵn sàng của dữ liệu đo trễ hạn.
+
+  - name: mart_delivery_performance
+    description: |-
+      **Grain:** 1 completion month × 1 warehouse × 1 ship_mode.
+  
+      **Business value:** Đánh giá giao hàng đúng hạn theo tháng, kho và phương thức vận chuyển.
+  
+      **Build logic:**
+      - Đọc `fact_inventory_movement`, `dim_date`, join bằng surrogate key đã resolve tại Gold và aggregate về grain báo cáo.
+      - Rebuild toàn bảng để correction/backfill và aggregate group biến mất không bị sót.
+      - Tính lại ratio từ tổng tử số/mẫu số; loại tombstone, trạng thái hủy hoặc dòng thiếu điều kiện KPI theo WHERE của mart.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - month_date_key
+          - warehouse_sk
+          - ship_mode
+    - unique:
+        arguments:
+          column_name: mart_delivery_sk
+    - not_null:
+        arguments:
+          column_name: mart_delivery_sk
+    - not_null:
+        arguments:
+          column_name: month_date_key
+    - relationships:
+        arguments:
+          column_name: month_date_key
+          to: ref('dim_date')
+          field: date_key
+    - not_null:
+        arguments:
+          column_name: warehouse_sk
+    - relationships:
+        arguments:
+          column_name: warehouse_sk
+          to: ref('dim_warehouse')
+          field: warehouse_sk
+    - not_null:
+        arguments:
+          column_name: ship_mode
+    - not_null:
+        arguments:
+          column_name: total_deliveries
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: mart_delivery_sk
+      description: Khóa thay thế duy nhất của Mart tại grain tổng hợp delivery performance.
+    - name: src_fact_inv_move_sk
+      description: Khóa Fact nguồn đại diện, dùng truy vết lineage từ mart về dữ liệu chi tiết.
+    - name: warehouse_sk
+      description: Khóa thay thế của kho, dùng join trong mô hình dimensional.
+    - name: month_date_key
+      description: Khóa ngày đầu tháng dạng YYYYMMDD, đại diện kỳ tổng hợp tháng.
+    - name: ship_mode
+      description: Thuộc tính ship mode của delivery performance trong lớp Mart.
+    - name: total_deliveries
+      description: Thuộc tính tổng deliveries của delivery performance trong lớp Mart.
+    - name: on_time_count
+      description: Số lượng on thời gian tại grain của model.
+    - name: late_count
+      description: Số lượng late tại grain của model.
+    - name: early_count
+      description: Số lượng early tại grain của model.
+    - name: no_sla_count
+      description: Số lượng no sla tại grain của model.
+    - name: deadline_sla_count
+      description: Số lượng deadline sla tại grain của model.
+    - name: schedule_sla_count
+      description: Số lượng schedule sla tại grain của model.
+    - name: on_time_pct
+      description: Tỷ lệ giao nhận đúng hạn trên số giao nhận có đủ dữ liệu SLA.
+    - name: avg_days_late
+      description: Thuộc tính avg days late của delivery performance trong lớp Mart.
+
+  - name: mart_customer_acquisition
+    description: |-
+      **Grain:** 1 acquisition month × 1 acquisition channel.
+  
+      **Business value:** Đánh giá số khách mới, CAC, LTV, payback và repeat customer theo tháng/channel.
+  
+      **Build logic:**
+      - Đọc `fact_customer_acquisition`, `dim_date`, `dim_channel`, join bằng surrogate key đã resolve tại Gold và aggregate về grain báo cáo.
+      - Rebuild toàn bảng để correction/backfill và aggregate group biến mất không bị sót.
+      - Tính lại ratio từ tổng tử số/mẫu số; loại tombstone, trạng thái hủy hoặc dòng thiếu điều kiện KPI theo WHERE của mart.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - month_date_key
+          - channel_sk
+    - unique:
+        arguments:
+          column_name: mart_cac_sk
+    - not_null:
+        arguments:
+          column_name: mart_cac_sk
+    - not_null:
+        arguments:
+          column_name: month_date_key
+    - relationships:
+        arguments:
+          column_name: month_date_key
+          to: ref('dim_date')
+          field: date_key
+    - relationships:
+        arguments:
+          column_name: channel_sk
+          to: ref('dim_channel')
+          field: channel_sk
+    - not_null:
+        arguments:
+          column_name: as_of_date_key
+    - relationships:
+        arguments:
+          column_name: as_of_date_key
+          to: ref('dim_date')
+          field: date_key
+    - not_null:
+        arguments:
+          column_name: new_customer_count
+    - not_null:
+        arguments:
+          column_name: total_ltv_amount
+    - not_null:
+        arguments:
+          column_name: ltv_segment
+    - accepted_values:
+        arguments:
+          column_name: ltv_segment
+          values:
+          - high
+          - medium
+          - low
+          - unattributed
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: mart_cac_sk
+      description: Khóa thay thế duy nhất của Mart tại grain tổng hợp customer acquisition.
+    - name: month_date_key
+      description: Khóa ngày đầu tháng dạng YYYYMMDD, đại diện kỳ tổng hợp tháng.
+    - name: channel_sk
+      description: Khóa thay thế của kênh, dùng join trong mô hình dimensional.
+    - name: channel_code
+      description: Mã nghiệp vụ của customer acquisition, dùng nhận diện hoặc mapping dữ liệu.
+    - name: as_of_date_key
+      description: Khóa ngày chốt dữ liệu dùng để tính metric tại một thời điểm.
+    - name: new_customer_count
+      description: Số lượng new khách hàng tại grain của model.
+    - name: attributed_customer_count
+      description: Số lượng attributed khách hàng tại grain của model.
+    - name: total_first_order_value_amount
+      description: Giá trị tiền tổng first đơn hàng value đã chuẩn hóa theo naming convention của warehouse.
+    - name: total_cac_amount
+      description: Giá trị tiền tổng cac đã chuẩn hóa theo naming convention của warehouse.
+    - name: total_ltv_amount
+      description: Giá trị tiền tổng ltv đã chuẩn hóa theo naming convention của warehouse.
+    - name: ltv_cac_ratio
+      description: Tỷ lệ giá trị vòng đời khách hàng trên chi phí acquisition.
+    - name: avg_payback_days
+      description: Thuộc tính avg payback days của customer acquisition trong lớp Mart.
+    - name: cac_recovered_customer_count
+      description: Số lượng cac recovered khách hàng tại grain của model.
+    - name: cac_recovery_pct
+      description: Tỷ lệ khách hàng đã tạo đủ LTV để bù CAC.
+    - name: repeat_customer_count
+      description: Số lượng repeat khách hàng tại grain của model.
+    - name: repeat_customer_pct
+      description: Tỷ lệ repeat khách hàng; được biểu diễn dưới dạng số thập phân.
+    - name: ltv_segment
+      description: Nhóm giá trị vòng đời của khách hàng.
+
+  - name: mart_pnl_monthly
+    description: |-
+      **Grain:** 1 P&L report line x 1 accounting month.
+  
+      **Business value:** Cung cấp P&L tháng theo report line với dấu kế toán đã chuẩn hóa.
+  
+      **Build logic:**
+      - Đọc `fact_journal_entries`, `dim_date`, `dim_account`, join bằng surrogate key đã resolve tại Gold và aggregate về grain báo cáo.
+      - Rebuild toàn bảng để correction/backfill và aggregate group biến mất không bị sót.
+      - Tính lại ratio từ tổng tử số/mẫu số; loại tombstone, trạng thái hủy hoặc dòng thiếu điều kiện KPI theo WHERE của mart.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - report_line
+          - month_date_key
+    - unique:
+        arguments:
+          column_name: mart_pnl_sk
+    - not_null:
+        arguments:
+          column_name: mart_pnl_sk
+    - not_null:
+        arguments:
+          column_name: report_line
+    - accepted_values:
+        arguments:
+          column_name: report_line
+          values:
+          - Revenue
+          - COGS
+          - OpEx
+          - Unclassified
+    - not_null:
+        arguments:
+          column_name: month_date_key
+    - relationships:
+        arguments:
+          column_name: month_date_key
+          to: ref('dim_date')
+          field: date_key
+    - not_null:
+        arguments:
+          column_name: net_amount
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: mart_pnl_sk
+      description: Khóa thay thế duy nhất của Mart tại grain tổng hợp pnl monthly.
+    - name: src_fact_je_sk
+      description: Khóa Fact nguồn đại diện, dùng truy vết lineage từ mart về dữ liệu chi tiết.
+    - name: report_line
+      description: Nhóm trình bày P&L của tài khoản, ví dụ Revenue, COGS hoặc OpEx.
+    - name: month_date_key
+      description: Khóa ngày đầu tháng dạng YYYYMMDD, đại diện kỳ tổng hợp tháng.
+    - name: journal_line_count
+      description: Số lượng sổ nhật ký line tại grain của model.
+    - name: unclassified_line_count
+      description: Số dòng chưa phân loại được vào report line.
+    - name: debit_amount
+      description: Giá trị tiền debit đã chuẩn hóa theo naming convention của warehouse.
+    - name: credit_amount
+      description: Giá trị tiền credit đã chuẩn hóa theo naming convention của warehouse.
+    - name: net_amount
+      description: Giá trị thuần đã chuẩn hóa dấu theo tính chất Nợ/Có của tài khoản.
+
+  - name: mart_ar_aging
+    description: |-
+      **Grain:** 1 customer version x 1 snapshot date.
+  
+      **Business value:** Chụp số dư phải thu theo customer và aging bucket để quản trị công nợ.
+  
+      **Build logic:**
+      - Đọc `fact_customer_invoice`, `dim_date`, join bằng surrogate key đã resolve tại Gold và aggregate về grain báo cáo.
+      - Rebuild toàn bảng để correction/backfill và aggregate group biến mất không bị sót.
+      - Tính lại ratio từ tổng tử số/mẫu số; loại tombstone, trạng thái hủy hoặc dòng thiếu điều kiện KPI theo WHERE của mart.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - customer_sk
+          - snapshot_date_key
+    - unique:
+        arguments:
+          column_name: mart_ar_aging_sk
+    - not_null:
+        arguments:
+          column_name: mart_ar_aging_sk
+    - not_null:
+        arguments:
+          column_name: customer_sk
+    - relationships:
+        arguments:
+          column_name: customer_sk
+          to: ref('dim_customer')
+          field: customer_sk
+    - not_null:
+        arguments:
+          column_name: snapshot_date_key
+    - relationships:
+        arguments:
+          column_name: snapshot_date_key
+          to: ref('dim_date')
+          field: date_key
+    - not_null:
+        arguments:
+          column_name: snapshot_captured_at
+    - not_null:
+        arguments:
+          column_name: total_outstanding_amount
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: mart_ar_aging_sk
+      description: Khóa thay thế duy nhất của Mart tại grain tổng hợp ar aging.
+    - name: src_fact_customer_invoice_sk
+      description: Khóa Fact nguồn đại diện, dùng truy vết lineage từ mart về dữ liệu chi tiết.
+    - name: customer_sk
+      description: Khóa thay thế của khách hàng, dùng join trong mô hình dimensional.
+    - name: snapshot_date_key
+      description: Khóa ngày dạng YYYYMMDD của lần chụp snapshot.
+    - name: snapshot_captured_at
+      description: Thời điểm pipeline chụp trạng thái snapshot định kỳ.
+    - name: bucket_not_due
+      description: Thuộc tính bucket not due của ar aging trong lớp Mart.
+    - name: bucket_0_30
+      description: Thuộc tính bucket 0 30 của ar aging trong lớp Mart.
+    - name: bucket_31_60
+      description: Thuộc tính bucket 31 60 của ar aging trong lớp Mart.
+    - name: bucket_61_90
+      description: Thuộc tính bucket 61 90 của ar aging trong lớp Mart.
+    - name: bucket_over_90
+      description: Thuộc tính bucket over 90 của ar aging trong lớp Mart.
+    - name: bucket_unclassified
+      description: Thuộc tính bucket unclassified của ar aging trong lớp Mart.
+    - name: total_outstanding_amount
+      description: Giá trị tiền tổng outstanding đã chuẩn hóa theo naming convention của warehouse.
+    - name: invoice_count
+      description: Số lượng hóa đơn tại grain của model.
+
+  - name: mart_dso_monthly
+    description: |-
+      **Grain:** 1 customer version x 1 payment month.
+  
+      **Business value:** Cung cấp DSO có trọng số theo customer và tháng thanh toán.
+  
+      **Build logic:**
+      - Đọc `fact_payment_allocation`, `dim_date`, join bằng surrogate key đã resolve tại Gold và aggregate về grain báo cáo.
+      - Rebuild toàn bảng để correction/backfill và aggregate group biến mất không bị sót.
+      - Tính lại ratio từ tổng tử số/mẫu số; loại tombstone, trạng thái hủy hoặc dòng thiếu điều kiện KPI theo WHERE của mart.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - customer_sk
+          - month_date_key
+    - unique:
+        arguments:
+          column_name: mart_dso_sk
+    - not_null:
+        arguments:
+          column_name: mart_dso_sk
+    - not_null:
+        arguments:
+          column_name: customer_sk
+    - relationships:
+        arguments:
+          column_name: customer_sk
+          to: ref('dim_customer')
+          field: customer_sk
+    - not_null:
+        arguments:
+          column_name: month_date_key
+    - relationships:
+        arguments:
+          column_name: month_date_key
+          to: ref('dim_date')
+          field: date_key
+    - not_null:
+        arguments:
+          column_name: weighted_dso_days
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: mart_dso_sk
+      description: Khóa thay thế duy nhất của Mart tại grain tổng hợp dso monthly.
+    - name: src_fact_payment_alloc_sk
+      description: Khóa Fact nguồn đại diện, dùng truy vết lineage từ mart về dữ liệu chi tiết.
+    - name: customer_sk
+      description: Khóa thay thế của khách hàng, dùng join trong mô hình dimensional.
+    - name: month_date_key
+      description: Khóa ngày đầu tháng dạng YYYYMMDD, đại diện kỳ tổng hợp tháng.
+    - name: allocation_count
+      description: Số lượng allocation tại grain của model.
+    - name: total_allocated_amount
+      description: Giá trị tiền tổng allocated đã chuẩn hóa theo naming convention của warehouse.
+    - name: weighted_dso_days
+      description: DSO bình quân có trọng số theo số tiền thanh toán được phân bổ.
+
+  - name: mart_oee_by_workcenter_monthly
+    description: |-
+      **Grain:** 1 workcenter x 1 month.
+  
+      **Business value:** Cung cấp Availability, Performance, Quality, OEE và defect rate theo workcenter/tháng.
+  
+      **Build logic:**
+      - Đọc `fact_manufacturing_oee`, `dim_date`, `fact_manufacturing`, join bằng surrogate key đã resolve tại Gold và aggregate về grain báo cáo.
+      - Rebuild toàn bảng để correction/backfill và aggregate group biến mất không bị sót.
+      - Tính lại ratio từ tổng tử số/mẫu số; loại tombstone, trạng thái hủy hoặc dòng thiếu điều kiện KPI theo WHERE của mart.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - workcenter_sk
+          - month_date_key
+    - unique:
+        arguments:
+          column_name: mart_oee_sk
+    - not_null:
+        arguments:
+          column_name: mart_oee_sk
+    - not_null:
+        arguments:
+          column_name: workcenter_sk
+    - relationships:
+        arguments:
+          column_name: workcenter_sk
+          to: ref('dim_workcenter')
+          field: workcenter_sk
+    - not_null:
+        arguments:
+          column_name: month_date_key
+    - relationships:
+        arguments:
+          column_name: month_date_key
+          to: ref('dim_date')
+          field: date_key
+    - not_null:
+        arguments:
+          column_name: oee_segment
+    - accepted_values:
+        arguments:
+          column_name: oee_segment
+          values:
+          - good
+          - average
+          - poor
+          - no_data
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: mart_oee_sk
+      description: Khóa thay thế duy nhất của Mart tại grain tổng hợp oee by workcenter monthly.
+    - name: src_fact_oee_sk
+      description: Khóa Fact nguồn đại diện, dùng truy vết lineage từ mart về dữ liệu chi tiết.
+    - name: src_fact_mfg_sk
+      description: Khóa Fact nguồn đại diện, dùng truy vết lineage từ mart về dữ liệu chi tiết.
+    - name: workcenter_sk
+      description: Khóa thay thế của workcenter, dùng join trong mô hình dimensional.
+    - name: month_date_key
+      description: Khóa ngày đầu tháng dạng YYYYMMDD, đại diện kỳ tổng hợp tháng.
+    - name: productivity_block_count
+      description: Số lượng productivity block tại grain của model.
+    - name: work_order_count
+      description: Số lượng work đơn hàng tại grain của model.
+    - name: manufacturing_order_count
+      description: Số lượng manufacturing đơn hàng tại grain của model.
+    - name: productive_minutes
+      description: Thuộc tính productive minutes của oee by workcenter monthly trong lớp Mart.
+    - name: availability_loss_minutes
+      description: Thuộc tính availability loss minutes của oee by workcenter monthly trong lớp Mart.
+    - name: duration_est_minutes
+      description: Thuộc tính thời lượng est minutes của oee by workcenter monthly trong lớp Mart.
+    - name: qty_produced
+      description: Số lượng produced tại grain của model.
+    - name: scrap_qty
+      description: Số lượng phế phẩm tại grain của model.
+    - name: availability_pct
+      description: Tỷ lệ Availability trong OEE.
+    - name: performance_pct
+      description: Tỷ lệ Performance trong OEE.
+    - name: quality_pct
+      description: Tỷ lệ Quality trong OEE.
+    - name: oee_pct
+      description: Overall Equipment Effectiveness, bằng Availability × Performance × Quality.
+    - name: defect_rate_pct
+      description: Tỷ lệ sản phẩm lỗi hoặc scrap trên tổng sản lượng.
+    - name: oee_segment
+      description: Nhóm đánh giá OEE theo ngưỡng good, average, poor hoặc no_data.
+
+  - name: mart_roas_by_channel
+    description: |-
+      **Grain:** 1 channel x 1 month.
+  
+      **Business value:** So sánh spend, attributed revenue, ROAS, khách mới và CAC theo channel/tháng.
+  
+      **Build logic:**
+      - Đọc `fact_ad_spend`, `dim_date`, `fact_sales`, `fact_customer_acquisition`, `dim_channel`, join bằng surrogate key đã resolve tại Gold và aggregate về grain báo cáo.
+      - Rebuild toàn bảng để correction/backfill và aggregate group biến mất không bị sót.
+      - Tính lại ratio từ tổng tử số/mẫu số; loại tombstone, trạng thái hủy hoặc dòng thiếu điều kiện KPI theo WHERE của mart.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - channel_sk
+          - month_date_key
+    - unique:
+        arguments:
+          column_name: mart_roas_sk
+    - not_null:
+        arguments:
+          column_name: mart_roas_sk
+    - relationships:
+        arguments:
+          column_name: channel_sk
+          to: ref('dim_channel')
+          field: channel_sk
+    - not_null:
+        arguments:
+          column_name: channel_code
+    - not_null:
+        arguments:
+          column_name: month_date_key
+    - relationships:
+        arguments:
+          column_name: month_date_key
+          to: ref('dim_date')
+          field: date_key
+    - not_null:
+        arguments:
+          column_name: roas_segment
+    - accepted_values:
+        arguments:
+          column_name: roas_segment
+          values:
+          - high
+          - medium
+          - low
+          - no_spend
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: mart_roas_sk
+      description: Khóa thay thế duy nhất của Mart tại grain tổng hợp roas by channel.
+    - name: src_fact_ad_spend_sk
+      description: Khóa Fact nguồn đại diện, dùng truy vết lineage từ mart về dữ liệu chi tiết.
+    - name: src_fact_sales_sk
+      description: Khóa Fact nguồn đại diện, dùng truy vết lineage từ mart về dữ liệu chi tiết.
+    - name: src_fact_cac_sk
+      description: Khóa Fact nguồn đại diện, dùng truy vết lineage từ mart về dữ liệu chi tiết.
+    - name: channel_sk
+      description: Khóa thay thế của kênh, dùng join trong mô hình dimensional.
+    - name: channel_code
+      description: Mã nghiệp vụ của roas by channel, dùng nhận diện hoặc mapping dữ liệu.
+    - name: month_date_key
+      description: Khóa ngày đầu tháng dạng YYYYMMDD, đại diện kỳ tổng hợp tháng.
+    - name: revenue_attributed_amount
+      description: Doanh thu được quy gán cho channel hoặc campaign theo attribution model.
+    - name: spend_amount
+      description: Giá trị tiền spend đã chuẩn hóa theo naming convention của warehouse.
+    - name: roas
+      description: Return on Ad Spend, bằng doanh thu quy gán chia cho chi phí quảng cáo.
+    - name: new_customers
+      description: Thuộc tính new customers của roas by channel trong lớp Mart.
+    - name: cac_amount
+      description: Chi phí acquisition trung bình cho một khách hàng mới.
+    - name: roas_segment
+      description: Nhóm hiệu quả ROAS theo ngưỡng của mart.
+
+  - name: mart_email_performance
+    description: |-
+      **Grain:** 1 email channel x 1 send month.
+  
+      **Business value:** Tổng hợp sent, open, click, bounce, revenue, cost và ROAS email theo tháng.
+  
+      **Build logic:**
+      - Đọc `fact_email_campaign`, `dim_date`, join bằng surrogate key đã resolve tại Gold và aggregate về grain báo cáo.
+      - Rebuild toàn bảng để correction/backfill và aggregate group biến mất không bị sót.
+      - Tính lại ratio từ tổng tử số/mẫu số; loại tombstone, trạng thái hủy hoặc dòng thiếu điều kiện KPI theo WHERE của mart.
+    # KHU VỰC 1 — TEST: giữ nguyên logic kiểm thử, tách khỏi metadata mô tả.
+    data_tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - channel_sk
+          - month_date_key
+    - unique:
+        arguments:
+          column_name: mart_email_perf_sk
+    - not_null:
+        arguments:
+          column_name: mart_email_perf_sk
+    - not_null:
+        arguments:
+          column_name: channel_sk
+    - relationships:
+        arguments:
+          column_name: channel_sk
+          to: ref('dim_channel')
+          field: channel_sk
+    - not_null:
+        arguments:
+          column_name: month_date_key
+    - relationships:
+        arguments:
+          column_name: month_date_key
+          to: ref('dim_date')
+          field: date_key
+    - not_null:
+        arguments:
+          column_name: email_campaign_count
+    - not_null:
+        arguments:
+          column_name: open_pct_segment
+    - accepted_values:
+        arguments:
+          column_name: open_pct_segment
+          values:
+          - high
+          - medium
+          - low
+          - no_data
+    # KHU VỰC 2 — DESCRIPTION: mô tả đầy đủ cột để hiển thị trong dbt Docs.
+    columns:
+    - name: mart_email_perf_sk
+      description: Khóa thay thế duy nhất của Mart tại grain tổng hợp email performance.
+    - name: src_fact_email_sk
+      description: Khóa Fact nguồn đại diện, dùng truy vết lineage từ mart về dữ liệu chi tiết.
+    - name: channel_sk
+      description: Khóa thay thế của kênh, dùng join trong mô hình dimensional.
+    - name: month_date_key
+      description: Khóa ngày đầu tháng dạng YYYYMMDD, đại diện kỳ tổng hợp tháng.
+    - name: email_campaign_count
+      description: Số lượng email chiến dịch tại grain của model.
+    - name: campaign_count
+      description: Số lượng chiến dịch tại grain của model.
+    - name: sent_count
+      description: Số lượng sent tại grain của model.
+    - name: delivered_count
+      description: Số lượng delivered tại grain của model.
+    - name: open_count
+      description: Số lượng open tại grain của model.
+    - name: click_count
+      description: Số lượng click tại grain của model.
+    - name: bounce_count
+      description: Số lượng bounce tại grain của model.
+    - name: unsubscribe_count
+      description: Số lượng unsubscribe tại grain của model.
+    - name: spam_report_count
+      description: Số lượng spam report tại grain của model.
+    - name: conversion_count
+      description: Số lượng conversion tại grain của model.
+    - name: open_pct
+      description: Tỷ lệ email được mở trên số email gửi thành công.
+    - name: click_pct
+      description: Tỷ lệ email được click trên số email gửi thành công.
+    - name: bounce_pct
+      description: Tỷ lệ email bị bounce trên số email gửi.
+    - name: ctor
+      description: Click-to-open rate, bằng unique clicks chia unique opens.
+    - name: revenue_amount
+      description: Giá trị tiền doanh thu đã chuẩn hóa theo naming convention của warehouse.
+    - name: cost_amount
+      description: Giá trị tiền chi phí đã chuẩn hóa theo naming convention của warehouse.
+    - name: roas
+      description: Return on Ad Spend, bằng doanh thu quy gán chia cho chi phí quảng cáo.
+    - name: open_pct_segment
+      description: Nhóm hiệu quả open rate của email.

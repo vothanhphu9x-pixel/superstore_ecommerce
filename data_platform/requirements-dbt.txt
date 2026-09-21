@@ -1,0 +1,4 @@
+# Isolated from Airflow because dbt 1.11 requires newer protobuf and related
+# dependencies than apache/airflow:2.9.3 permits in its runtime environment.
+dbt-core==1.11.15
+dbt-snowflake==1.11.3

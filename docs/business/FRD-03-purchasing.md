@@ -130,7 +130,7 @@ Ngày giao thực tế > `date_planned` trên PO → Nhà máy thiếu nguyên l
 |---|---|---|
 | `purchase_order` | Đơn mua (header) | Transaction |
 | `purchase_order_line` | Chi tiết đơn mua | Transaction → **fact_purchase** |
-| `res_partner` | Nhà cung cấp (supplier_rank) | Master → **dim_supplier** |
+| `res_partner` | Nhà cung cấp (`supplier_rank > 0`) | Master → **dim_customer** với vai trò vendor |
 | `stock_picking` | Phiếu nhận hàng (Receipt) | Transaction |
 | `stock_move` | Chuyển động nhận nguyên liệu/hàng | Transaction |
 | `account_move` | Hóa đơn NCC (in_invoice) | Transaction |

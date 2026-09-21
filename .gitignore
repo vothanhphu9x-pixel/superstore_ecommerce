@@ -38,6 +38,8 @@ RAG_CHATBOT/env/
 # Runtime data
 data_platform/minio/
 data_platform/n8n_data/
+RAG_CHATBOT/qdrant_storage/
+RAG_CHATBOT/redis_data/
 
 # Logs
 logs/
