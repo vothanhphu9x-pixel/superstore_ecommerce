@@ -24,6 +24,7 @@
 - [ ] Backend tests pass when backend changed
 - [ ] Frontend lint, type-check and build pass when frontend changed
 - [ ] `docker compose config --quiet` passes when infrastructure changed
+- [ ] `python3 scripts/check_de_pipeline_contract.py`
 - [ ] `dbt parse` passes when dbt changed
 - [ ] Manual or Postman evidence is attached when an API contract changed
 

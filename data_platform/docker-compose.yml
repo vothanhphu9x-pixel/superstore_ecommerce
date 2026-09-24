@@ -328,7 +328,7 @@ services:
   # nên `.env` giữ nguyên cho luồng chạy trên máy — hai luồng không giẫm chân nhau.
   api:
     build:
-      context: ../backend
+      context: ../RAG_CHATBOT
       dockerfile: Dockerfile
     image: superstore_api:1.1
     container_name: superstore_api
