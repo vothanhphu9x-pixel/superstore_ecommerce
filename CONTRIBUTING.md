@@ -15,6 +15,21 @@ git pull origin main
 Resolve or preserve any local changes before switching branches. Do not overwrite another
 contributor's work.
 
+If the working tree contains unfinished changes, temporarily store them before updating
+`main`, then restore them on the original working branch:
+
+```bash
+git stash push -u -m "temporary work before updating main"
+git switch main
+git pull origin main
+git switch <working_branch>
+git stash pop
+```
+
+Do not run `git stash pop` while still on `main`; doing so applies feature changes directly
+to the local `main` branch. Resolve any conflicts reported by `git stash pop` before
+continuing.
+
 ## 2. Start from a Jira issue
 
 Use the real Jira key in the branch when one exists:
@@ -81,36 +96,27 @@ git diff --cached --check
 ## 5. Verify the changed layers
 
 ```bash
+make python-syntax
 make verify-hygiene
+make pipeline-contract
 make test
 make frontend-check
 make compose-check
 make dbt-parse
 ```
 
-Check the Docker Compose configuration without starting containers:
+check build container
 
 ```bash
-cd data_platform
-docker compose config --quiet
-```
-
-Check the syntax of the Data Platform Python entry points:
-
-```bash
-cd data_platform
-python3 -m py_compile \
-  Debezium_producer/Debezium.py \
-  minio_consumer/consumer.py \
-  csv_loader/loader.py \
-  Data_warehouse/Minio_snowflake.py \
-  docker/dags/batching_pipline_snowflake.py
+cd RAG_CHATBOT
+docker build -t superstore-api:step5 .
 ```
 
 Compile the complete dbt project using the dedicated dbt environment in Airflow:
 
 ```bash
 cd data_platform
+docker compose up -d <service_name>
 docker compose exec -T \
   -w /opt/airflow/superstore_db \
   airflow-scheduler \
@@ -157,7 +163,7 @@ After the upstream has been configured, later commits only require:
 ```bash
 git add .
 git commit -m "SUP-123 fix: describe the corrected outcome"
-git push
+git push -u origin ...
 ```
 
 Replace `SUP-123` and the message with the real Jira key and completed outcome. Never run

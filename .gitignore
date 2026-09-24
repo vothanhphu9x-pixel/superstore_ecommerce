@@ -11,7 +11,6 @@ odoo_dev/*.log
 # Secrets
 .env
 .env.*
-.venv/
 !.env.example
 !**/.env.example
 
@@ -26,14 +25,17 @@ node_modules/
 *.tsbuildinfo
 
 # Python
+.venv/
+env/
+venv/
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
 .coverage
 .coverage.*
 coverage.xml
 .mypy_cache/
 .ruff_cache/
-RAG_CHATBOT/env/
 
 # Runtime data
 data_platform/minio/
@@ -42,9 +44,11 @@ RAG_CHATBOT/qdrant_storage/
 RAG_CHATBOT/redis_data/
 
 # Logs
-logs/
+**/logs/*
 *.log
+!**/logs/.gitkeep
 
 # OS / Office temporary files
 .DS_Store
+.vscode/
 ~$*
