@@ -384,12 +384,13 @@ services:
       # Chỉ nạp .env của FRONTEND (đúng 2 biến: INTERNAL_API_URL + API_KEY), KHÔNG nạp
       # `RAG_CHATBOT/.env`. Frontend không cần mật khẩu Snowflake, Odoo hay SMTP — đưa vào
       # là mở rộng vùng ảnh hưởng nếu container này bị chiếm quyền.
-      - ../RAG_CHATBOT/frontend/.env
+      - ../RAG_CHATBOT/frontend/.env.local
     environment:
       # Ghi đè INTERNAL_API_URL của .env.local (localhost:8000 — dành cho chạy trên máy).
       # Trình duyệt KHÔNG bao giờ gọi địa chỉ này; chỉ server Next gọi, qua route handler
       # `app/api/internal/[...path]/route.ts`. Vì vậy nó là tên service nội cụm.
       INTERNAL_API_URL: http://api:8000
+      ALLOW_UNAUTHENTICATED_INTERNAL_UI: "true"
     depends_on:
       api:
         condition: service_started
