@@ -105,11 +105,18 @@ make compose-check
 make dbt-parse
 ```
 
-check build container
+Build the application containers from the repository root when API or frontend code changes:
 
 ```bash
-cd RAG_CHATBOT
-docker build -t superstore-api:step5 .
+# FastAPI
+docker build \
+  -t superstore-api:step5 \
+  RAG_CHATBOT
+
+# Next.js frontend
+docker build \
+  -t superstore-frontend:step6 \
+  RAG_CHATBOT/frontend
 ```
 
 Compile the complete dbt project using the dedicated dbt environment in Airflow:
@@ -127,8 +134,9 @@ docker compose exec -T \
 `dbt compile` validates Jinja, `ref()`, macros, SQL generation and the dbt dependency graph;
 the Airflow containers must be running for this command.
 
-`make verify` runs all offline checks. It does not start Docker services or connect to
-Snowflake, Odoo, Qdrant, Redis or an LLM.
+`make verify` runs all offline checks. It does not build application images, start Docker
+services or connect to Snowflake, Odoo, Qdrant, Redis or an LLM. Frontend runtime and
+security checks are documented in `docs/frontend/operation.md`.
 
 ## 6. Commit by outcome
 
