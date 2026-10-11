@@ -88,15 +88,18 @@ Airflow hiện chạy dbt test sau từng layer và chạy singular tests **sau 
 
 ### 2.6 CI quality gate — `TRAIN-CI-01`
 
-| Case ID | Kiểm tra                         | Hiện trạng                                 | Pass criteria                                          |
-| ------- | -------------------------------- | ------------------------------------------ | ------------------------------------------------------ |
-| CI-01   | Backend pytest                   | Có trong `.github/workflows/quality.yml`   | Mọi test pass                                          |
-| CI-02   | Frontend lint, type-check, build | Có                                         | Cả ba lệnh pass                                        |
-| CI-03   | Frontend E2E                     | Có trong job `frontend`                    | Mọi E2E test pass; không được skip vì thiếu credential |
-| CI-04   | Compose/DE contract/dbt parse    | Có                                         | Các lệnh trả exit code `0`                             |
-| CI-05   | Không cho merge khi gate fail    | Cần cấu hình GitHub required status checks | PR không merge được nếu job bắt buộc fail              |
+| Case ID | Kiểm tra                               | Hiện trạng                                 | Pass criteria                                                |
+| ------- | -------------------------------------- | ------------------------------------------ | ------------------------------------------------------------ |
+| CI-01   | Repository hygiene                     | Job `hygiene` trong `quality.yml`          | `check_repo_hygiene.py` pass                                 |
+| CI-02   | Python syntax                          | Job `python-syntax` trong `quality.yml`    | `py_compile` của Python files được track pass                |
+| CI-03   | Backend pytest + API liveness          | Job `backend` trong `quality.yml`          | Pytest pass; FastAPI khởi động và `/health/live` trả thành công |
+| CI-04   | Frontend install/lint/type-check/build | Job `frontend` trong `quality.yml`         | `npm ci`, lint, type-check và build đều pass                 |
+| CI-05   | Frontend E2E                           | Job `frontend` trong `quality.yml`         | Tạo credential/SQLite tạm; E2E chạy và pass, không skip      |
+| CI-06   | Compose/DE contract/dbt parse          | Job `configuration` trong `quality.yml`    | Cả ba bước pass; dbt parse không kết nối Snowflake thật      |
+| CI-07   | Không cho merge khi gate fail          | Cần xác minh GitHub required status checks | PR không merge được nếu job bắt buộc fail                    |
 
 `dbt parse` trong PR CI chỉ kiểm tra cấu trúc, không thay thế dbt data tests trên Snowflake chạy local/Airflow.
+Thứ tự trên theo vị trí job trong `quality.yml`; các job không có `needs` nên GitHub có thể chạy song song.
 
 ## 3. Môi trường và dữ liệu test
 

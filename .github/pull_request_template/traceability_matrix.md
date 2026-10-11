@@ -81,13 +81,15 @@ dbt YAML tests chạy sau layer tương ứng; singular tests xuyên layer chạ
 
 ## 6. CI quality gate
 
-| Jira Story | Case ID | Acceptance Criterion                                        | Test / control                                        | Code          | Kết quả | Commit / run / bằng chứng | Defect |
-| ---------- | ------- | ----------------------------------------------------------- | ----------------------------------------------------- | ------------- | ------- | ------------------------- | ------ |
-|            | CI-01   | PR tự động chạy backend pytest và fail khi test fail        | `.github/workflows/quality.yml` — job `backend`       | Có            |         |                           |        |
-|            | CI-02   | PR chạy frontend lint, type-check, build                    | `.github/workflows/quality.yml` — job `frontend`      | Có            |         |                           |        |
-|            | CI-03   | PR chạy frontend E2E, không bỏ qua test do thiếu credential | Step `Run frontend E2E` trong job `frontend`           | Có            |         |                           |        |
-|            | CI-04   | PR kiểm tra Compose, DE contract và dbt parse               | `.github/workflows/quality.yml` — job `configuration` | Có            |         |                           |        |
-|            | CI-05   | Job bắt buộc fail thì không được merge                      | GitHub branch ruleset / required status checks        | Chưa xác minh |         |                           |        |
+| Jira Story | Case ID | Acceptance Criterion                                             | Test / control                                 | Code          | Kết quả | Commit / run / bằng chứng | Defect |
+| ---------- | ------- | ---------------------------------------------------------------- | ---------------------------------------------- | ------------- | ------- | ------------------------- | ------ |
+|            | CI-01   | Repository hygiene pass                                          | `quality.yml` — job `hygiene`                  | Có            |         |                           |        |
+|            | CI-02   | Python files được track biên dịch cú pháp thành công             | `quality.yml` — job `python-syntax`            | Có            |         |                           |        |
+|            | CI-03   | Backend pytest pass; FastAPI khởi động và `/health/live` pass    | `quality.yml` — job `backend`                  | Có            |         |                           |        |
+|            | CI-04   | Frontend `npm ci`, lint, type-check và build pass                 | `quality.yml` — job `frontend`                 | Có            |         |                           |        |
+|            | CI-05   | E2E dùng credential/SQLite tạm, chạy thật và pass, không skip    | `quality.yml` — step `Run frontend E2E`        | Có            |         |                           |        |
+|            | CI-06   | Compose, DE contract và dbt parse pass                           | `quality.yml` — job `configuration`            | Có            |         |                           |        |
+|            | CI-07   | Job bắt buộc fail thì PR không được merge                        | GitHub branch ruleset / required status checks | Chưa xác minh |         |                           |        |
 
 ## 7. Cách điền trong PR
 
