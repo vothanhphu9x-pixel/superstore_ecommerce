@@ -8,10 +8,12 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "check": "npm run lint && npm run typecheck && npm run build"
+    "check": "npm run lint && npm run typecheck && npm run build",
+    "test:e2e": "playwright test",
+    "test:e2e:docker": "E2E_BASE_URL=http://localhost:3000 node --env-file=./e2e-test-env ./node_modules/@playwright/test/cli.js test"
   },
   "dependencies": {
-    "next": "16.3.6",
+    "next": "16.3.8",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "recharts": "3.10.1",
@@ -19,7 +21,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
-    "@next/eslint-plugin-next": "16.3.6",
+    "@playwright/test": "^1.64.0",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "^22",
     "@types/react": "^19",

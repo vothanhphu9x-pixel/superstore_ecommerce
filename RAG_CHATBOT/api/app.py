@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.routers.dashboard import router as dashboard_router
 from api.routers.health import router as health_router
+from api.routers.staff import router as staff_router
 from core.config import get_settings
 from core.logging import configure_logging
 
@@ -79,6 +80,11 @@ app.include_router(
     dashboard_router,
     prefix="/api",
     tags=["dashboard"],
+)
+app.include_router(
+    staff_router,
+    prefix="/api",
+    tags=["staff"],
 )
 
 

@@ -14,8 +14,9 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY analytics/ ./analytics/
 COPY api/ ./api/
 COPY core/ ./core/
+COPY scripts/ ./scripts/
 
-RUN mkdir -p /app/logs \
+RUN mkdir -p /app/data /app/logs \
     && useradd --create-home --uid 10001 appuser \
     && chown -R appuser:appuser /app
 

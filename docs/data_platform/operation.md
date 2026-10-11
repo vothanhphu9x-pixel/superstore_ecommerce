@@ -131,10 +131,16 @@ Nếu máy local đã cài dbt, có thể kiểm tra kết nối trực tiếp:
 
 ```bash
 cd /Users/macos/Desktop/Superstore_ecommerce/data_platform/superstore_db
+set -a
+source ../.env
+set +a
+
 dbt deps --profiles-dir .dbt
 dbt debug --profiles-dir .dbt
 ```
 
+Chạy các lệnh trên trong cùng terminal: `profiles.yml` đọc biến môi trường,
+không tự nạp file `.env` khi chạy dbt trên máy local.
 `dbt debug` phải kết thúc bằng `All checks passed`.
 
 ## 3. Chạy pipeline

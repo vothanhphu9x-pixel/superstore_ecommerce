@@ -43,6 +43,14 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_file: str = "logs/application.log"
 
+    staff_jwt_secret: str = ""
+    staff_session_ttl_hours: int = 8
+    staff_cookie_secure: bool = False
+    staff_db_path: str = "data/internal_users.db"
+    internal_email_domains: str = ""
+    auth_rate_limit_per_minute: int = 10
+    trust_proxy_headers: bool = False
+
     @property
     def cors_origins(self) -> list[str]:
         raw = self.api_cors_origins.strip()

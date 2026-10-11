@@ -11,3 +11,9 @@ npm-debug.log*
 
 .DS_Store
 .vercel/
+
+/playwright-report/
+/test-results/
+
+# Local Docker E2E credentials; never commit.
+e2e-test-env

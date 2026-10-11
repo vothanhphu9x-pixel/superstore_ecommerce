@@ -1,6 +1,6 @@
 import "server-only";
 
-const DEFAULT_API_URL = "http://localhost:8000";
+const DEFAULT_API_URL = "http://api:8000";
 const REQUEST_TIMEOUT_MS = 15_000;
 
 export class InternalApiConfigurationError extends Error {
@@ -60,6 +60,14 @@ export async function internalFetch(
    */
   headers.set("X-API-Key", apiKey);
   headers.set("Accept", "application/json");
+
+  /*
+   * Staff login gửi JSON body.
+   * Không ghi đè Content-Type nếu caller đã chủ động thiết lập.
+   */
+  if (init.body !== undefined && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
 
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,

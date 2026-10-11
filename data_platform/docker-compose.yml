@@ -365,6 +365,7 @@ services:
       # các lần sau đọc từ volume nên gần như tức thì. Không bake vào image để mỗi lần sửa
       # code không phải build lại 1,2 GB.
       - hf_cache:/cache/huggingface
+      - staff_auth_data:/app/data
     depends_on:
       qdrant:
         condition: service_started
@@ -385,12 +386,6 @@ services:
       # `RAG_CHATBOT/.env`. Frontend không cần mật khẩu Snowflake, Odoo hay SMTP — đưa vào
       # là mở rộng vùng ảnh hưởng nếu container này bị chiếm quyền.
       - ../RAG_CHATBOT/frontend/.env.local
-    environment:
-      # Ghi đè INTERNAL_API_URL của .env.local (localhost:8000 — dành cho chạy trên máy).
-      # Trình duyệt KHÔNG bao giờ gọi địa chỉ này; chỉ server Next gọi, qua route handler
-      # `app/api/internal/[...path]/route.ts`. Vì vậy nó là tên service nội cụm.
-      INTERNAL_API_URL: http://api:8000
-      ALLOW_UNAUTHENTICATED_INTERNAL_UI: "true"
     depends_on:
       api:
         condition: service_started
@@ -401,6 +396,7 @@ volumes:
   n8n_data:
   redis_data:
   hf_cache:
+  staff_auth_data:
 networks:
   default:
     name: superstore-network
