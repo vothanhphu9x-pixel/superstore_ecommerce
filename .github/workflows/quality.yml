@@ -117,14 +117,16 @@ jobs:
       # Staff auth config for E2E tests
       Frontend_Origin: http://127.0.0.1:3000
       E2E_STAFF_EMAIL: tester@company.com
-      STAFF_DB_PATH: ${{ runner.temp }}/superstore-e2e-staff.db
       INTERNAL_EMAIL_DOMAINS: company.com
       STAFF_COOKIE_SECURE: "false"
       AUTH_RATE_LIMIT_PER_MINUTE: "1000"
       CACHE_ENABLED: "false"
-      LOG_FILE: ${{ runner.temp }}/superstore-e2e-api.log
     steps:
       - uses: actions/checkout@v6
+      - name: Set E2E paths
+        run: |
+          echo "STAFF_DB_PATH=$RUNNER_TEMP/superstore-e2e-staff.db" >> "$GITHUB_ENV"
+          echo "LOG_FILE=$RUNNER_TEMP/superstore-e2e-api.log" >> "$GITHUB_ENV"
       - name: Detect implemented frontend
         id: frontend
         run: |
