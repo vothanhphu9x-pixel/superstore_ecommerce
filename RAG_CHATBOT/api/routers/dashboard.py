@@ -18,6 +18,7 @@ from api.schemas.dashboard import (
     DashboardIndexResponse,
     DashboardMetricResponse,
 )
+from core.internal_auth import require_staff, role_can_view_groups
 from api.services.dashboard import validate_month_key
 from core.auth import verify_api_key
 from core.cache import cache_get, cache_set, make_key
@@ -36,18 +37,36 @@ router = APIRouter(
     "",
     response_model=DashboardIndexResponse,
 )
-async def dashboard_index() -> dict[str, Any]:
+async def dashboard_index(
+    staff: dict[str, Any] = Depends(require_staff),
+) -> dict[str, Any]:
+    visible_metrics = sorted(
+        metric
+        for metric in DASHBOARD_QUERIES
+        if (
+            metric in METRIC_CONTRACTS
+            and role_can_view_groups(
+                staff["role"],
+                METRIC_CONTRACTS[metric].groups,
+            )
+        )
+    )
+
     contracts = {
         metric: {
-            "shape": contract.shape,
-            "required_fields": list(contract.required_fields),
-            "accepts_limit": contract.accepts_limit,
+            "shape": METRIC_CONTRACTS[metric].shape,
+            "required_fields": list(
+                METRIC_CONTRACTS[metric].required_fields
+            ),
+            "accepts_limit": (
+                METRIC_CONTRACTS[metric].accepts_limit
+            ),
         }
-        for metric, contract in METRIC_CONTRACTS.items()
+        for metric in visible_metrics
     }
 
     return {
-        "metrics": sorted(DASHBOARD_QUERIES),
+        "metrics": visible_metrics,
         "default_range": {
             "month_from": DEFAULT_MONTH_FROM,
             "month_to": DEFAULT_MONTH_TO,
@@ -62,6 +81,7 @@ async def dashboard_index() -> dict[str, Any]:
 )
 async def dashboard_metric(
     metric: str,
+    staff: dict[str, Any] = Depends(require_staff),
     month_from: int = Query(DEFAULT_MONTH_FROM),
     month_to: int = Query(DEFAULT_MONTH_TO),
     limit: int = Query(10, ge=1, le=100),
@@ -73,6 +93,22 @@ async def dashboard_metric(
         raise HTTPException(
             status_code=404,
             detail=f"Unknown dashboard metric: {metric}",
+        )
+
+    if not role_can_view_groups(
+    staff["role"],
+    contract.groups,
+    ):
+        logger.warning(
+            "Staff %s with role %s attempted to access metric %s",
+            staff["email"],
+            staff["role"],
+            metric,
+        )
+
+        raise HTTPException(
+            status_code=403,
+            detail="Your role cannot access this dashboard metric.",
         )
 
     validate_month_key(month_from, "month_from")

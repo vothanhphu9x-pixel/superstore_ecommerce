@@ -10,6 +10,7 @@ class ContractViolation(RuntimeError):
 class MetricContract:
     shape: Literal["object", "list"]
     required_fields: tuple[str, ...]
+    groups: frozenset[str]
     accepts_limit: bool = False
 
 
@@ -23,6 +24,11 @@ METRIC_CONTRACTS: dict[str, MetricContract] = {
             "AVG_ORDER_VALUE",
             "MARGIN_PCT",
         ),
+        groups=frozenset({
+            "ceo",
+            "cfo",
+            "sales",
+        }),
     ),
     "revenue-trend": MetricContract(
         shape="list",
@@ -32,6 +38,11 @@ METRIC_CONTRACTS: dict[str, MetricContract] = {
             "COGS",
             "GROSS_PROFIT",
         ),
+        groups=frozenset({
+            "ceo",
+            "cfo",
+            "sales",
+        }),
     ),
     "by-category": MetricContract(
         shape="list",
@@ -40,6 +51,10 @@ METRIC_CONTRACTS: dict[str, MetricContract] = {
             "REVENUE",
             "GROSS_PROFIT",
         ),
+        groups=frozenset({
+            "ceo",
+            "sales",
+        }),
     ),
     "by-region": MetricContract(
         shape="list",
@@ -48,6 +63,10 @@ METRIC_CONTRACTS: dict[str, MetricContract] = {
             "REVENUE",
             "GROSS_PROFIT",
         ),
+        groups=frozenset({
+            "ceo",
+            "sales",
+        }),
     ),
     "top-products": MetricContract(
         shape="list",
@@ -59,6 +78,10 @@ METRIC_CONTRACTS: dict[str, MetricContract] = {
             "GROSS_PROFIT",
             "QUANTITY",
         ),
+        groups=frozenset({
+            "ceo",
+            "sales",
+        }),
         accepts_limit=True,
     ),
 }
@@ -80,12 +103,14 @@ def validate_metric_payload(
             raise ContractViolation(
                 f"Metric {metric!r} must return an object."
             )
+
         rows = [payload]
     else:
         if not isinstance(payload, list):
             raise ContractViolation(
                 f"Metric {metric!r} must return a list."
             )
+
         rows = payload
 
     required = set(contract.required_fields)
@@ -93,7 +118,8 @@ def validate_metric_payload(
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
             raise ContractViolation(
-                f"Metric {metric!r}, row {index}, is not an object."
+                f"Metric {metric!r}, row {index}, "
+                "is not an object."
             )
 
         missing = required - set(row)

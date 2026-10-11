@@ -39,6 +39,8 @@ feature/SUP-123-short-outcome
 fix/SUP-124-short-outcome
 chore/SUP-125-short-outcome
 docs/SUP-126-short-outcome
+
+git checkout -b feature/...
 ```
 
 Do not mix unrelated features, data fixes and refactors in one branch.

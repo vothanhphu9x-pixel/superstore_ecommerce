@@ -114,6 +114,15 @@ jobs:
       INTERNAL_API_URL: http://127.0.0.1:8000
       API_KEY: ci-placeholder-only
       NEXT_PUBLIC_PRODUCT_IMAGE_BASE: http://127.0.0.1:9000/product-images
+      # Staff auth config for E2E tests
+      Frontend_Origin: http://127.0.0.1:3000
+      E2E_STAFF_EMAIL: tester@company.com
+      STAFF_DB_PATH: ${{ runner.temp }}/superstore-e2e-staff.db
+      INTERNAL_EMAIL_DOMAINS: company.com
+      STAFF_COOKIE_SECURE: "false"
+      AUTH_RATE_LIMIT_PER_MINUTE: "1000"
+      CACHE_ENABLED: "false"
+      LOG_FILE: ${{ runner.temp }}/superstore-e2e-api.log
     steps:
       - uses: actions/checkout@v6
       - name: Detect implemented frontend
@@ -125,6 +134,7 @@ jobs:
             echo "available=false" >> "$GITHUB_OUTPUT"
             echo "Frontend not implemented; skipping its build and checks."
           fi
+
       - uses: actions/setup-node@v6
         if: steps.frontend.outputs.available == 'true'
         with:
@@ -143,6 +153,69 @@ jobs:
       - working-directory: RAG_CHATBOT/frontend
         if: steps.frontend.outputs.available == 'true'
         run: npm run build
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            RAG_CHATBOT/requirements.txt
+            RAG_CHATBOT/requirements-dev.txt
+
+      - name: Install API test dependencies
+        run: python -m pip install -r RAG_CHATBOT/requirements-dev.txt
+
+      - name: Generate isolated E2E credentials
+        run: |
+          for variable in E2E_STAFF_PASSWORD STAFF_JWT_SECRET; do
+            value="$(openssl rand -hex 32)"
+            echo "::add-mask::$value"
+            echo "$variable=$value" >> "$GITHUB_ENV"
+          done
+
+      - name: Seed isolated staff account
+        working-directory: RAG_CHATBOT
+        run: |
+          python -c 'import os; from core.internal_auth import create_staff_user; create_staff_user(email=os.environ["E2E_STAFF_EMAIL"], name="E2E Staff", role="marketing", password=os.environ["E2E_STAFF_PASSWORD"])'
+
+      - name: Install Chromium for E2E
+        working-directory: RAG_CHATBOT/frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Start API and frontend
+        run: |
+          cd RAG_CHATBOT
+          nohup python -m uvicorn api.app:app \
+            --host 127.0.0.1 --port 8000 \
+            > "$RUNNER_TEMP/api.log" 2>&1 &
+
+          cd frontend
+          nohup npm run start -- \
+            --hostname 127.0.0.1 --port 3000 \
+            > "$RUNNER_TEMP/frontend.log" 2>&1 &
+
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:8000/health/live >/dev/null \
+              && curl -fsS http://127.0.0.1:3000/login >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "API or frontend did not start"
+          tail -n 100 "$RUNNER_TEMP/api.log" || true
+          tail -n 100 "$RUNNER_TEMP/frontend.log" || true
+          exit 1
+
+      - name: Run frontend E2E
+        working-directory: RAG_CHATBOT/frontend
+        run: npm run test:e2e
+
+      - name: Show server logs on failure
+        if: failure()
+        run: |
+          tail -n 100 "$RUNNER_TEMP/api.log" || true
+          tail -n 100 "$RUNNER_TEMP/frontend.log" || true
 
   configuration:
     name: Compose and dbt parse

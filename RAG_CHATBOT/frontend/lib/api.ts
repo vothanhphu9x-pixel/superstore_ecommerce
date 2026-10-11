@@ -40,6 +40,36 @@ export interface BreakdownRow {
   [key: string]: string | number | null;
 }
 
+/*
+ * Staff authentication types
+ */
+
+export type StaffRole =
+  | "admin"
+  | "analyst"
+  | "ceo"
+  | "cfo"
+  | "sales"
+  | "marketing"
+  | "warehouse"
+  | "plant";
+
+export interface StaffProfile {
+  email: string;
+  name: string;
+  role: StaffRole;
+  metrics: DashboardMetric[];
+}
+
+export interface StaffLoginInput {
+  email: string;
+  password: string;
+}
+
+export interface StaffLogoutResponse {
+  detail: string;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -78,16 +108,35 @@ function detailFromPayload(payload: unknown, fallback: string): string {
   return fallback;
 }
 
-async function getJson<T>(url: string, context: string): Promise<T> {
+async function requestJson<T>(
+  url: string,
+  context: string,
+  init: RequestInit,
+): Promise<T> {
   let response: Response;
+
+  const headers = new Headers(init.headers);
+
+  headers.set("Accept", "application/json");
+
+  /*
+   * Login dùng JSON body. Không ghi đè nếu caller đã tự
+   * thiết lập một Content-Type khác.
+   */
+  if (init.body !== undefined && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
 
   try {
     response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
+      ...init,
+      headers,
       cache: "no-store",
+
+      /*
+       * Cho phép browser gửi cookie superstore_staff tới
+       * các API route cùng origin.
+       */
       credentials: "same-origin",
     });
   } catch {
@@ -109,6 +158,23 @@ async function getJson<T>(url: string, context: string): Promise<T> {
   return payload as T;
 }
 
+function getJson<T>(url: string, context: string): Promise<T> {
+  return requestJson<T>(url, context, {
+    method: "GET",
+  });
+}
+
+function postJson<T>(url: string, context: string, body?: unknown): Promise<T> {
+  return requestJson<T>(url, context, {
+    method: "POST",
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+}
+
+/*
+ * Dashboard API
+ */
+
 export const dashboardService = {
   async get<T>(
     metric: DashboardMetric,
@@ -127,6 +193,34 @@ export const dashboardService = {
     return getJson<DashboardResponse<T>>(
       `${INTERNAL_API_ROOT}/dashboard/${metric}?${params}`,
       `Dashboard [${metric}]`,
+    );
+  },
+};
+
+/*
+ * Staff authentication API
+ */
+
+export const staffService = {
+  login(input: StaffLoginInput): Promise<StaffProfile> {
+    return postJson<StaffProfile>(
+      `${INTERNAL_API_ROOT}/staff/login`,
+      "Đăng nhập",
+      input,
+    );
+  },
+
+  me(): Promise<StaffProfile> {
+    return getJson<StaffProfile>(
+      `${INTERNAL_API_ROOT}/staff/me`,
+      "Staff session",
+    );
+  },
+
+  async logout(): Promise<void> {
+    await postJson<StaffLogoutResponse>(
+      `${INTERNAL_API_ROOT}/staff/logout`,
+      "Đăng xuất",
     );
   },
 };
