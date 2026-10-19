@@ -15,5 +15,5 @@ exec docker compose -p superstore \
   --env-file /etc/superstore/stack.env \
   --env-file "$release_dir/images.lock.env" \
   --env-file "$release_dir/release.env" \
-  -f "$config_dir/compose.yaml" \
+  -f "$config_dir/compose.yml" \
   "$@"
