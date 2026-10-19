@@ -7,7 +7,9 @@ import os
 import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+import token
 from typing import Any
+from contextlib import closing
 
 import jwt
 from fastapi import Cookie, HTTPException, status
@@ -190,7 +192,7 @@ def _row_to_user(row: sqlite3.Row | None) -> dict[str, Any] | None:
 def get_staff_user(email: str) -> dict[str, Any] | None:
     normalized_email = normalize_email(email)
 
-    with _connect() as connection:
+    with closing(_connect()) as connection, connection:
         row = connection.execute(
             """
             SELECT
@@ -212,7 +214,7 @@ def get_staff_user(email: str) -> dict[str, Any] | None:
 
 
 def list_staff_users() -> list[dict[str, Any]]:
-    with _connect() as connection:
+    with closing(_connect()) as connection, connection:
         rows = connection.execute(
             """
             SELECT
@@ -260,7 +262,7 @@ def create_staff_user(
     password_hash = hash_password(password)
     timestamp = _utc_iso()
 
-    with _connect() as connection:
+    with closing(_connect()) as connection, connection:
         existing = connection.execute(
             "SELECT email FROM staff_users WHERE email = ?",
             (normalized_email,),
@@ -325,7 +327,7 @@ def create_staff_user(
 
 
 def change_staff_password(email: str, password: str) -> None:
-    with _connect() as connection:
+    with closing(_connect()) as connection, connection:
         cursor = connection.execute(
             """
             UPDATE staff_users
@@ -353,7 +355,7 @@ def change_staff_role(email: str, role: str) -> None:
     if normalized_role not in STAFF_ROLES:
         raise ValueError(f"Unsupported staff role: {normalized_role}")
 
-    with _connect() as connection:
+    with closing(_connect()) as connection, connection:
         cursor = connection.execute(
             """
             UPDATE staff_users
@@ -376,7 +378,7 @@ def change_staff_role(email: str, role: str) -> None:
 
 
 def set_staff_active(email: str, active: bool) -> None:
-    with _connect() as connection:
+    with closing(_connect()) as connection, connection:
         cursor = connection.execute(
             """
             UPDATE staff_users
@@ -470,6 +472,15 @@ def decode_session_token(token: str) -> dict[str, Any]:
             token,
             _jwt_secret(),
             algorithms=[JWT_ALGORITHM],
+            options={
+                "require": [
+                    "sub",
+                    "iat",
+                    "exp",
+                    "typ",
+                    "ver",
+                ]
+            },
         )
     except jwt.PyJWTError as exc:
         raise credentials_error from exc

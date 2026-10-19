@@ -42,6 +42,7 @@ class Settings(BaseSettings):
 
     log_level: str = "INFO"
     log_file: str = "logs/application.log"
+    app_log_dir: str = "logs"
 
     staff_jwt_secret: str = ""
     staff_session_ttl_hours: int = 8

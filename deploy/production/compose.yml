@@ -1,0 +1,107 @@
+name: superstore
+
+x-default: &default
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  api:
+    <<: *default
+
+    image: ${API_IMAGE:?Set API image digest}
+
+    env_file:
+      - /etc/superstore/app.env
+
+    environment:
+      APP_RELEASE: ${APP_RELEASE:?Set release SHA}
+      STAFF_DB_PATH: /app/data/internal_users.db
+      STAFF_COOKIE_SECURE: "true"
+      REDIS_URL: redis://redis:6379/0
+      APP_LOG_DIR: /var/log/superstore
+      HOME: /tmp
+      TRUST_PROXY_HEADERS: "false"
+
+    ports:
+      - "127.0.0.1:8000:8000"
+
+    volumes:
+      - /opt/superstore/data/staff:/app/data
+      - /opt/superstore/logs/api:/var/log/superstore
+      - /etc/superstore/snowflake:/run/secrets/snowflake:ro
+
+    networks:
+      - egress
+      - backend
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health/live', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+    read_only: true
+
+    tmpfs:
+      - /tmp
+
+    cap_drop:
+      - ALL
+
+    security_opt:
+      - no-new-privileges:true
+
+    mem_limit: 1536m
+    cpus: 2
+
+  redis:
+    <<: *default
+
+    image: ${REDIS_IMAGE:?Pin REDIS_IMAGE first}
+
+    command:
+      - redis-server
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - noeviction
+      - --appendonly
+      - "no"
+      - --save
+      - ""
+
+    ports:
+      - "127.0.0.1:6379:6379"
+
+    networks:
+      - backend
+
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+    mem_limit: 384m
+
+networks:
+  egress:
+
+  backend:
+    internal: true

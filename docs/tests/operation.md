@@ -6,7 +6,7 @@ File này là nơi chạy test. Phạm vi và expected result theo
 
 ## 1. Chạy toàn bộ trước commit
 
-Chuẩn bị backend `.venv`, `data_platform/.env`, staff E2E (mục 2.8),
+Chuẩn bị backend `.venv`, Redis, `data_platform/.env`, staff E2E (mục 2.8),
 `airflow-scheduler` và dữ liệu Snowflake đã nạp đủ (mục 2.9). Sau đó chạy từ
 root repository:
 
@@ -38,33 +38,47 @@ Kiểm tra cú pháp các file Python chưa bị xóa trong worktree.
 
 ### 2.3. Backend — toàn bộ pytest
 
-Sau khi cài `RAG_CHATBOT/requirements-dev.txt`, chạy:
+Sau khi cài `RAG_CHATBOT/requirements-dev.txt`, chạy Redis local trước vì
+login tests gọi Redis thật dù `CACHE_ENABLED=false`:
 
 ```bash
+cd /Users/macos/Desktop/Superstore_ecommerce/data_platform
+docker compose up -d redis
+cd ..
 make backend-check
 ```
 
-`backend-check` chạy toàn bộ `RAG_CHATBOT/tests/` một lần, gồm Auth, Dashboard
-và Integration; chỉ in thông báo pass nếu mọi test đạt. Khi cần khoanh vùng,
-chạy từng target:
+`backend-check` chạy toàn bộ `RAG_CHATBOT/tests/` một lần, gồm Auth, Dashboard,
+Integration và Operations/observability; chỉ in thông báo pass nếu mọi test đạt.
+Khi cần khoanh vùng, chạy từng target:
 
 ```bash
 make test-auth
 make test-dashboard
 make test-integration
+make test-operations
 ```
+
+`make test-operations` kiểm tra liveness, request ID, `/metrics` và `http.log` trong thư mục
+tạm. Kết quả pass không chứng minh Prometheus server đã scrape metrics.
 
 **Kiểm tra thêm khi triển khai:** Pytest dùng Snowflake giả lập; CI chỉ kiểm tra
-`/health/live`. Sau khi khởi chạy API bằng cấu hình của môi trường đích, kiểm tra
-readiness:
+`/health/live`. Sau khi khởi chạy API bằng cấu hình của môi trường đích, kiểm tra:
 
 ```bash
+curl -i http://localhost:8000/health/live
 curl -i http://localhost:8000/health/ready
+curl -i http://localhost:8000/api/health/live
+curl -i http://localhost:8000/api/health/ready
 ```
 
-Kỳ vọng `200` và `services.snowflake.status = healthy`. Nếu trả `503`, xem phần
-`services` để xác định phụ thuộc gặp lỗi; Redis được báo riêng. Đây là kiểm tra
-môi trường thật, không thay thế các test auth/dashboard tự động.
+Kết quả theo đúng thứ tự: `/health/live` trả `200` với `status=healthy`;
+`/health/ready` trả `200` với `services.snowflake.status=healthy`, hoặc `503`
+khi Snowflake lỗi; `/api/health/live` trả `200` với `status=ok`;
+`/api/health/ready` trả `200` với `staff_store=true` và `redis=true`, hoặc
+`503` nếu một trong hai lỗi. Hai endpoint `ready` kiểm tra **các phụ thuộc khác
+nhau**; không dùng kết quả của cái này thay cho cái kia. Đây là kiểm tra môi
+trường thật, không thay thế các test auth/dashboard tự động.
 
 ### 2.4. Frontend static checks và bảo mật bundle
 
@@ -206,20 +220,27 @@ cd /Users/macos/Desktop/Superstore_ecommerce/data_platform
 docker compose --profile app logs -f api frontend
 ```
 
-`Frontend_Origin` trong `frontend/.env.local` phải đúng
-`http://localhost:3000`; nếu khác, POST login/logout sẽ bị chặn `403`. File
+`APP_ORIGIN` trong `frontend/.env.local` phải đúng
+`http://localhost:3000`; nếu khác, POST login/logout sẽ bị chặn `403` (thiếu
+biến khi chạy production sẽ trả `500`). File
 `e2e-test-env` là credential local bị Git ignore; CI không đọc file này.
 
 **Kiểm tra BFF thủ công khi cần truy lỗi:**
 
 ```bash
 curl -i http://localhost:3000/api/internal/health
+curl -i http://localhost:3000/api/health
 curl -i -X PUT http://localhost:3000/api/internal/dashboard
+curl -i -X POST -H 'Origin: http://untrusted.example' \
+  http://localhost:3000/api/internal/staff/logout
 ```
 
-Kỳ vọng lần lượt `404` và `405`. Playwright đã tự động kiểm tra Origin guard
-(`403`) trong `frontend/e2e/login.spec.ts`; hai ca allowlist/method còn là kiểm
-tra thủ công. Không đưa API key hoặc cookie thật vào kết quả test.
+Kỳ vọng theo thứ tự: `404` (route ngoài allowlist); `200` với
+`{"status":"ok","api":"up"}` nếu Next.js gọi được FastAPI, ngược lại `503`;
+`405` (method PUT không được mở); `403` (Origin khác `APP_ORIGIN`). Playwright
+đã tự kiểm tra Origin guard trong `frontend/e2e/login.spec.ts`; hai ca
+allowlist/method còn là kiểm tra thủ công. Không đưa API key hoặc cookie thật
+vào kết quả test.
 
 ### 2.9. dbt data tests trên Snowflake
 
@@ -251,13 +272,13 @@ Pull Request và khi push vào `main`:
 2. Mở hoặc cập nhật Pull Request vào `main`; không cần tự khởi động workflow.
 3. Trong Pull Request → **Checks** (hoặc Actions → `Quality Gate`), mở từng job:
 
-| Job                     | Kiểm tra                                          | Khi fail, xem trước                                         |
-| ----------------------- | ------------------------------------------------- | ----------------------------------------------------------- |
-| `Repository hygiene`    | File/secret/runtime data không lọt vào Git        | Bước `check_repo_hygiene.py`                                |
-| `Python syntax`         | Compile Python đã được Git track                  | File và dòng báo syntax error                               |
-| `FastAPI tests`         | Toàn bộ `RAG_CHATBOT/tests/` và `/health/live`    | Test case fail hoặc log FastAPI                             |
-| `Next.js checks`        | `npm ci`, lint, type-check, build, E2E Playwright | Bước đầu tiên fail; nếu E2E fail, xem log API/Next cuối job |
-| `Compose and dbt parse` | Compose, DE contract, dbt deps/parse              | Lỗi cấu hình hoặc model/dbt parse                           |
+| Job                     | Kiểm tra                                                                    | Khi fail, xem trước                                         |
+| ----------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `Repository hygiene`    | File/secret/runtime data không lọt vào Git                                  | Bước `check_repo_hygiene.py`                                |
+| `Python syntax`         | Compile Python đã được Git track                                            | File và dòng báo syntax error                               |
+| `FastAPI tests`         | Toàn bộ `RAG_CHATBOT/tests/` (gồm operations), Redis test và `/health/live` | Test case fail hoặc log FastAPI                             |
+| `Next.js checks`        | `npm ci`, lint, type-check, build, E2E Playwright với Redis test            | Bước đầu tiên fail; nếu E2E fail, xem log API/Next cuối job |
+| `Compose and dbt parse` | Compose, DE contract, dbt deps/parse                                        | Lỗi cấu hình hoặc model/dbt parse                           |
 
 Job `Next.js checks` tự tạo SQLite staff test tạm, sinh password/JWT secret tạm,
 seed staff `marketing`, cài Chromium rồi chạy FastAPI và Next.js trước khi chạy

@@ -1,4 +1,7 @@
+from fastapi.testclient import TestClient
+
 from analytics.contracts import METRIC_CONTRACTS
+from api.app import app
 from api.routers import staff as staff_router
 from core.config import get_settings
 from core.internal_auth import change_staff_role
@@ -91,6 +94,54 @@ def test_valid_login_sets_cookie_and_unlocks_index(
     assert me.json()["email"] == "staff@company.com"
     assert index.status_code == 200
     assert set(index.json()["metrics"]) == set(METRIC_CONTRACTS)
+
+
+def test_login_uses_new_redis_client_after_restart(
+    make_staff, api_headers, staff_credentials
+):
+    make_staff()
+
+    with TestClient(app) as first_client:
+        first_redis = app.state.rate_limit_redis
+        first_login = first_client.post(
+            "/api/staff/login",
+            headers=api_headers,
+            json=staff_credentials,
+        )
+        assert first_login.status_code == 200
+
+    with TestClient(app) as second_client:
+        assert app.state.rate_limit_redis is not first_redis
+        second_login = second_client.post(
+            "/api/staff/login",
+            headers=api_headers,
+            json=staff_credentials,
+        )
+        assert second_login.status_code == 200
+
+
+def test_login_fails_closed_when_redis_is_unavailable(
+    client, make_staff, api_headers, staff_credentials, monkeypatch
+):
+    class UnavailableRedis:
+        async def eval(self, *_args):
+            raise ConnectionError("Redis unavailable")
+
+    make_staff()
+    monkeypatch.setattr(
+        client.app.state,
+        "rate_limit_redis",
+        UnavailableRedis(),
+    )
+
+    response = client.post(
+        "/api/staff/login",
+        headers=api_headers,
+        json=staff_credentials,
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Login is temporarily unavailable"
 
 
 def test_staff_cookie_does_not_replace_api_key(

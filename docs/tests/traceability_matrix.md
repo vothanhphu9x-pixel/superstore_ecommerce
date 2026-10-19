@@ -49,9 +49,20 @@ chạy test trong `.github/pull_request_template/traceability_matrix.md`. Chỉ 
 | ---------- | ------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------- | ------- | ------------------------- | ------ |
 |            | FLOW-01 | Login → đổi role → cookie cũ hết hiệu lực → login lại → logout | `tests/integration/test_api_flow.py::test_login_role_change_relogin_and_logout_flow` | Có |         |                           |        |
 
-`FLOW-01` tích hợp FastAPI với SQLite test, chưa bao gồm Redis/Snowflake thật.
+`FLOW-01` tích hợp FastAPI với SQLite test; login còn gọi Redis thật để giới
+hạn đăng nhập. Chưa kiểm tra Snowflake thật.
 
-## 4. Frontend E2E và BFF
+## 4. Operations và observability
+
+| Jira Story | Case ID | Acceptance Criterion | Test / control | Code | Kết quả | Commit / run / bằng chứng | Defect |
+| ---------- | ------- | -------------------- | -------------- | ---- | ------- | ------------------------- | ------ |
+|            | OBS-01  | Liveness trả `200`; HTTP response có request ID; `/metrics` dùng nhãn route template | `tests/operations/test_observability.py::test_operations_and_redacted_request_logging` | Có | | | |
+|            | OBS-02  | HTTP log không lộ giá trị API key, cookie, query hoặc path thật | Cùng test OBS-01 | Có | | | |
+
+Test dùng file log tạm và metrics trong tiến trình TestClient; chưa kiểm tra
+Prometheus server hay readiness khi dependency lỗi.
+
+## 5. Frontend E2E và BFF
 
 | Jira Story | Case ID | Acceptance Criterion                                                   | Test / control                                                                                          | Code    | Kết quả | Commit / run / bằng chứng | Defect |
 | ---------- | ------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------- | ------- | ------------------------- | ------ |
@@ -63,7 +74,7 @@ chạy test trong `.github/pull_request_template/traceability_matrix.md`. Chỉ 
 
 CI dùng SQLite staff tạm. E2E local Docker dùng volume staff của stack development, nên không chạy trên stack production.
 
-## 5. Data quality
+## 6. Data quality
 
 | Jira Story | Case ID | Acceptance Criterion                                                  | Test / control                                                                                                                              | Code | Kết quả | Commit / run / bằng chứng | Defect |
 | ---------- | ------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ------- | ------------------------- | ------ |
@@ -78,7 +89,7 @@ CI dùng SQLite staff tạm. E2E local Docker dùng volume staff của stack dev
 
 dbt YAML tests chạy sau layer tương ứng; singular tests xuyên layer chạy sau khi Mart đã được tạo. `dbt parse` không phải bằng chứng `DATA-01` đến `DATA-08` đã pass.
 
-## 6. CI quality gate
+## 7. CI quality gate
 
 | Jira Story | Case ID | Acceptance Criterion                                             | Test / control                                 | Code          | Kết quả | Commit / run / bằng chứng | Defect |
 | ---------- | ------- | ---------------------------------------------------------------- | ---------------------------------------------- | ------------- | ------- | ------------------------- | ------ |
@@ -90,7 +101,7 @@ dbt YAML tests chạy sau layer tương ứng; singular tests xuyên layer chạ
 |            | CI-06   | Compose, DE contract và dbt parse pass                           | `quality.yml` — job `configuration`            | Có            |         |                           |        |
 |            | CI-07   | Job bắt buộc fail thì PR không được merge                        | GitHub branch ruleset / required status checks | Chưa xác minh |         |                           |        |
 
-## 7. Cách cập nhật
+## 8. Cách cập nhật
 
 1. Trong mỗi PR, điền Story/AC, Case ID, kết quả và URL run vào mục **Test traceability** của PR template. Nếu fail, ghi Defect ID và link lần retest.
 2. Trong matrix này, điền Jira Story thật; cập nhật test/control và cột **Code** khi coverage thay đổi hoặc có Case ID mới.

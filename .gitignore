@@ -14,6 +14,27 @@ odoo_dev/*.log
 !.env.example
 !**/.env.example
 
+# Vercel local state
+.vercel/
+**/.vercel/
+
+# Deployment-generated configuration
+*.lock.env
+release.env
+
+# Production secrets
+deploy/production/*.env
+!deploy/production/images.sources.env
+!deploy/production/*.env.example
+
+# Private keys
+*.pem
+*.p8
+*.key
+
+# Temporary authentication files
+staff-cookies.txt
+
 # Local tool credentials/config
 data_platform/superstore_db/.dbt/profiles.yml
 data_platform/superstore_db/.dbt/.user.yml
@@ -42,6 +63,8 @@ data_platform/minio/
 data_platform/n8n_data/
 RAG_CHATBOT/qdrant_storage/
 RAG_CHATBOT/redis_data/
+RAG_CHATBOT/data/*
+!RAG_CHATBOT/data/.gitkeep
 RAG_CHATBOT/data/*.db
 RAG_CHATBOT/data/*.db-shm
 RAG_CHATBOT/data/*.db-wal

@@ -1,0 +1,23 @@
+server {
+    listen 80;
+    listen [::]:80;
+
+    server_name ${API_DOMAIN};
+
+    server_tokens off;
+
+    access_log /var/log/nginx/superstore-access.log superstore_json;
+    error_log /var/log/nginx/superstore-error.log warn;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+
+        default_type text/plain;
+
+        try_files $uri =404;
+    }
+
+    location / {
+        return 404;
+    }
+}

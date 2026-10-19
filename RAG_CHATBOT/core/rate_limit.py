@@ -1,77 +1,74 @@
+"""Atomic Redis rate limiting for authentication requests."""
+
 from __future__ import annotations
 
 import hashlib
-import threading
+import os
 import time
 
-from core.cache import get_client
-from core.config import get_settings
+from fastapi import HTTPException
+from redis.asyncio import Redis
 
 
-_fallback_counts: dict[tuple[str, str, int], int] = {}
-_fallback_lock = threading.Lock()
+LUA_INCREMENT = """
+local count = redis.call('INCR', KEYS[1])
 
+if count == 1 then
+    redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
 
-def _identity_hash(identity: str) -> str:
-    return hashlib.sha256(identity.encode("utf-8")).hexdigest()[:24]
-
-
-def _allow_fallback(
-    bucket: str,
-    identity: str,
-    limit: int,
-    window_seconds: int,
-) -> bool:
-    current_window = int(time.time() // window_seconds)
-    key = (bucket, _identity_hash(identity), current_window)
-
-    with _fallback_lock:
-        expired_windows = [
-            stored_key
-            for stored_key in _fallback_counts
-            if stored_key[2] < current_window - 1
-        ]
-
-        for expired_key in expired_windows:
-            _fallback_counts.pop(expired_key, None)
-
-        count = _fallback_counts.get(key, 0) + 1
-        _fallback_counts[key] = count
-
-    return count <= limit
+return count
+"""
 
 
 async def allow_request(
     *,
+    redis_client: Redis,
     bucket: str,
     identity: str,
     limit: int | None = None,
     window_seconds: int = 60,
 ) -> bool:
-    configured_limit = (
+    maximum = (
         limit
         if limit is not None
-        else get_settings().auth_rate_limit_per_minute
+        else int(
+            os.environ.get(
+                "AUTH_RATE_LIMIT_PER_MINUTE",
+                "10",
+            )
+        )
     )
 
-    identity_digest = _identity_hash(identity)
-    current_window = int(time.time() // window_seconds)
-    redis_key = (
-        f"rate-limit:{bucket}:{identity_digest}:{current_window}"
+    identity_digest = hashlib.sha256(
+        identity.encode()
+    ).hexdigest()
+
+    current_window = int(
+        time.time() // window_seconds
+    )
+
+    key = (
+        f"superstore:rate-limit:"
+        f"{bucket}:"
+        f"{identity_digest}:"
+        f"{current_window}"
     )
 
     try:
-        redis_client = await get_client()
-
-        count = await redis_client.incr(redis_key)
-        if count == 1:
-            await redis_client.expire(redis_key, window_seconds + 5)
-
-        return int(count) <= configured_limit
-    except Exception:
-        return _allow_fallback(
-            bucket,
-            identity,
-            configured_limit,
-            window_seconds,
+        count = await redis_client.eval(
+            LUA_INCREMENT,
+            1,
+            key,
+            window_seconds + 5,
         )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Login is temporarily unavailable",
+            headers={
+                "Retry-After": "30",
+            },
+        ) from exc
+
+    return int(count) <= maximum
