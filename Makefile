@@ -7,7 +7,7 @@ E2E_ARGS ?=
 GREEN := \033[32m
 RESET := \033[0m
 
-.PHONY: python-syntax verify-hygiene pipeline-contract test-auth test-dashboard test-integration backend-check frontend-check frontend-e2e-up frontend-e2e compose-check dbt-parse dbt-check-account dbt-test-staging dbt-test-silver dbt-test-gold dbt-test-mart dbt-test-singular dbt-tests verify
+.PHONY: python-syntax verify-hygiene pipeline-contract test-auth test-dashboard test-integration test-operations backend-check frontend-check frontend-e2e-up frontend-e2e compose-check dbt-parse dbt-check-account dbt-test-staging dbt-test-silver dbt-test-gold dbt-test-mart dbt-test-singular dbt-tests verify
 
 
 # Kiểm tra Python syntax
@@ -47,6 +47,9 @@ test-dashboard:
 
 test-integration:
 	cd "$(RAG)" && .venv/bin/python -m pytest tests/integration -q
+
+test-operations:
+	cd "$(RAG)" && .venv/bin/python -m pytest tests/operations -q
 
 
 backend-check:

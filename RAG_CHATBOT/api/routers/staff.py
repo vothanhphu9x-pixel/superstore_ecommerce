@@ -54,6 +54,7 @@ async def login(
     client_ip = get_client_ip(request)
 
     permitted = await allow_request(
+        redis_client=request.app.state.rate_limit_redis,
         bucket="staff-login",
         identity=client_ip,
     )

@@ -1,26 +1,27 @@
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    APP_LOG_DIR=/var/log/superstore \
+    LOG_FILE=/var/log/superstore/application.log
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY requirements.txt requirements-production.txt ./
 
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-production.txt
 
-COPY analytics/ ./analytics/
-COPY api/ ./api/
-COPY core/ ./core/
-COPY scripts/ ./scripts/
+COPY analytics ./analytics
+COPY api ./api
+COPY core ./core
+COPY scripts ./scripts
 
-RUN mkdir -p /app/data /app/logs \
-    && useradd --create-home --uid 10001 appuser \
-    && chown -R appuser:appuser /app
+RUN useradd --uid 10001 --user-group --create-home appuser \
+    && mkdir -p /app/data /app/logs /var/log/superstore \
+    && chown -R appuser:appuser /app/data /app/logs /var/log/superstore
 
-USER appuser
+USER 10001:10001
 
 EXPOSE 8000
 
@@ -30,6 +31,6 @@ HEALTHCHECK \
     --start-period=15s \
     --retries=3 \
     CMD python -c \
-    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live', timeout=3)"
+    "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/live', timeout=3)"
 
-CMD ["python", "-m", "uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--no-access-log", "--no-proxy-headers"]

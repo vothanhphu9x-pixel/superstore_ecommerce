@@ -40,6 +40,18 @@ jobs:
     name: FastAPI tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      REDIS_URL: redis://127.0.0.1:6379/0
+    services:
+      redis:
+        image: redis:7.4.5-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v6
       - name: Detect implemented backend
@@ -58,16 +70,19 @@ jobs:
           cache: pip
           cache-dependency-path: |
             RAG_CHATBOT/requirements.txt
+            RAG_CHATBOT/requirements-production.txt
             RAG_CHATBOT/requirements-dev.txt
       - name: Install backend dependencies
         if: steps.backend.outputs.available == 'true'
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r RAG_CHATBOT/requirements-dev.txt
-      - name: Run unit tests
+      - name: Run backend tests including operations
         if: steps.backend.outputs.available == 'true'
         working-directory: RAG_CHATBOT
-        run: python -m pytest tests/ -q
+        run: |
+          test -f tests/operations/test_observability.py
+          python -m pytest tests/ -q
       - name: Start FastAPI
         if: steps.backend.outputs.available == 'true'
         working-directory: RAG_CHATBOT
@@ -110,7 +125,18 @@ jobs:
     name: Next.js checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      redis:
+        image: redis:7.4.5-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
+      REDIS_URL: redis://127.0.0.1:6379/0
       INTERNAL_API_URL: http://127.0.0.1:8000
       API_KEY: ci-placeholder-only
       NEXT_PUBLIC_PRODUCT_IMAGE_BASE: http://127.0.0.1:9000/product-images
@@ -162,6 +188,7 @@ jobs:
           cache: pip
           cache-dependency-path: |
             RAG_CHATBOT/requirements.txt
+            RAG_CHATBOT/requirements-production.txt
             RAG_CHATBOT/requirements-dev.txt
 
       - name: Install API test dependencies

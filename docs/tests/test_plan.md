@@ -13,6 +13,7 @@ File này mô tả case và kết quả mong đợi; lệnh chạy nằm trong
 | Authentication  | API key, staff login, cookie, RBAC, logout, rate limit        | Có `tests/auth/test_staff_api.py` và `test_internal_auth.py` |
 | Dashboard       | Validation, quyền xem metric, response contract, lỗi truy vấn | Có `tests/dashboard/`                                |
 | API integration | Login → đổi role → đăng nhập lại → logout                     | Có `tests/integration/test_api_flow.py`              |
+| Operations      | Liveness, request ID, HTTP metrics và log không lộ secret     | Có `tests/operations/test_observability.py`          |
 | Frontend E2E    | Redirect, login/logout qua BFF, cookie, Origin guard          | Có 4 test trong `frontend/e2e/login.spec.ts`         |
 | Data quality    | Staging, Snapshot, Silver, Gold, Mart                         | Có dbt YAML và singular SQL tests; chạy local/Airflow, không chạy trong PR CI |
 | CI              | Tự động chạy test và báo fail                                 | Có `.github/workflows/quality.yml`; required checks chưa xác minh |
@@ -55,9 +56,20 @@ Các API test dùng query giả lập; chúng **không chứng minh** truy vấn
 | ------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------ | ---------- |
 | FLOW-01 | Staff marketing login → vào dashboard → đổi role thành admin → cookie cũ bị từ chối → login lại → logout | Quyền và session cập nhật đúng ở từng bước | `tests/integration/test_api_flow.py::test_login_role_change_relogin_and_logout_flow` | Có |
 
-Test này đi qua FastAPI router, auth service và SQLite test. Đây là **integration trong ứng dụng**, chưa bao gồm Redis hoặc Snowflake thật.
+Test này đi qua FastAPI router, auth service và SQLite test; login còn gọi Redis
+thật để giới hạn đăng nhập. Chưa kiểm tra Snowflake thật.
 
-### 2.4 Frontend E2E và BFF — `TRAIN-FE-01`
+### 2.4 Operations và observability — `TRAIN-OBS-01`
+
+| Case ID | Tình huống | Expected | Test | Triển khai |
+| ------- | ---------- | -------- | ---- | ---------- |
+| OBS-01 | Gọi endpoint liveness và HTTP request có tham số nhạy cảm | `/api/health/live` trả `200`; response có request ID; `/metrics` có counter với nhãn route dạng template | `tests/operations/test_observability.py::test_operations_and_redacted_request_logging` | Có |
+| OBS-02 | Gửi API key, cookie và query/path chứa giá trị nhạy cảm | `http.log` có route `/test/{item_id}` nhưng không chứa giá trị nhạy cảm hoặc giá trị path thật | Cùng test OBS-01 | Có |
+
+Test dùng FastAPI riêng và thư mục log tạm; không chứng minh Prometheus server
+đang thu thập metrics hoặc readiness kiểm tra Redis/staff store thành công.
+
+### 2.5 Frontend E2E và BFF — `TRAIN-FE-01`
 
 | Case ID | Tình huống                            | Expected                                                                                   | Test                                      | Triển khai |
 | ------- | ------------------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------- | ---------- |
@@ -69,7 +81,7 @@ Test này đi qua FastAPI router, auth service và SQLite test. Đây là **inte
 
 CI dùng staff test role `marketing` và SQLite tạm riêng. E2E local Docker dùng staff DB trong volume của stack development; tạo tài khoản test một lần. Cả hai không cần nạp dashboard metric từ Snowflake và không kiểm tra toàn bộ data platform.
 
-### 2.5 Data quality — `TRAIN-DATA-01`
+### 2.6 Data quality — `TRAIN-DATA-01`
 
 dbt generic tests đã khai báo cạnh model trong các file `staging.yml`, `snapshots.yml`, `silver.yml`, `gold.yml`, `mart.yml`. Singular tests ở `data_platform/superstore_db/tests/`. Không chuyển chúng vào `RAG_CHATBOT/tests/`.
 
@@ -86,7 +98,7 @@ dbt generic tests đã khai báo cạnh model trong các file `staging.yml`, `sn
 
 Airflow hiện chạy dbt test sau từng layer và chạy singular tests **sau Mart**. Không chạy các singular test xuyên layer quá sớm khi model phụ thuộc chưa được tạo.
 
-### 2.6 CI quality gate — `TRAIN-CI-01`
+### 2.7 CI quality gate — `TRAIN-CI-01`
 
 | Case ID | Kiểm tra                               | Hiện trạng                                 | Pass criteria                                                |
 | ------- | -------------------------------------- | ------------------------------------------ | ------------------------------------------------------------ |
@@ -100,6 +112,8 @@ Airflow hiện chạy dbt test sau từng layer và chạy singular tests **sau 
 
 `dbt parse` trong PR CI chỉ kiểm tra cấu trúc, không thay thế dbt data tests trên Snowflake chạy local/Airflow.
 Thứ tự trên theo vị trí job trong `quality.yml`; các job không có `needs` nên GitHub có thể chạy song song.
+Nhóm login test cần Redis thật; job backend và frontend E2E hiện cấp Redis
+service riêng. Nếu service không khỏe hoặc login trả `503`, CI-03/CI-05 fail.
 
 ## 3. Môi trường và dữ liệu test
 
@@ -107,8 +121,8 @@ Thứ tự trên theo vị trí job trong `quality.yml`; các job không có `ne
 
 | Phần | Local qua Makefile | PR CI |
 | --- | --- | --- |
-| Backend | `make backend-check`: chạy toàn bộ `tests/` một lần trong `.venv`. | Chạy toàn bộ pytest một lần trên runner sạch; kiểm tra thêm `/health/live`. |
-| Frontend E2E | `make frontend-e2e`: API/Next.js trong Docker development; staff ở volume `staff_auth_data`, credential trong `e2e-test-env` bị Git ignore. | API/Next.js chạy trong job; SQLite tạm, staff và secret tạo riêng cho mỗi run. |
+| Backend | `make backend-check`: chạy toàn bộ `tests/` một lần trong `.venv`; Redis local cho login. | Chạy toàn bộ pytest một lần với Redis service riêng; kiểm tra thêm `/health/live`. |
+| Frontend E2E | `make frontend-e2e`: API/Next.js trong Docker development; staff ở volume `staff_auth_data`, credential trong `e2e-test-env` bị Git ignore. | API/Next.js chạy trong job với Redis service; SQLite tạm, staff và secret tạo riêng cho mỗi run. |
 | Cấu hình dbt | `make verify` đọc `data_platform/.env`; dbt data tests dùng dbt trong Airflow để kiểm tra dữ liệu đã nạp. | Chỉ parse với cấu hình giả; không kết nối Snowflake. |
 | Data quality | Airflow test sau từng layer; `make verify` chạy lại toàn bộ trên Snowflake đã chọn. | Không chạy dbt data tests. |
 

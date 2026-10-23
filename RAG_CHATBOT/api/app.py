@@ -4,10 +4,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from redis.asyncio import Redis
 
 from api.routers.dashboard import router as dashboard_router
 from api.routers.health import router as health_router
 from api.routers.staff import router as staff_router
+from api.routers.operations import router as operations_router
+from core.observability import ObservabilityMiddleware
 from core.config import get_settings
 from core.logging import configure_logging
 
@@ -19,7 +22,7 @@ settings = get_settings()
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(app: FastAPI):
     logger.info(
         "Starting %s in %s mode.",
         settings.app_name,
@@ -31,9 +34,18 @@ async def lifespan(_: FastAPI):
             "API_KEY chưa được cấu hình; internal endpoints sẽ trả 503."
         )
 
-    yield
+    redis_client = Redis.from_url(
+        get_settings().redis_url,
+        socket_connect_timeout=2,
+        socket_timeout=2,
+    )
+    app.state.rate_limit_redis = redis_client
 
-    logger.info("Stopping %s.", settings.app_name)
+    try:
+        yield
+    finally:
+        await redis_client.aclose()
+        logger.info("Stopping %s.", settings.app_name)
 
 
 app = FastAPI(
@@ -50,6 +62,8 @@ app.add_middleware(
     allow_methods=["GET"],
     allow_headers=["Content-Type", "X-API-Key"],
 )
+
+app.add_middleware(ObservabilityMiddleware)
 
 
 @app.middleware("http")
@@ -86,7 +100,7 @@ app.include_router(
     prefix="/api",
     tags=["staff"],
 )
-
+app.include_router(operations_router)
 
 @app.get("/")
 async def root() -> dict[str, str]:
