@@ -15,7 +15,7 @@ image=${2:?Provide a GHCR image digest}
 
 release_dir="/opt/superstore/releases/$release"
 
-[[ -f "$release_dir/deploy/production/compose.yaml" ]] || exit 1
+[[ -f "$release_dir/deploy/production/compose.yml" ]] || exit 1
 
 api_domain=$(
   sed -n 's/^API_DOMAIN=//p' /etc/superstore/stack.env

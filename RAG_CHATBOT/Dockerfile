@@ -3,7 +3,8 @@ FROM python:3.13-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
-    APP_LOG_DIR=/var/log/superstore
+    APP_LOG_DIR=/var/log/superstore \
+    LOG_FILE=/var/log/superstore/application.log
 
 WORKDIR /app
 

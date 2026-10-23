@@ -23,6 +23,7 @@ services:
       STAFF_COOKIE_SECURE: "true"
       REDIS_URL: redis://redis:6379/0
       APP_LOG_DIR: /var/log/superstore
+      LOG_FILE: /var/log/superstore/application.log
       HOME: /tmp
       TRUST_PROXY_HEADERS: "false"
 

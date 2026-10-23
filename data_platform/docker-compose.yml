@@ -339,6 +339,8 @@ services:
     env_file:
       - ../RAG_CHATBOT/.env
     environment:
+      APP_LOG_DIR: /var/log/superstore
+      LOG_FILE: /var/log/superstore/application.log
       # goi API for commuunication
       QDRANT_URL: http://qdrant:6333
       REDIS_URL: redis://redis:6379/0
@@ -366,6 +368,8 @@ services:
       # code không phải build lại 1,2 GB.
       - hf_cache:/cache/huggingface
       - staff_auth_data:/app/data
+      # Giữ application.log và http.log qua các lần recreate API container.
+      - superstore_api_logs:/var/log/superstore
     depends_on:
       qdrant:
         condition: service_started
@@ -397,6 +401,7 @@ volumes:
   redis_data:
   hf_cache:
   staff_auth_data:
+  superstore_api_logs:
 networks:
   default:
     name: superstore-network

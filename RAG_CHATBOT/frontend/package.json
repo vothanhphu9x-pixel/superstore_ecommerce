@@ -31,6 +31,7 @@
     "postcss": "^8",
     "tailwindcss": "^4.3.3",
     "typescript": "^5",
-    "typescript-eslint": "8.70.1"
+    "typescript-eslint": "8.70.1",
+    "vercel": "^65.2.0"
   }
 }
