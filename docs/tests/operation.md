@@ -296,7 +296,49 @@ Workflow báo đỏ chỉ thực sự chặn merge khi các job cần thiết đ
 **required status checks** trong GitHub branch ruleset/protection cho `main`.
 Cấu hình này nằm trên GitHub, không nằm trong file YAML của repo.
 
-## 4. Ghi nhận kết quả
+## 4. Deploy smoke trên production
+
+CD tự chạy `deploy/production/tests/smoke_public.py` sau khi Quality Gate pass
+và API/frontend được deploy. Cấu hình GitHub Environment: `FRONTEND_ORIGIN`
+(variable), `MONITOR_EMAIL` và `MONITOR_PASSWORD` (secrets). Đây là gate riêng,
+không thuộc Dev/Makefile hay PR CI.
+
+### 4.1. Public health — `DEPLOY-01`
+
+`/api/health` trả `200`, `status=ok`, `api=up`.
+
+### 4.2. Chặn truy cập chưa đăng nhập — `DEPLOY-02`
+
+`/api/internal/staff/me` trước login trả `401`.
+
+### 4.3. Login và cookie CFO — `DEPLOY-03`
+
+Login thành công với role `cfo`; cookie có `Secure`, `HttpOnly`, `SameSite=Lax`,
+`Path=/`.
+
+### 4.4. KPI contract — `DEPLOY-05`
+
+CFO đọc KPI và response có đủ field bắt buộc.
+
+### 4.5. Dashboard RBAC — `DEPLOY-06`
+
+`by-category` không có trong index của CFO; gọi trực tiếp trả `403`.
+
+### 4.6. Logout — `DEPLOY-07`
+
+Logout xóa cookie; `/api/internal/staff/me` sau logout trả `401`.
+
+Các mã case ở trên theo script hiện tại; `DEPLOY-04` chưa được phát ra bởi
+`smoke_public.py` và cần được đồng bộ khi chỉnh test code.
+
+Smoke chỉ đọc dữ liệu nghiệp vụ; có thể ghi rate-limit, cache và logs. Kết quả
+ghi nhận theo release/CD run.
+
+Chi tiết: [Test Plan](test_plan.md), [Traceability Matrix](traceability_matrix.md).
+Khi fail, xem step `Smoke test production website and CFO access` trong job CD;
+không chạy lại bằng credential production nếu chưa được phép.
+
+## 5. Ghi nhận kết quả
 
 Với mỗi PR, ghi Case ID, kết quả, URL GitHub Actions/Airflow run và Defect ID
 (nếu có) vào mục **Test traceability** của PR template. Cập nhật

@@ -53,6 +53,12 @@ ENV_EXAMPLE_PAIRS = (
     ("odoo_dev/.env", "odoo_dev/.env.example"),
 )
 
+# Vercel CLI writes this temporary credential into ignored frontend/.env.local.
+# It is local authentication state, not application configuration to publish.
+LOCAL_ONLY_ENV_KEYS = {
+    ("RAG_CHATBOT/frontend/.env.local", "VERCEL_OIDC_TOKEN"),
+}
+
 
 def git_lines(*args: str) -> list[str]:
     result = subprocess.run(
@@ -116,6 +122,11 @@ def main() -> int:
         if not local_path.exists() or not example_path.exists():
             continue
         missing_keys = dotenv_keys(local_path) - dotenv_keys(example_path)
+        missing_keys -= {
+            key
+            for source_name, key in LOCAL_ONLY_ENV_KEYS
+            if source_name == local_name
+        }
         if missing_keys:
             errors.append(
                 f"{example_name} misses keys used by {local_name}: "

@@ -1,198 +1,123 @@
 # API Operations
 
-## 1. Cấu hình và chạy API
+## 1. Cấu hình và chạy
 
-Trước khi sử dụng dashboard, cấu hình `API_KEY`, `STAFF_JWT_SECRET` (ít nhất 32 ký tự),
-`INTERNAL_EMAIL_DOMAINS` và `STAFF_DB_PATH` trong `RAG_CHATBOT/.env`; tạo staff bằng CLI ở Mục 3.
-Domain của email phải nằm trong `INTERNAL_EMAIL_DOMAINS` (ví dụ tài khoản Gmail cần
-khai báo `gmail.com`). `API_KEY` dành cho client nội bộ, còn `STAFF_JWT_SECRET`
-chỉ để backend ký session.
+FastAPI đọc cấu hình từ `RAG_CHATBOT/.env` khi chạy local. Docker Compose nạp file đó
+vào API container; các giá trị đặt trong Compose có thể ghi đè một số biến cho container.
+Không đưa secret thật vào Git.
 
-### 1.1. Chạy local
+Các biến cốt lõi:
 
-Tạo môi trường Python và cài dependencies:
-
-```bash
-cd /Users/macos/Desktop/Superstore_ecommerce/RAG_CHATBOT
-
-python3 -m venv .venv
-source .venv/bin/activate
-
-python -m pip install --upgrade pip
-pip install -r requirements-dev.txt
+```dotenv
+API_KEY=...
+STAFF_JWT_SECRET=...
+INTERNAL_EMAIL_DOMAINS=yourcompany.com
+STAFF_DB_PATH=data/internal_users.db
+REDIS_URL=redis://localhost:6379/0
 ```
 
-Các lệnh kiểm tra API nằm trong [Test Operations](../tests/operation.md).
-
-Chạy Redis:
+`API_KEY` và `STAFF_JWT_SECRET` phải là hai secret khác nhau; JWT secret dài ít nhất
+32 ký tự. Để chạy API local, cài `requirements-dev.txt` trong virtualenv của
+`RAG_CHATBOT`, rồi:
 
 ```bash
-cd /Users/macos/Desktop/Superstore_ecommerce/data_platform
+cd RAG_CHATBOT
+source .venv/bin/activate
+python -m uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Redis local được chạy bằng service `redis` trong `data_platform/docker-compose.yml`:
+
+```bash
+cd data_platform
 docker compose up -d redis
 ```
 
-Chạy API:
+Swagger local: <http://localhost:8000/docs>.
+
+## 2. Chạy API bằng Docker Compose
+
+Từ thư mục `data_platform`, profile `app` bật API và các dependency cần thiết:
 
 ```bash
-cd /Users/macos/Desktop/Superstore_ecommerce/RAG_CHATBOT
-source .venv/bin/activate
-
-python -m uvicorn api.app:app \
-  --host 0.0.0.0 \
-  --port 8000 \
-  --reload
-```
-
-### 1.2. Chạy bằng Docker Compose
-
-Compose nạp `RAG_CHATBOT/.env` qua `env_file`, không cần `set -a` trong terminal.
-Đặt URL BFF cho Docker theo [Frontend Operations](../frontend/operation.md).
-
-```bash
-cd /Users/macos/Desktop/Superstore_ecommerce/data_platform
 docker compose --profile app up -d --build api
-docker compose ps api
+docker compose ps api redis
 ```
 
-Với cả hai cách chạy, mở Swagger UI tại:
+Compose đọc `RAG_CHATBOT/.env`; không cần export biến vào terminal. Container có tên
+`superstore_api`. Staff DB nằm trong volume `staff_auth_data`, độc lập với SQLite local.
+Các bước chạy test không đặt ở đây; xem [Test Operations](../tests/operation.md).
 
-```text
-http://localhost:8000/docs
+## 3. Kết nối Snowflake
+
+API dùng user riêng `SUPERSTORE_API_USER` với role chỉ đọc `ANALYTICS_READONLY`.
+Tạo/cấp role một lần bằng script `data_platform/setup/02_snowflake_role.sql` dưới
+`ACCOUNTADMIN`; không dùng `ACCOUNTADMIN`, loader role hay dbt role để chạy API hằng ngày.
+Sau đó cấu hình trong `RAG_CHATBOT/.env`:
+
+```dotenv
+SNOWFLAKE_ACCOUNT=...
+SNOWFLAKE_USER=SUPERSTORE_API_USER
+SNOWFLAKE_PASSWORD=...
+SNOWFLAKE_ROLE=ANALYTICS_READONLY
+SNOWFLAKE_WAREHOUSE=COMPUTE_WH
+SNOWFLAKE_DATABASE=SUPERSTORE_DB
+SNOWFLAKE_GOLD_SCHEMA=ANALYTIC_LAYER_GOLD_LAYER
+SNOWFLAKE_MART_SCHEMA=ANALYTIC_LAYER_MART_LAYER
 ```
 
-## 2. Cấu hình Snowflake cho API
-
-API không sử dụng role nạp dữ liệu hoặc role dbt. API cần một user riêng với role chỉ đọc
-`ANALYTICS_READONLY`. Điều kiện trước bước này là pipeline đã tạo xong database và các bảng
-Gold/Mart.
-
-```bash
-cd /Users/macos/Desktop/Superstore_ecommerce
-
-snowsql \
-  -a <ACCOUNT_IDENTIFIER> \
-  -u <ADMIN_USER> \
-  -r ACCOUNTADMIN \
-  -f data_platform/setup/02_snowflake_role.sql
-```
-
-Script tạo `SUPERSTORE_API_USER` và role `ANALYTICS_READONLY`, cấp quyền `USAGE` cho
-warehouse/database/schema, cấp `SELECT` trên các bảng Gold/Mart hiện tại và tương lai,
-rồi gán role cho user API.
-
-Lệnh `-f` chạy xong sẽ quay về terminal macOS. Để đặt mật khẩu, **mở phiên SnowSQL
-tương tác** (hoặc dùng Snowsight → Worksheets); không gõ `USE`/`ALTER`/`SHOW` tại dấu
-nhắc `zsh`:
-
-```bash
-snowsql -a <ACCOUNT_IDENTIFIER> -u <ADMIN_USER> -r ACCOUNTADMIN
-```
-
-Trong dấu nhắc SnowSQL, kiểm tra role rồi đặt mật khẩu cho API user. Script ở trên
-đã cấp `ANALYTICS_READONLY`; chỉ chạy `GRANT ROLE` nếu kết quả `SHOW GRANTS` cho
-thấy role còn thiếu:
+Kiểm tra quyền và đặt mật khẩu trong SnowSQL/Snowsight, không nhập câu SQL ở shell:
 
 ```sql
 USE ROLE ACCOUNTADMIN;
 SHOW GRANTS TO USER SUPERSTORE_API_USER;
--- Chỉ khi chưa có ANALYTICS_READONLY:
--- GRANT ROLE ANALYTICS_READONLY TO USER SUPERSTORE_API_USER;
-
 ALTER USER SUPERSTORE_API_USER
     SET PASSWORD = '<STRONG_PASSWORD>'
         DEFAULT_ROLE = ANALYTICS_READONLY
         MUST_CHANGE_PASSWORD = FALSE;
-SHOW GRANTS TO USER SUPERSTORE_API_USER;
 ```
 
-`DEFAULT_ROLE` không tự cấp role cho user. Dùng mật khẩu mới, không ghi mật khẩu
-thật trong Git hoặc dán vào lệnh shell/chat.
+Không ghi password vào command history, Git hoặc log. Nếu đổi tên user, cập nhật cả
+script setup và `SNOWFLAKE_USER`.
 
-Cấu hình `RAG_CHATBOT/.env` tương ứng:
+## 4. Quản lý staff
 
-```dotenv
-SNOWFLAKE_USER=SUPERSTORE_API_USER
-SNOWFLAKE_PASSWORD=<STRONG_PASSWORD>
-SNOWFLAKE_ROLE=ANALYTICS_READONLY
-```
+Email phải thuộc domain trong `INTERNAL_EMAIL_DOMAINS`. CLI hỏi password tương tác
+(tối thiểu 12 ký tự); không truyền password qua command line.
 
-Nếu đổi tên user API, cập nhật biến `app_user` trong `02_snowflake_role.sql` và
-`SNOWFLAKE_USER` trong `.env`. API hằng ngày không sử dụng `ACCOUNTADMIN`,
-`SUPERSTORE_LOADER_ROLE` hoặc `SUPERSTORE_DBT_ROLE`.
-
-## 3. Tạo staff user đầu tiên
-
-Domain của email staff phải có trong biến `INTERNAL_EMAIL_DOMAINS` của
-`RAG_CHATBOT/.env`. Chọn **một** trong hai cách dưới đây, tương ứng với nơi API
-đang chạy.
-
-### 3.1. CLI khi chạy local
-
-CLI staff tự đọc `RAG_CHATBOT/.env` qua `core/config.py`, nên không cần
-`set -a` cho các lệnh bên dưới. Chỉ export `.env` vào terminal nếu chạy công cụ
-khác yêu cầu biến môi trường của shell.
-
-Repository đã có `data/.gitkeep`; nếu checkout cũ chưa có thì tạo thư mục:
+Local, từ `RAG_CHATBOT`:
 
 ```bash
-cd /Users/macos/Desktop/Superstore_ecommerce/RAG_CHATBOT
-mkdir -p data
-touch data/.gitkeep
-```
-
-Tạo tài khoản admin (CLI yêu cầu mật khẩu tối thiểu 12 ký tự):
-
-```bash
-python -m scripts.manage_staff add your-email@yourcompany.com \
-  --name "Your Name" \
-  --role admin
-```
-
-Liệt kê và quản trị tài khoản:
-
-```bash
+python -m scripts.manage_staff add user@yourcompany.com --name "Staff Name" --role admin
 python -m scripts.manage_staff list
-python -m scripts.manage_staff role user@company.com cfo
-python -m scripts.manage_staff password user@company.com
-python -m scripts.manage_staff disable user@company.com
-python -m scripts.manage_staff enable user@company.com
+python -m scripts.manage_staff role user@yourcompany.com cfo
+python -m scripts.manage_staff password user@yourcompany.com
+python -m scripts.manage_staff disable user@yourcompany.com
+python -m scripts.manage_staff enable user@yourcompany.com
 ```
 
-### 3.2. CLI khi chạy bằng Docker Compose
-
-Tạo admin trong container đang chạy (mật khẩu tối thiểu 12 ký tự):
+Docker Compose:
 
 ```bash
 docker exec -it superstore_api \
-  python -m scripts.manage_staff add your-email@yourcompany.com \
-  --name "Your Name" \
-  --role admin
-```
+  python -m scripts.manage_staff add user@yourcompany.com \
+  --name "Staff Name" --role admin
 
-Liệt kê và quản trị tài khoản trong cùng container:
-
-```bash
 docker exec -it superstore_api python -m scripts.manage_staff list
-docker exec -it superstore_api python -m scripts.manage_staff role user@company.com cfo
-docker exec -it superstore_api python -m scripts.manage_staff password user@company.com
-docker exec -it superstore_api python -m scripts.manage_staff disable user@company.com
-docker exec -it superstore_api python -m scripts.manage_staff enable user@company.com
 ```
 
-`-it` cho phép nhập mật khẩu tương tác. Compose lưu SQLite ở Docker volume
-`staff_auth_data`, nên tạo lại container không làm mất tài khoản; CLI local dùng
-`RAG_CHATBOT/data` và **không dùng chung** dữ liệu với container.
+Đổi role/password hoặc khóa account làm session cũ mất hiệu lực. Production staff
+được tạo trong API container trên VPS; xem [Deploy Operations](../deploy/operation.md).
 
-Các rule sau đã có trong `.gitignore` ở root repository:
+## 5. Route phân biệt khi vận hành
 
-```gitignore
-RAG_CHATBOT/data/*.db
-RAG_CHATBOT/data/*.db-shm
-RAG_CHATBOT/data/*.db-wal
-```
+| Route | Dùng cho |
+|---|---|
+| `/health/live` | Liveness FastAPI cơ bản |
+| `/health/ready` | Readiness phụ thuộc Snowflake; có thể trả `503` nếu Snowflake lỗi |
+| `/api/health/live` | Probe nhanh cho Docker, Nginx và CD; không query Snowflake |
+| `/api/health/ready` | Probe nội bộ staff SQLite + Redis; không public qua Nginx production |
+| `/docs` | Swagger cho phát triển; production public API không expose đường dẫn này |
 
-Không ignore `RAG_CHATBOT/data/.gitkeep`.
-
-Đổi role, mật khẩu hoặc trạng thái active sẽ tăng `auth_version`, làm session cũ
-hết hiệu lực. `STAFF_COOKIE_SECURE=false` chỉ phù hợp HTTP local; khi chạy HTTPS đặt
-`true`. `STAFF_JWT_SECRET` và `API_KEY` phải là hai secret khác nhau.
+Frontend nên gọi Next.js same-origin BFF `/api/internal/...`; không gửi API key từ browser.
+Chi tiết luồng: [Frontend Architecture](../frontend/system_architecture_lineage.md).

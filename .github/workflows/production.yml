@@ -1,0 +1,290 @@
+name: Superstore Production
+
+on:
+  workflow_run:
+    workflows: ["Quality Gate"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: superstore-production
+  cancel-in-progress: false
+
+jobs:
+  validate-source:
+    name: Validate successful main CI commit
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    outputs:
+      release_sha: ${{ steps.source.outputs.release_sha }}
+    steps:
+      - name: Check out the exact commit tested by CI
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Verify commit identity and current main head
+        id: source
+        env:
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -Eeuo pipefail
+
+          if [[ ! "$TESTED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            printf 'Refusing unexpected tested commit SHA.\n' >&2
+            exit 1
+          fi
+
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ "$checked_out_sha" != "$TESTED_SHA" ]]; then
+            printf 'Checkout does not match the successful CI commit.\n' >&2
+            exit 1
+          fi
+
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          current_main_sha="$(git rev-parse refs/remotes/origin/main)"
+          if [[ "$current_main_sha" != "$TESTED_SHA" ]]; then
+            printf 'Refusing stale CI run; main has advanced.\n' >&2
+            exit 1
+          fi
+
+          printf 'release_sha=%s\n' "$TESTED_SHA" >> "$GITHUB_OUTPUT"
+
+  publish-api:
+    name: Build and publish immutable API image
+    needs: validate-source
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.publish.outputs.image }}
+    env:
+      RELEASE_SHA: ${{ needs.validate-source.outputs.release_sha }}
+    steps:
+      - name: Check out the CI-validated commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.validate-source.outputs.release_sha }}
+          persist-credentials: false
+
+      - name: Build and push API image by commit SHA
+        id: publish
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+
+          image="ghcr.io/${GITHUB_REPOSITORY,,}-api"
+
+          printf '%s' "$REGISTRY_TOKEN" \
+            | docker login ghcr.io \
+                --username "$GITHUB_ACTOR" \
+                --password-stdin
+
+          docker build \
+            --platform linux/amd64 \
+            --file RAG_CHATBOT/Dockerfile \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$RELEASE_SHA" \
+            --tag "$image:$RELEASE_SHA" \
+            RAG_CHATBOT
+
+          docker push "$image:$RELEASE_SHA"
+
+          pinned_image="$(
+            docker image inspect \
+              --format '{{index .RepoDigests 0}}' \
+              "$image:$RELEASE_SHA"
+          )"
+
+          if [[ ! "$pinned_image" =~ @sha256:[0-9a-f]{64}$ ]]; then
+            printf 'Could not resolve the published image digest.\n' >&2
+            exit 1
+          fi
+
+          printf 'image=%s\n' "$pinned_image" >> "$GITHUB_OUTPUT"
+          printf 'Published API image: `%s`\n' "$pinned_image" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-production:
+    name: Deploy API and frontend, then smoke test
+    needs:
+      - validate-source
+      - publish-api
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    permissions:
+      contents: read
+    env:
+      RELEASE_SHA: ${{ needs.validate-source.outputs.release_sha }}
+      API_IMAGE: ${{ needs.publish-api.outputs.image }}
+    steps:
+      - name: Check out the CI-validated commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.validate-source.outputs.release_sha }}
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Recheck source before production deployment
+        run: |
+          set -Eeuo pipefail
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          current_main_sha="$(git rev-parse refs/remotes/origin/main)"
+          if [[ "$current_main_sha" != "$RELEASE_SHA" ]]; then
+            printf 'Refusing deployment because main advanced after CI.\n' >&2
+            exit 1
+          fi
+
+      - name: Prepare and validate SSH credentials
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_PORT: ${{ vars.VPS_PORT }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+
+          : "${VPS_HOST:?Configure production variable VPS_HOST}"
+          : "${VPS_PORT:?Configure production variable VPS_PORT}"
+          : "${VPS_USER:?Configure production variable VPS_USER}"
+          : "${VPS_SSH_KEY:?Configure production secret VPS_SSH_KEY}"
+          : "${VPS_KNOWN_HOSTS:?Configure production secret VPS_KNOWN_HOSTS}"
+
+          if [[ ! "$VPS_HOST" =~ ^[A-Za-z0-9.-]+$ ]]; then
+            printf 'VPS_HOST must be a hostname or IPv4 address.\n' >&2
+            exit 1
+          fi
+
+          if [[ ! "$VPS_PORT" =~ ^[1-9][0-9]{0,4}$ ]] || (( VPS_PORT > 65535 )); then
+            printf 'VPS_PORT must be between 1 and 65535.\n' >&2
+            exit 1
+          fi
+
+          if [[ ! "$VPS_USER" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]]; then
+            printf 'VPS_USER has an invalid format.\n' >&2
+            exit 1
+          fi
+
+          ssh_dir="$RUNNER_TEMP/superstore-ssh"
+          install -d -m 700 "$ssh_dir"
+          printf '%s\n' "$VPS_SSH_KEY" > "$ssh_dir/id_key"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+          chmod 600 "$ssh_dir/id_key" "$ssh_dir/known_hosts"
+
+      - name: Transfer release files and deploy API
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_PORT: ${{ vars.VPS_PORT }}
+          VPS_USER: ${{ vars.VPS_USER }}
+        run: |
+          set -Eeuo pipefail
+
+          if [[ ! "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            printf 'Unexpected release SHA.\n' >&2
+            exit 1
+          fi
+
+          if [[ ! "$API_IMAGE" =~ ^ghcr\.io/[a-z0-9_./-]+@sha256:[0-9a-f]{64}$ ]]; then
+            printf 'Unexpected API image reference.\n' >&2
+            exit 1
+          fi
+
+          ssh_dir="$RUNNER_TEMP/superstore-ssh"
+          destination="$VPS_USER@$VPS_HOST"
+          archive="$RUNNER_TEMP/superstore-release.tar.gz"
+          release_dir="/opt/superstore/releases/$RELEASE_SHA"
+
+          tar -czf "$archive" deploy/production
+
+          ssh \
+            -i "$ssh_dir/id_key" \
+            -p "$VPS_PORT" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o "UserKnownHostsFile=$ssh_dir/known_hosts" \
+            "$destination" \
+            "mkdir -p '$release_dir'"
+
+          scp \
+            -i "$ssh_dir/id_key" \
+            -P "$VPS_PORT" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o "UserKnownHostsFile=$ssh_dir/known_hosts" \
+            "$archive" \
+            "$destination:$release_dir/release.tar.gz"
+
+          ssh \
+            -i "$ssh_dir/id_key" \
+            -p "$VPS_PORT" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o "UserKnownHostsFile=$ssh_dir/known_hosts" \
+            "$destination" \
+            "bash -s -- '$RELEASE_SHA' '$API_IMAGE'" <<'REMOTE'
+          set -Eeuo pipefail
+
+          release_sha=$1
+          api_image=$2
+          release_dir="/opt/superstore/releases/$release_sha"
+
+          tar -xzf "$release_dir/release.tar.gz" -C "$release_dir"
+          sudo -n /usr/bin/bash \
+            "$release_dir/deploy/production/bin/deploy.sh" \
+            "$release_sha" \
+            "$api_image"
+          REMOTE
+
+      - name: Deploy Next.js to Vercel
+        working-directory: RAG_CHATBOT/frontend
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        run: |
+          set -Eeuo pipefail
+
+          : "${VERCEL_TOKEN:?Configure production secret VERCEL_TOKEN}"
+          : "${VERCEL_ORG_ID:?Configure production variable VERCEL_ORG_ID}"
+          : "${VERCEL_PROJECT_ID:?Configure production variable VERCEL_PROJECT_ID}"
+
+          npm ci
+          npx --no-install vercel pull \
+            --yes \
+            --environment=production \
+            --token="$VERCEL_TOKEN"
+          npx --no-install vercel build --prod --token="$VERCEL_TOKEN"
+          npx --no-install vercel deploy \
+            --prebuilt \
+            --prod \
+            --token="$VERCEL_TOKEN"
+
+      - name: Smoke test production website and CFO access
+        env:
+          FRONTEND_ORIGIN: ${{ vars.FRONTEND_ORIGIN }}
+          MONITOR_EMAIL: ${{ secrets.MONITOR_EMAIL }}
+          MONITOR_PASSWORD: ${{ secrets.MONITOR_PASSWORD }}
+        run: python3 deploy/production/tests/smoke_public.py
+
+      - name: Remove temporary SSH credentials
+        if: always()
+        run: |
+          rm -f \
+            "$RUNNER_TEMP/superstore-ssh/id_key" \
+            "$RUNNER_TEMP/superstore-ssh/known_hosts"
+          rmdir "$RUNNER_TEMP/superstore-ssh" 2>/dev/null || true

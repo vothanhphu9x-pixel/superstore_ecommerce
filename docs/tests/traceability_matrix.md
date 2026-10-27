@@ -101,7 +101,24 @@ dbt YAML tests chạy sau layer tương ứng; singular tests xuyên layer chạ
 |            | CI-06   | Compose, DE contract và dbt parse pass                           | `quality.yml` — job `configuration`            | Có            |         |                           |        |
 |            | CI-07   | Job bắt buộc fail thì PR không được merge                        | GitHub branch ruleset / required status checks | Chưa xác minh |         |                           |        |
 
-## 8. Cách cập nhật
+## 8. Production deploy smoke
+
+| Jira Story | Case ID | Acceptance Criterion | Test / control | Code | Kết quả | Commit / run / bằng chứng | Defect |
+| ---------- | ------- | -------------------- | -------------- | ---- | ------- | ------------------------- | ------ |
+|            | DEPLOY-01 | Public health trả trạng thái tốt | `smoke_public.py` — `/api/health` `200` | Có | | | |
+|            | DEPLOY-02 | Anonymous không đọc được staff session | `smoke_public.py` — `/staff/me` `401` trước login | Có | | | |
+|            | DEPLOY-03 | CFO login và nhận cookie bảo mật | `smoke_public.py` — CFO profile và cookie flags | Có | | | |
+|            | DEPLOY-05 | KPI khớp response contract | `smoke_public.py` — đủ field KPI | Có | | | |
+|            | DEPLOY-06 | CFO bị giới hạn đúng metric | `smoke_public.py` — category ẩn; request trả `403` | Có | | | |
+|            | DEPLOY-07 | Logout xóa cookie và session | `smoke_public.py` — cookie bị xóa; `/staff/me` `401` | Có | | | |
+
+Đây là kiểm tra trên production sau deploy, không phải test Dev hay PR CI. Chỉ
+đánh dấu `PASS` khi workflow CD và smoke step hoàn tất thành công; ghi commit
+SHA/release cùng URL workflow run. Tài khoản CFO giám sát và dữ liệu production
+chỉ được dùng theo cấu hình được phê duyệt. `DEPLOY-04` hiện chưa được phát ra
+bởi script; cần đồng bộ mã case khi chỉnh smoke code.
+
+## 9. Cách cập nhật
 
 1. Trong mỗi PR, điền Story/AC, Case ID, kết quả và URL run vào mục **Test traceability** của PR template. Nếu fail, ghi Defect ID và link lần retest.
 2. Trong matrix này, điền Jira Story thật; cập nhật test/control và cột **Code** khi coverage thay đổi hoặc có Case ID mới.

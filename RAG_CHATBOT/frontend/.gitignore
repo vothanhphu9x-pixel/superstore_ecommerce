@@ -17,3 +17,6 @@ npm-debug.log*
 
 # Local Docker E2E credentials; never commit.
 e2e-test-env
+.vercel
+.env*
+!.env.example

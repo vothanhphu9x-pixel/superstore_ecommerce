@@ -17,6 +17,7 @@ File này mô tả case và kết quả mong đợi; lệnh chạy nằm trong
 | Frontend E2E    | Redirect, login/logout qua BFF, cookie, Origin guard          | Có 4 test trong `frontend/e2e/login.spec.ts`         |
 | Data quality    | Staging, Snapshot, Silver, Gold, Mart                         | Có dbt YAML và singular SQL tests; chạy local/Airflow, không chạy trong PR CI |
 | CI              | Tự động chạy test và báo fail                                 | Có `.github/workflows/quality.yml`; required checks chưa xác minh |
+| Deploy smoke    | Kiểm tra website/API production sau khi deploy                 | Có `deploy/production/tests/smoke_public.py`; chạy trong workflow CD, không thuộc Dev/PR CI |
 
 ## 2. Test cases
 
@@ -115,6 +116,28 @@ Thứ tự trên theo vị trí job trong `quality.yml`; các job không có `ne
 Nhóm login test cần Redis thật; job backend và frontend E2E hiện cấp Redis
 service riêng. Nếu service không khỏe hoặc login trả `503`, CI-03/CI-05 fail.
 
+### 2.8 Production deploy smoke — `TRAIN-DEPLOY-01`
+
+Đây là bước xác minh sau deploy trên website production thật, tách biệt với
+pytest, frontend E2E và dbt tests chạy trong Dev/CI. Workflow
+`.github/workflows/production.yml` chỉ gọi script sau khi CI thành công và API
+cùng frontend đã được deploy.
+
+| Case ID | Hạng mục | Tiêu chí đạt | Kiểm tra |
+| --- | --- | --- | --- |
+| DEPLOY-01 | Public health | `/api/health` trả `200`, `status=ok`, `api=up` | `smoke_public.py` |
+| DEPLOY-02 | Anonymous access | `/api/internal/staff/me` trước login trả `401` | `smoke_public.py` |
+| DEPLOY-03 | CFO login / cookie | Login role `cfo`; cookie có `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/` | `smoke_public.py` |
+| DEPLOY-05 | KPI contract | KPI response có đủ field bắt buộc | `smoke_public.py` |
+| DEPLOY-06 | Dashboard RBAC | `by-category` không có trong index và gọi trực tiếp trả `403` | `smoke_public.py` |
+| DEPLOY-07 | Logout | Cookie bị xóa; `/api/internal/staff/me` sau logout trả `401` | `smoke_public.py` |
+
+Smoke test lấy `FRONTEND_ORIGIN` từ GitHub Environment variable và credential
+CFO từ Environment secrets. Chỉ đọc dữ liệu nghiệp vụ; có thể cập nhật
+rate-limit/cache/log runtime. Khi fail, kiểm tra log job, website/API và cấu
+hình trước khi đánh dấu release đạt. `DEPLOY-04` hiện chưa được script phát ra;
+case ID cần được dọn khi chỉnh smoke code.
+
 ## 3. Môi trường và dữ liệu test
 
 **Giống nhau:** Local `make verify` và PR CI đều kiểm tra hygiene, Python, pytest, frontend lint/type-check/build, Compose/DE contract, dbt parse và E2E. API tests dùng `TestClient`, SQLite tạm, API key/JWT test, tắt cache và mock Snowflake; cả hai E2E đều yêu cầu `Frontend_Origin` khớp URL browser.
@@ -128,17 +151,22 @@ service riêng. Nếu service không khỏe hoặc login trả `503`, CI-03/CI-0
 
 Không lưu password, cookie, token hoặc bản sao dữ liệu khách hàng thật vào repo hay báo cáo lỗi; không dùng production để tạo dữ liệu lỗi thử nghiệm.
 
+Production deploy smoke là gate riêng sau merge: CD chạy sau khi Quality Gate
+thành công, deploy commit đã kiểm tra rồi mới gọi website production. Nó không
+được tính vào `make verify` hoặc PR CI.
+
 ## 4. Thứ tự thực thi
 
 1. Chuẩn bị local: backend `.venv`, staff E2E, Airflow và Snowflake đã nạp đủ dữ liệu.
 2. `make verify` chạy: Git hygiene → Python syntax → Backend → Frontend static → Compose → DE contract → dbt parse → Docker E2E → dbt data tests; dừng ngay khi có lỗi.
 3. Chỉ commit khi toàn bộ pass. PR CI chạy lại các kiểm tra không cần Snowflake thật; Airflow vẫn test dữ liệu sau từng layer.
+4. Sau merge, CD deploy đúng commit đã qua Quality Gate rồi chạy các case production được liệt kê ở Mục 2.8. Smoke fail thì release chưa được xác nhận khỏe.
 
 Các lệnh thực thi và cách đọc kết quả chỉ đặt trong [Test Operations](operation.md).
 
 ## 5. Tiêu chí pass/fail và xử lý defect
 
-Một domain đạt khi toàn bộ test thuộc domain pass và có bằng chứng lần chạy. Không đánh dấu Data quality đạt chỉ vì `dbt parse` pass. Test bị skip phải ghi lý do; không tính skip là bằng chứng requirement đã được kiểm chứng.
+Một domain đạt khi các test bắt buộc pass và có bằng chứng. `dbt parse` không chứng minh data quality. Test bị skip không được tính là pass. Với production, chỉ xác nhận release khỏe khi toàn bộ case production đang được script thực thi trong CD run đều pass; nếu fail, ghi release là chưa đạt và xử lý trước khi thông báo hoàn tất.
 
 Khi fail, ghi:
 
@@ -156,7 +184,8 @@ Lỗi được sửa xong phải chạy lại case lỗi **và** các test liên
 Sau mỗi lần chạy, cập nhật [Traceability Matrix](traceability_matrix.md) theo chuỗi:
 
 ```text
-Story → Acceptance Criterion → Case ID → test function/SQL → CI hoặc Airflow run → kết quả
+Story → Acceptance Criterion → Case ID → test function/SQL → Dev/CI, Airflow hoặc production CD run → kết quả
 ```
 
 Không đánh dấu `PASS` trước khi có kết quả chạy thật.
+Với production cases trong Mục 2.8, ghi commit/release SHA và URL production workflow run; không gộp bằng chứng này với PR CI.
