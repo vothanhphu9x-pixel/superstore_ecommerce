@@ -1,13 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { staffService } from "@/lib/api";
 import { useStaffSession } from "./StaffSessionProvider";
 
 export function StaffBar() {
   const profile = useStaffSession();
+  const [hydrated, setHydrated] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setHydrated(true));
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   async function logout() {
     setLoggingOut(true);
@@ -33,7 +40,7 @@ export function StaffBar() {
         <button
           type="button"
           onClick={logout}
-          disabled={loggingOut}
+          disabled={!hydrated || loggingOut}
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
         >
           {loggingOut ? "Signing out..." : "Sign out"}

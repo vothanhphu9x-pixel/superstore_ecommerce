@@ -1,55 +1,43 @@
-# Frontend Discovery Result
+# Frontend — Discovery Result
 
-## Identification
+## 1. Phạm vi
 
-- Review date: 2026-10-06
-- Scope: Next.js dashboard, BFF proxy và staff login/session
-- Status: **Login UI và dashboard theo role đã có; runtime E2E chưa kiểm lại**
+- Next.js 16 App Router; internal dashboard và staff login.
+- Browser gọi cùng origin Next.js; Next Route Handler làm BFF tới FastAPI.
+- Production frontend được deploy lên Vercel bởi `.github/workflows/production.yml`.
+- Đây là đối chiếu code ngày 2026-10-27; lint/build/E2E chưa chạy lại trong lượt rà soát này.
 
-## Implementation baseline
+## 2. Route và trách nhiệm
 
-| Thành phần     | Hiện trạng                                         |
-| -------------- | -------------------------------------------------- |
-| Framework      | Next.js `16.3.6`, React `19.3.0`                   |
-| Dashboard      | KPI, revenue trend, category, region, top products |
-| BFF            | `/api/internal/[...path]`: dashboard + staff routes |
-| Upstream       | FastAPI `/api/dashboard/*`, `/api/staff/*`          |
-| Authentication | Next server gắn `X-API-Key`; chuyển staff cookie `HttpOnly` và `Set-Cookie` |
-| Access         | `proxy.ts` redirect khi thiếu cookie; server layout xác thực `/staff/me` |
-| Staff UI       | `/login`, `LoginForm`, `StaffBar` logout; chỉ render metric được role cho phép |
+| Next.js route | Chức năng |
+|---|---|
+| `/login` | Form đăng nhập; nhận `next` path đã kiểm tra |
+| `/dashboard` | Dashboard nội bộ; `proxy.ts` redirect sớm nếu thiếu cookie, server layout xác thực lại với FastAPI |
+| `/api/internal/[...path]` | BFF allowlist: GET profile/dashboard, POST login/logout; kiểm tra Origin với POST |
+| `/api/health` | Server-side probe tới FastAPI `/api/health/live` |
 
-## Validation results
+Dashboard gồm KPI, doanh thu theo tháng, category, region và top products. UI chỉ hiển
+thị metric trong `StaffProfile.metrics`; backend vẫn là nơi quyết định quyền.
 
-| Gate               | Result   | Evidence                                                         |
-| ------------------ | -------- | ---------------------------------------------------------------- |
-| Dependency install | Pass | `npm ci` (2026-10-06) |
-| Security audit     | Pass | `npm audit --audit-level=high`: 0 lỗ hổng |
-| BFF routes         | Code review | GET `/staff/me`, `/dashboard*`; POST `/staff/login`, `/staff/logout`; POST sai Origin bị chặn |
-| Cookie/key boundary | Code review | `internalApi.ts` là `server-only`; BFF chuyển cookie và `Set-Cookie` |
-| Lint/type-check/build | Pass | `npm run check` (2026-10-06) |
-| Docker build       | Pass | `docker build -t superstore-frontend:audit-fix .` (2026-10-06) |
-| End-to-end BFF     | Chưa kiểm lại | Cần login qua BFF, kiểm tra `/staff/me`, redirect và metric |
-| Docker Compose config | Pass | `docker compose --profile app config --quiet` (2026-10-06) |
+## 3. Luồng bảo mật
 
-## Known gaps
+- `API_KEY` và `INTERNAL_API_URL` chỉ dùng ở Next server (`internalApi.ts` có `server-only`).
+- Browser gửi cookie `superstore_staff` tới same-origin BFF; Next chuyển cookie lên FastAPI.
+- FastAPI `Set-Cookie` được BFF chuyển nguyên về browser; JavaScript không đọc được `HttpOnly`.
+- `proxy.ts` chỉ kiểm tra cookie có tồn tại để redirect nhanh. `(internal)/layout.tsx`
+  gọi `/api/staff/me` để kiểm tra session thật trước khi render dashboard.
+- POST login/logout chỉ chấp nhận đúng `Frontend_Origin`; thiếu cấu hình này ở production
+  làm BFF trả lỗi cấu hình.
 
-- `RAG_CHATBOT/frontend/.env.example` còn cờ preview cũ
-  `ALLOW_UNAUTHENTICATED_INTERNAL_UI`, trong khi code không đọc cờ này; ví dụ
-  chưa khai báo `Frontend_Origin` mà BFF đang dùng để kiểm tra POST Origin.
-- BFF forward mọi `dashboard/*` theo prefix; FastAPI trả `404` cho metric lạ.
-- Compose nạp `frontend/.env.local` qua `env_file`; không nội suy hai biến BFF từ
-  `data_platform/.env` hay bắt buộc export vào shell.
-- Next-specific ESLint plugin đã bỏ do phụ thuộc `braces` chưa có bản vá;
-  ESLint core, TypeScript và React Hooks vẫn chạy.
-- Chưa có automated component/E2E test cho frontend.
+## 4. Kiểm tra
 
-## Completion criteria
+| Hạng mục | Trạng thái lượt rà soát |
+|---|---|
+| Route, env boundary, login/session flow | Đã đối chiếu code |
+| `npm ci`, lint, typecheck, build | Chưa chạy lại |
+| Playwright E2E | Chưa chạy lại |
+| Production/Vercel runtime | Chưa kiểm tra |
 
-- [x] `npm ci`, `npm audit --audit-level=high`, `npm run check` pass.
-- [x] Docker frontend image build thành công; chưa xác nhận container health/runtime.
-- [x] Trang Next có login/logout, redirect và chỉ render metric theo role.
-- [ ] BFF login, gửi cookie, gọi `/staff/me` và metric theo role được xác minh E2E.
-
-Hướng dẫn chạy: [operation.md](operation.md).
-Kiến trúc: [system_architecutre_lineage.md](system_architecutre_lineage.md).
-Truy vết lỗi: [error_tracing.md](error_tracing.md).
+Không kế thừa kết quả cũ làm bằng chứng cho phiên bản hiện tại. Cách chạy:
+[operation.md](operation.md). Kiến trúc: [system_architecture_lineage.md](system_architecture_lineage.md).
+Khoanh vùng lỗi: [error_tracing.md](error_tracing.md).

@@ -1,123 +1,85 @@
-# Frontend System Architecture & Lineage
+# Frontend — Architecture & Request Lineage
 
-Frontend là Next.js BFF cho dashboard nội bộ. Browser giữ cookie `HttpOnly`
-`superstore_staff`; `API_KEY` chỉ nằm ở Next.js server. Đã có trang login,
-redirect khi chưa đăng nhập, xác thực session phía server và logout.
-
-## 1. Kiến trúc
+## 1. Luồng tổng thể
 
 ```mermaid
 flowchart LR
-    U["Browser"]
+    Browser[Browser]
+    Proxy[Next proxy.ts]
+    UI[Login and dashboard UI]
+    BFF[Next Route Handler BFF]
+    Server[server-only internalFetch]
+    API[FastAPI]
+    Staff[(SQLite staff DB)]
+    Redis[(Redis)]
+    SF[(Snowflake Gold and Mart)]
 
-    subgraph NEXT["Next.js :3000"]
-        PROXY["proxy.ts: thiếu cookie → /login"]
-        LOGIN["/login + LoginForm"]
-        LAYOUT["Internal layout: GET /staff/me"]
-        UI["Dashboard theo role + StaffBar logout"]
-        CLIENT["dashboardService + staffService"]
-        BFF["/api/internal/..."]
-        GUARD["Method/path allowlist + POST Origin"]
-        SERVER["internalFetch server-only + API key"]
-    end
-
-    API["FastAPI :8000<br/>API key + staff session + role"]
-    STAFF[(SQLite staff DB)]
-    CACHE[(Redis)]
-    GOLD[(Snowflake Gold)]
-    MART[(Snowflake Mart)]
-
-    U --> PROXY
-    PROXY -->|"chưa có cookie"| LOGIN --> CLIENT
-    PROXY -->|"có cookie"| LAYOUT --> UI --> CLIENT --> BFF
-    LAYOUT --> SERVER
-    U -->|"staff cookie"| BFF
-    BFF --> GUARD --> SERVER
-    SERVER -->|"X-API-Key + cookie"| API
-    API --> STAFF
-    API --> CACHE
-    API --> GOLD
-    API --> MART
+    Browser --> Proxy
+    Proxy -->|cookie absent| UI
+    Proxy -->|cookie present| UI
+    UI -->|same-origin /api/internal| BFF
+    BFF --> Server
+    Server -->|API key + forwarded cookie| API
+    API --> Staff
+    API --> Redis
+    API --> SF
+    API --> Server
+    Server --> BFF
+    BFF --> Browser
 ```
 
-## 2. Luồng dữ liệu dashboard
+Browser không gọi FastAPI trực tiếp. `API_KEY` chỉ tồn tại ở Next server; staff cookie
+là cookie cùng origin với giao diện.
 
-```mermaid
-sequenceDiagram
-    actor Browser
-    participant Next as Next.js BFF
-    participant API as FastAPI
-    participant Data as Redis / Snowflake
+## 2. Request mapping
 
-    Browser->>Next: GET /dashboard khi thiếu cookie
-    Next-->>Browser: Redirect /login?next=/dashboard
-    Browser->>Next: POST /api/internal/staff/login
-    Next->>Next: Check method/path + Origin
-    Next->>API: POST /api/staff/login + X-API-Key
-    API-->>Next: Staff profile + Set-Cookie
-    Next-->>Browser: Giữ Set-Cookie cho localhost:3000
-    Browser->>Next: GET /dashboard + cookie
-    Next->>API: GET /api/staff/me + key + cookie
-    API-->>Next: Staff profile + allowed metrics
-    Browser->>Next: GET /api/internal/dashboard/{metric} + cookie
-    Next->>API: GET /api/dashboard/{metric} + key + cookie
-    API->>API: Verify staff session + role
-    API->>Data: Cache lookup hoặc Snowflake query
-    Data-->>API: Metric payload
-    API-->>Next: HTTP status + JSON
-    Next-->>Browser: Giữ status + body
+| Browser → Next.js | Next.js → FastAPI |
+|---|---|
+| `POST /api/internal/staff/login` | `POST /api/staff/login` |
+| `GET /api/internal/staff/me` | `GET /api/staff/me` |
+| `POST /api/internal/staff/logout` | `POST /api/staff/logout` |
+| `GET /api/internal/dashboard/{metric}` | `GET /api/dashboard/{metric}` |
+| `GET /api/health` | `GET /api/health/live` |
+
+BFF chỉ nhận các path/method được khai báo trong `app/api/internal/[...path]/route.ts`.
+POST bắt buộc có `Origin` khớp `Frontend_Origin`; BFF chuyển cookie và `Set-Cookie`,
+không chuyển API key ra browser.
+
+## 3. Xác thực dashboard
+
+1. `proxy.ts` kiểm tra có cookie `superstore_staff` không; thiếu thì redirect `/login`.
+2. `(internal)/layout.tsx` gọi FastAPI `/api/staff/me` bằng `internalFetch` để xác minh
+   token, account active và `auth_version`.
+3. Layout cung cấp profile; giao diện hiển thị những metric trong `profile.metrics`.
+4. Mỗi request metric vẫn được FastAPI kiểm tra API key, cookie và role.
+
+Cookie chỉ hiện diện không đồng nghĩa session hợp lệ; bước 2 là kiểm tra có thẩm quyền.
+
+## 4. Module map
+
+```text
+proxy.ts                                 Redirect sớm khi thiếu staff cookie
+app/login/page.tsx + LoginForm           Form đăng nhập
+app/(internal)/layout.tsx                Xác thực session server-side; dựng staff context
+app/(internal)/dashboard/page.tsx        Trang dashboard
+components/auth/                         Login, staff bar, session context
+components/dashboard/                    KPI, charts, range, loading/error state
+lib/api.ts                               Browser services gọi same-origin BFF
+app/api/internal/[...path]/route.ts      Path/method allowlist, Origin guard, cookie proxy
+lib/server/internalApi.ts                Server-only upstream URL/API key/timeout
+app/api/health/route.ts                  Probe Next → FastAPI liveness
 ```
 
-`LoginForm` gọi `staffService.login`; layout server gọi trực tiếp `/api/staff/me`
-qua `internalFetch` (không dùng `staffService.me`); `StaffBar` gọi
-`staffService.logout`. `proxy.ts` chỉ kiểm tra cookie
-có tồn tại để redirect sớm, **không** tự xác thực chữ ký/role. Dashboard chỉ
-render metric trong `StaffProfile.metrics`; FastAPI vẫn kiểm tra quyền từng request.
+## 5. Security boundary
 
-| Giao diện | Metric API | Giá trị business |
-|---|---|---|
-| KPI cards | `kpi` | Revenue, profit, orders, AOV, margin |
-| Revenue trend | `revenue-trend` | Xu hướng doanh thu theo tháng |
-| Category breakdown | `by-category` | Hiệu quả theo nhóm hàng |
-| Region breakdown | `by-region` | Hiệu quả theo khu vực |
-| Top products | `top-products` | Sản phẩm đóng góp doanh thu cao nhất |
+- `proxy.ts` chỉ redirect sớm; không xác minh chữ ký JWT và không cấp quyền.
+- BFF POST chặn Origin khác; GET chỉ chuyển route allowlist.
+- FastAPI mới là nguồn quyết định session và RBAC.
+- BFF và browser dùng same-origin; browser không nhận `X-API-Key`.
+- Login/logout gửi `Set-Cookie` và xóa cookie ở BFF response; flag bảo mật do FastAPI
+  cấu hình, production phải dùng HTTPS và `Secure` cookie.
+- `/api/health` chỉ báo Next có gọi được FastAPI liveness; không phải kiểm tra Snowflake.
 
-## 3. Trách nhiệm module
-
-```mermaid
-flowchart TD
-    X["proxy.ts<br/>redirect khi thiếu cookie"]
-    L["app/login/page.tsx + LoginForm"]
-    S["app/(internal)/layout.tsx<br/>xác thực /staff/me"]
-    P["app/(internal)/dashboard/page.tsx"]
-    V["DashboardView<br/>layout + date range"]
-    B["StaffBar + StaffSessionProvider"]
-    C["Dashboard components<br/>render KPI/chart/error"]
-    H["useMetric<br/>loading + fetch state"]
-    A["lib/api.ts<br/>dashboardService + staffService + ApiError"]
-    R["route.ts<br/>method/path + Origin + cookie proxy"]
-    I["internalApi.ts<br/>server-only key + timeout 15s"]
-
-    X --> L --> A
-    X --> S --> P --> V --> C --> H --> A --> R --> I
-    S --> B --> A
-```
-
-## 4. Security boundary
-
-- `API_KEY` chỉ được đọc trong Next.js server và gắn vào upstream request.
-- BFF cho `GET /staff/me`, `GET /dashboard*`, `POST /staff/login` và
-  `POST /staff/logout`; FastAPI từ chối metric lạ. `dashboard/*` hiện được
-  forward theo prefix, chưa có allowlist cố định năm metric ở BFF.
-- BFF chuyển cookie tới FastAPI và chuyển `Set-Cookie` của login/logout về browser.
-  Browser không đọc được giá trị cookie `HttpOnly` bằng JavaScript.
-- POST có `Origin` khác origin của Next.js bị trả `403`; POST không có Origin
-  được phép để hỗ trợ curl/server-side client.
-- Không còn preview guard hay phụ thuộc `ALLOW_UNAUTHENTICATED_INTERNAL_UI`.
-  `.env.example` vẫn chứa cờ cũ nhưng code không đọc nó.
-- POST từ Origin khác `Frontend_Origin` bị chặn; request không có Origin được
-  chấp nhận cho CLI/server-side client. Cấu hình phải đúng origin browser thực tế.
-- Next.js không cache request; FastAPI dùng Redis cho metric và rate limit login,
-  fallback trong tiến trình nếu Redis lỗi.
-
-Luồng truy vết lỗi chi tiết: [error_tracing.md](error_tracing.md).
+Vận hành: [operation.md](operation.md). Truy vết lỗi:
+[error_tracing.md](error_tracing.md). API boundary:
+[API Architecture](../API/system_architecture_lineage.md).

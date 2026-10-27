@@ -1,51 +1,51 @@
-# API Discovery Result
+# API — Discovery Result
 
-## Identification
+## 1. Phạm vi
 
-- Review date: 2026-10-07
-- Scope: FastAPI analytics API, staff session và dashboard theo role
-- Status: **Đã triển khai; backend test suite pass**
+- FastAPI cung cấp dashboard analytics nội bộ; dữ liệu chỉ đọc từ Snowflake.
+- Staff đăng nhập bằng SQLite-backed account; session là cookie `HttpOnly`.
+- Redis dùng cho login rate limit và metric cache.
+- Tài liệu này ghi nhận code được đọc ngày 2026-10-27; các lệnh kiểm tra chưa được chạy lại trong lượt rà soát này.
 
-## API contract
+## 2. API hiện có
 
-| Capability | Source | Result |
+| Route | Mục đích | Bảo vệ |
 |---|---|---|
-| KPI summary | Snowflake Gold `fact_sales` | Có query + contract; chưa chạy lại với session mới |
-| Revenue trend/category/region | Snowflake Mart `mart_revenue_monthly` | Có query + contract; chưa chạy lại với session mới |
-| Top products | Gold `fact_sales` + `dim_product` | Có query + contract; chưa chạy lại với session mới |
-| API authentication | Header `X-API-Key` cho `/api/staff/*` và `/api/dashboard*` | Sai/thiếu key trả `403`; key chưa cấu hình trả `503` |
-| Staff login/session | SQLite + scrypt; JWT cookie `superstore_staff` | Login, me, logout đã có trong code |
-| Dashboard authorization | API key + staff cookie + metric groups theo role | `GET /api/dashboard` chỉ trả metric được phép |
-| Login rate limit | Redis theo IP, mặc định 10 lần/phút; fallback trong tiến trình | Có trong code; chưa kiểm lại runtime |
-| Cache | Redis metric cache, lỗi thì truy vấn Snowflake trực tiếp | Có trong code; chưa kiểm lại runtime |
-| Readiness | Snowflake bắt buộc; Redis báo trạng thái riêng | Có trong code; chưa kiểm lại runtime |
+| `GET /health/live` | Liveness cơ bản của FastAPI | Không yêu cầu key |
+| `GET /health/ready`, `GET /health` | Kiểm tra Snowflake và Redis | Không yêu cầu key |
+| `GET /api/health/live` | Probe nhẹ, trả `status` và `release` | Không yêu cầu key |
+| `GET /api/health/ready` | Kiểm tra staff SQLite và Redis | Không yêu cầu key; nội bộ trên production |
+| `GET /api/dashboard` | Metric được staff hiện tại xem được + contract | API key + staff cookie |
+| `GET /api/dashboard/{metric}` | Đọc một metric theo tháng | API key + staff cookie + RBAC |
+| `POST /api/staff/login` | Xác thực staff, đặt cookie session | API key |
+| `GET /api/staff/me` | Đọc profile/session hiện tại | API key + staff cookie |
+| `POST /api/staff/logout` | Xóa cookie session | API key |
+| `GET /metrics` | Prometheus counters/histogram | Không nằm trong OpenAPI; production không public |
 
-API chỉ đọc dữ liệu bằng `SUPERSTORE_API_USER` và role `ANALYTICS_READONLY`.
+Metric hiện được khai báo: `kpi`, `revenue-trend`, `by-category`, `by-region`, `top-products`.
+Nguồn chính là Gold `fact_sales`, `dim_product` và Mart `mart_revenue_monthly`.
 
-## Validation results
+## 3. Trách nhiệm và giới hạn
 
-| Gate | Result | Evidence |
-|---|---|---|
-| Python syntax | Pass | `compileall -q analytics api core scripts` (2026-10-06) |
-| Backend tests | Pass | `pytest -q`: 30 pass, 1 deprecation warning (2026-10-07); auth route test không gọi Snowflake thật |
-| Docker API build | Chưa kiểm lại | Không dùng image cũ làm bằng chứng cho code hiện tại |
-| API runtime + 5 metric | Chưa kiểm lại | Cần smoke test với key + staff cookie trên môi trường đang chạy |
-| Docker Compose config | Pass | `docker compose --profile app config --quiet` (2026-10-06) |
-| Repository hygiene | Chưa kiểm lại | Kiểm staged files trước commit |
+- `api/routers/`: endpoint, xác thực route và response.
+- `api/services/`: kiểm tra month key.
+- `api/schemas/`: request/response Pydantic.
+- `analytics/`: kết nối Snowflake, SQL, relation allowlist và metric contract.
+- `core/`: config, API key, staff session/RBAC, Redis cache/rate limit, client IP và logging.
+- `scripts/manage_staff.py`: CLI quản lý account; SQLite nằm trong `data/` local hoặc mount `/app/data` trong container.
 
-## Current boundaries
+`API_KEY` xác thực client nội bộ/BFF; `STAFF_JWT_SECRET` ký session staff. Hai secret này
+không thay thế nhau. API key thiếu hoặc placeholder khiến protected route trả `503`;
+key gửi sai trả `403`. Cookie thiếu/sai trả `401`; role không được phép trả `403`.
 
-- Không ghi dữ liệu vào Snowflake hoặc Odoo.
-- Staff session dùng cookie; đây không phải customer session. `API_KEY` vẫn là secret
-  giữa client nội bộ/Next.js BFF và FastAPI.
-- Redis cache lỗi không làm dừng metric; Snowflake lỗi làm readiness trả `503` và metric trả `502`.
-- GitHub Quality Gate cài `requirements-dev.txt`; Docker production chỉ cài `requirements.txt`.
-- `tests/test_api_auth.py` kiểm tra API key + staff cookie, login/logout, role
-  và session hết hiệu lực bằng SQLite tạm; nhánh `429` dùng mock rate limit.
-  Các test này chưa thay thế smoke test runtime.
-- Với `TRUST_PROXY_HEADERS=false`, API nhận IP của BFF/container làm IP login;
-  nhiều nhân viên có thể chia sẻ cùng một bucket rate limit.
-- CLI staff nằm ở `RAG_CHATBOT/scripts/manage_staff.py`; database SQLite được ignore bởi Git
-  và mount tại `/app/data` khi chạy Docker.
+## 4. Tình trạng xác minh
 
-Hướng dẫn chạy và kiểm tra: [operation.md](operation.md).
+| Hạng mục | Trạng thái trong lượt rà soát |
+|---|---|
+| Route, config, query và contract | Đã đối chiếu code |
+| Unit/API tests | Chưa chạy lại |
+| Docker/Compose runtime | Chưa kiểm tra |
+| Kết nối Snowflake thật | Chưa kiểm tra |
+
+Không xem kết quả cũ trong tài liệu là bằng chứng cho code hiện tại. Hướng dẫn chạy:
+[operation.md](operation.md). Kiến trúc: [system_architecture_lineage.md](system_architecture_lineage.md).

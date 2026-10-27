@@ -1,28 +1,30 @@
 # Frontend Operations
 
-## 1. Cấu hình và chạy
+## 1. Cấu hình
 
-Chuẩn bị `RAG_CHATBOT/.env` cho FastAPI và tạo staff theo
-[API operation](../API/operation.md). Staff tạo bằng CLI local nằm trong
-`RAG_CHATBOT/data`; staff tạo trong container nằm ở Docker volume
-`staff_auth_data` — hai nơi **không dùng chung** tài khoản.
-
-`RAG_CHATBOT/frontend/.env.local` chỉ dành cho Next.js server:
+Next.js server đọc `RAG_CHATBOT/frontend/.env.local` khi chạy local hoặc Docker:
 
 ```dotenv
 INTERNAL_API_URL=http://localhost:8000
-API_KEY=REPLACE_WITH_FASTAPI_API_KEY
+API_KEY=CHANGE_ME_SAME_VALUE_AS_RAG_CHATBOT_API_KEY
 Frontend_Origin=http://localhost:3000
 ```
 
-`API_KEY` phải khớp với API; khi triển khai HTTPS, đặt
-`STAFF_COOKIE_SECURE=true` trong `RAG_CHATBOT/.env`. Xem các bước xác minh
-đăng nhập, BFF và dashboard tại [Test Operations](../tests/operation.md).
+`API_KEY` phải trùng `API_KEY` của FastAPI. `Frontend_Origin` phải bằng chính xác
+origin browser đang dùng. Khi chạy Docker Compose, đổi upstream thành
+`INTERNAL_API_URL=http://api:8000`. Không đặt các biến này thành `NEXT_PUBLIC_*`.
 
-### 1.1. Chạy local
+FastAPI cần cấu hình và staff account trước; xem [API Operations](../API/operation.md).
 
-Cài dependencies một lần trong `RAG_CHATBOT/frontend`: `npm ci`. Sau đó mở ba
-terminal:
+## 2. Chạy local
+
+Trong `RAG_CHATBOT/frontend`, cài dependencies một lần:
+
+```bash
+npm ci
+```
+
+Mở ba terminal:
 
 ```bash
 # Terminal 1 — Redis
@@ -43,28 +45,34 @@ cd RAG_CHATBOT/frontend
 npm run dev
 ```
 
-### 1.2. Chạy bằng Docker Compose
+Mở <http://localhost:3000/login> hoặc <http://localhost:3000/dashboard>.
+Test commands nằm trong [Test Operations](../tests/operation.md).
 
-Đặt `INTERNAL_API_URL=http://api:8000` trong `frontend/.env.local`, rồi chạy
-từ root repository:
+## 3. Chạy bằng Docker Compose
+
+Trong `RAG_CHATBOT/frontend/.env.local`, đặt `INTERNAL_API_URL=http://api:8000`.
+Compose nạp Next env từ file đó và API env từ `RAG_CHATBOT/.env`:
 
 ```bash
 cd data_platform
 docker compose --profile app up -d --build api frontend
-docker compose ps api frontend
+docker compose ps api frontend redis
 ```
 
-Compose cấp biến cho frontend qua `frontend/.env.local`, cho API qua
-`RAG_CHATBOT/.env`; không cần `set -a`. Nếu chỉ sửa frontend, build và tạo lại
-riêng service này:
+Staff DB nằm trong named volume `staff_auth_data`; log API nằm trong
+`superstore_api_logs`. Hai volume giữ dữ liệu khi recreate container.
+
+Chỉ build lại frontend khi cần:
 
 ```bash
 docker compose --profile app up -d --build --no-deps --force-recreate frontend
 ```
 
-Lệnh `docker compose up -d --build` **không có `--profile app`** sẽ bỏ qua API và
-frontend. Với cả hai cách chạy, mở `http://localhost:3000/dashboard`.
+Production Vercel deploy tự động sau Quality Gate; không dùng Compose production.
+Xem [Deploy Operations](../deploy/operation.md).
 
-Kiến trúc BFF được mô tả trong
-[System Architecture Lineage](system_architecutre_lineage.md); các bước kiểm tra
-nằm trong [Test Operations](../tests/operation.md).
+## 4. Tài liệu liên quan
+
+- Luồng và security boundary: [system_architecture_lineage.md](system_architecture_lineage.md)
+- Khoanh vùng lỗi: [error_tracing.md](error_tracing.md)
+- Chạy test: [Test Operations](../tests/operation.md)
