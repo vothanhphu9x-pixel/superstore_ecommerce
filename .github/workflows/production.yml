@@ -251,7 +251,6 @@ jobs:
           REMOTE
 
       - name: Deploy Next.js to Vercel
-        working-directory: RAG_CHATBOT/frontend
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
@@ -263,13 +262,15 @@ jobs:
           : "${VERCEL_ORG_ID:?Configure production variable VERCEL_ORG_ID}"
           : "${VERCEL_PROJECT_ID:?Configure production variable VERCEL_PROJECT_ID}"
 
-          npm ci
-          npx --no-install vercel pull \
+          npm ci --prefix RAG_CHATBOT/frontend
+          RAG_CHATBOT/frontend/node_modules/.bin/vercel pull \
             --yes \
             --environment=production \
             --token="$VERCEL_TOKEN"
-          npx --no-install vercel build --prod --token="$VERCEL_TOKEN"
-          npx --no-install vercel deploy \
+          RAG_CHATBOT/frontend/node_modules/.bin/vercel build \
+            --prod \
+            --token="$VERCEL_TOKEN"
+          RAG_CHATBOT/frontend/node_modules/.bin/vercel deploy \
             --prebuilt \
             --prod \
             --token="$VERCEL_TOKEN"

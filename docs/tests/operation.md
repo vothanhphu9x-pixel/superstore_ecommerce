@@ -316,20 +316,17 @@ không thuộc Dev/Makefile hay PR CI.
 Login thành công với role `cfo`; cookie có `Secure`, `HttpOnly`, `SameSite=Lax`,
 `Path=/`.
 
-### 4.4. KPI contract — `DEPLOY-05`
+### 4.4. KPI contract — `DEPLOY-04`
 
 CFO đọc KPI và response có đủ field bắt buộc.
 
-### 4.5. Dashboard RBAC — `DEPLOY-06`
+### 4.5. Dashboard RBAC — `DEPLOY-05`
 
 `by-category` không có trong index của CFO; gọi trực tiếp trả `403`.
 
-### 4.6. Logout — `DEPLOY-07`
+### 4.6. Logout — `DEPLOY-06`
 
 Logout xóa cookie; `/api/internal/staff/me` sau logout trả `401`.
-
-Các mã case ở trên theo script hiện tại; `DEPLOY-04` chưa được phát ra bởi
-`smoke_public.py` và cần được đồng bộ khi chỉnh test code.
 
 Smoke chỉ đọc dữ liệu nghiệp vụ; có thể ghi rate-limit, cache và logs. Kết quả
 ghi nhận theo release/CD run.
