@@ -149,22 +149,22 @@ def main() -> int:
         index, _ = _json_request(
             opener,
             f"{origin}/api/internal/dashboard",
-            case_id="DEPLOY-06",
+            case_id="DEPLOY-05",
         )
         if "kpi" not in index.get("metrics", []):
-            raise RuntimeError("DEPLOY-05: CFO dashboard index omits KPI")
+            raise RuntimeError("DEPLOY-04: CFO dashboard index omits KPI")
         if "by-category" in index.get("metrics", []):
-            raise RuntimeError("DEPLOY-06: CFO dashboard exposes by-category")
+            raise RuntimeError("DEPLOY-05: CFO dashboard exposes by-category")
 
         query = urlencode({"month_from": 20230101, "month_to": 20271201})
         kpi, _ = _json_request(
             opener,
             f"{origin}/api/internal/dashboard/kpi?{query}",
-            case_id="DEPLOY-05",
+            case_id="DEPLOY-04",
         )
         values = kpi.get("data")
         if not isinstance(values, dict):
-            raise RuntimeError("DEPLOY-05: KPI response data is not an object")
+            raise RuntimeError("DEPLOY-04: KPI response data is not an object")
 
         required_fields = {
             "REVENUE",
@@ -174,16 +174,16 @@ def main() -> int:
             "MARGIN_PCT",
         }
         if not required_fields.issubset(values):
-            raise RuntimeError("DEPLOY-05: KPI response is missing required fields")
-        _passed("DEPLOY-05")
+            raise RuntimeError("DEPLOY-04: KPI response is missing required fields")
+        _passed("DEPLOY-04")
 
         _json_request(
             opener,
             f"{origin}/api/internal/dashboard/by-category?{query}",
             expected_status=403,
-            case_id="DEPLOY-06",
+            case_id="DEPLOY-05",
         )
-        _passed("DEPLOY-06")
+        _passed("DEPLOY-05")
 
         _json_request(
             opener,
@@ -191,19 +191,19 @@ def main() -> int:
             method="POST",
             origin=origin,
             expected_status=(200, 204),
-            case_id="DEPLOY-07",
+            case_id="DEPLOY-06",
         )
         if any(cookie.name == "superstore_staff" for cookie in cookies):
-            raise RuntimeError("DEPLOY-07: logout did not clear the staff cookie")
+            raise RuntimeError("DEPLOY-06: logout did not clear the staff cookie")
         logged_in = False
 
         _json_request(
             opener,
             f"{origin}/api/internal/staff/me",
             expected_status=401,
-            case_id="DEPLOY-07",
+            case_id="DEPLOY-06",
         )
-        _passed("DEPLOY-07")
+        _passed("DEPLOY-06")
 
         print(
             "Production deploy smoke passed: health, anonymous denial, "
@@ -227,7 +227,7 @@ def main() -> int:
                     method="POST",
                     origin=origin,
                     expected_status=(200, 204),
-                    case_id="DEPLOY-07 cleanup",
+                    case_id="DEPLOY-06 cleanup",
                 )
             except (HTTPError, URLError, TimeoutError, RuntimeError):
                 print(

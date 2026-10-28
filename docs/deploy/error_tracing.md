@@ -29,7 +29,7 @@ Mở GitHub Actions → `Superstore Production` → job `Deploy API and frontend
 | `Transfer release files and deploy API` | SSH/SCP/sudo lỗi | VPS DNS/port/firewall, deploy authorized key, host key, `sudo -n`, disk, release directory |
 | Remote `deploy.sh` | `compose.yml`, lockfile, config hoặc health lỗi | `/etc/superstore/{app.env,stack.env,images.lock.env}`, Nginx `nginx -t`, Docker pull/compose logs |
 | `Deploy Next.js to Vercel` | `vercel pull/build/deploy` lỗi | Vercel token, org/project IDs, production env, `npm ci`, Vercel project/repository binding |
-| `Smoke test production website and CFO access` | case `DEPLOY-01`…`DEPLOY-07` fail | `FRONTEND_ORIGIN`, monitor CFO account, website/API routing, cookie, role, KPI contract |
+| `Smoke test production website and CFO access` | case `DEPLOY-01`…`DEPLOY-06` fail | `FRONTEND_ORIGIN`, monitor CFO account, website/API routing, cookie, role, KPI contract |
 
 ## 3. Chẩn đoán trên VPS
 
