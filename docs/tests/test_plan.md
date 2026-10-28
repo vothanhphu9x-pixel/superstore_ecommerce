@@ -135,8 +135,7 @@ cùng frontend đã được deploy.
 Smoke test lấy `FRONTEND_ORIGIN` từ GitHub Environment variable và credential
 CFO từ Environment secrets. Chỉ đọc dữ liệu nghiệp vụ; có thể cập nhật
 rate-limit/cache/log runtime. Khi fail, kiểm tra log job, website/API và cấu
-hình trước khi đánh dấu release đạt. `DEPLOY-04` hiện chưa được script phát ra;
-case ID cần được dọn khi chỉnh smoke code.
+hình trước khi đánh dấu release đạt.
 
 ## 3. Môi trường và dữ liệu test
 

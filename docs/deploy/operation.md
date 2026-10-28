@@ -375,7 +375,7 @@ curl -i http://127.0.0.1:8000/api/health/ready
 
 Public `/api/health/ready`, `/metrics`, `/docs`, `/openapi.json` phải trả `404`.
 Port `8000` không được truy cập từ Internet. Frontend smoke tự chạy trong CD;
-case hiện tại là `DEPLOY-01`–`DEPLOY-07`.
+case hiện tại là `DEPLOY-01`–`DEPLOY-06`.
 
 ## 8. Logs và khôi phục
 

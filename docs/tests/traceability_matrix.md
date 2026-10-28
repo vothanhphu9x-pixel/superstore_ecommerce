@@ -115,8 +115,7 @@ dbt YAML tests chạy sau layer tương ứng; singular tests xuyên layer chạ
 Đây là kiểm tra trên production sau deploy, không phải test Dev hay PR CI. Chỉ
 đánh dấu `PASS` khi workflow CD và smoke step hoàn tất thành công; ghi commit
 SHA/release cùng URL workflow run. Tài khoản CFO giám sát và dữ liệu production
-chỉ được dùng theo cấu hình được phê duyệt. `DEPLOY-04` hiện chưa được phát ra
-bởi script; cần đồng bộ mã case khi chỉnh smoke code.
+chỉ được dùng theo cấu hình được phê duyệt.
 
 ## 9. Cách cập nhật
 
