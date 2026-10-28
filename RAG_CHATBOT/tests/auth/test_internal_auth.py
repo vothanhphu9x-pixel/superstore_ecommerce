@@ -110,7 +110,12 @@ def test_role_metric_permissions():
 
     assert role_can_view_groups(
         "cfo",
-        frozenset({"cfo", "ceo"}),
+        frozenset({"cfo"}),
+    )
+
+    assert not role_can_view_groups(
+        "cfo",
+        frozenset({"ceo"}),
     )
 
     assert not role_can_view_groups(
