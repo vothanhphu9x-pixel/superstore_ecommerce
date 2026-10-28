@@ -41,7 +41,7 @@ ROLE_DASHBOARD_GROUPS: dict[str, set[str]] = {
     "admin": {"*"},
     "analyst": {"*"},
     "ceo": {"ceo", "sales", "cfo"},
-    "cfo": {"cfo", "ceo"},
+    "cfo": {"cfo"},
     "sales": {"sales"},
     "marketing": {"marketing"},
     "warehouse": {"warehouse"},
