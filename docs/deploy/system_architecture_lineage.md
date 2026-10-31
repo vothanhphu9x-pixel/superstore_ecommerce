@@ -54,7 +54,8 @@ public, Redis không public. Public readiness, docs, OpenAPI và Prometheus metr
 /etc/superstore/                         [GIỮ — cấu hình/secret lâu dài]
 ├── app.env                              [secret API, staff, Snowflake]
 ├── stack.env                            [API_DOMAIN]
-├── images.lock.env                      [digest Redis đã pin]
+├── images.source.env                    [digest images]
+├── images.lock.env                      [digest images đã pin]
 └── snowflake/                           [secret mount read-only]
 
 /etc/sudoers.d/

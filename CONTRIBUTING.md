@@ -148,6 +148,9 @@ Use small commits that can be reviewed independently:
 SUP-123 feat: add customer order status endpoint
 SUP-123 test: cover unauthorized order access
 SUP-123 docs: record customer order contract
+
+# Xem các commit gần nhất
+git log --oneline -10
 ```
 
 Run the commands from the repository root:

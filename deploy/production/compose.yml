@@ -38,6 +38,7 @@ services:
     networks:
       - egress
       - backend
+      - scrape_api
 
     depends_on:
       redis:
@@ -101,8 +102,118 @@ services:
 
     mem_limit: 384m
 
+  redis-exporter:
+    <<: *default
+    image: ${REDIS_EXPORTER_IMAGE:?Pin REDIS_EXPORTER_IMAGE}
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    expose:
+      - "9121"
+    networks: [backend, observability]
+    mem_limit: 96m
+
+  prometheus:
+    <<: *default
+    image: ${PROMETHEUS_IMAGE:?Pin PROMETHEUS_IMAGE}
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --storage.tsdb.retention.size=5GB
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    networks: [scrape_api, observability]
+    mem_limit: 768m
+
+  node-exporter:
+    <<: *default
+    image: ${NODE_EXPORTER_IMAGE:?Pin NODE_EXPORTER_IMAGE}
+    pid: host
+    command:
+      - --path.rootfs=/host
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+    volumes:
+      - /:/host:ro,rslave
+    expose:
+      - "9100"
+    networks: [observability]
+    mem_limit: 128m
+
+  loki:
+    <<: *default
+    image: ${LOKI_IMAGE:?Pin LOKI_IMAGE}
+    command:
+      - -config.file=/etc/loki/config.yml
+    volumes:
+      - ./loki.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+    expose:
+      - "3100"
+    networks: [observability]
+    mem_limit: 768m
+
+  minio:
+    <<: *default
+    image: ${MINIO_IMAGE:?Pin MINIO_IMAGE}
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    networks: [observability]
+    mem_limit: 512m
+
+  alloy:
+    <<: *default
+    image: ${ALLOY_IMAGE:?Pin ALLOY_IMAGE}
+    user: "0:0"
+    command:
+      - run
+      - --storage.path=/var/lib/alloy
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy:ro
+      - /opt/superstore/logs/api:/logs/api:ro
+      - /var/log/nginx:/logs/nginx:ro
+      - alloy_data:/var/lib/alloy
+    networks: [observability]
+    mem_limit: 256m
+
+  grafana:
+    <<: *default
+    image: ${GRAFANA_IMAGE:?Pin GRAFANA_IMAGE}
+    env_file:
+      - /etc/superstore/grafana.env
+    environment:
+      GF_SERVER_ROOT_URL: http://localhost:3001
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+    ports:
+      - "127.0.0.1:3001:3000"
+    networks: [observability]
+    mem_limit: 512m
+
 networks:
   egress:
-
   backend:
     internal: true
+  scrape_api:
+    internal: true
+  observability:
+    internal: true
+
+volumes:
+  prometheus_data:
+  loki_data:
+  minio_data:
+  alloy_data:
+  grafana_data:ß
