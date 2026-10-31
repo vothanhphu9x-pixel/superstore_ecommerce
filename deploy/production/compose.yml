@@ -216,4 +216,4 @@ volumes:
   loki_data:
   minio_data:
   alloy_data:
-  grafana_data:ß
+  grafana_data:
