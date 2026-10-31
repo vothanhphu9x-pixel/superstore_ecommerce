@@ -185,6 +185,15 @@ Replace `SUP-123` and the message with the real Jira key and completed outcome. 
 The historical STEP 2 baseline is the one exception: it captures the already-integrated
 working tree before new feature work. All later work returns to small commits.
 
+After commit
+
+```bash
+git remote -v
+git log -5 --oneline
+git show --stat HEAD
+git status -sb
+```
+
 ## 7. Open a pull request
 
 Fill every relevant section in the pull-request template. Link Jira and Confluence, attach
