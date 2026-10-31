@@ -190,6 +190,7 @@ After commit
 ```bash
 git remote -v
 git log -5 --oneline
+git show --stat HEAD
 git status -sb
 ```
 
