@@ -14,19 +14,19 @@ secret là cấu hình khởi tạo một lần; GitHub Actions xử lý các re
 
 Trong GitHub → Settings → Environments → `production`, khai báo:
 
-| Loại | Tên | Giá trị |
-|---|---|---|
-| Variable | `VPS_HOST` | Hostname hoặc IPv4 VPS |
-| Variable | `VPS_PORT` | Cổng SSH, thường là `22` |
-| Variable | `VPS_USER` | User deploy, thường là `deploy` |
-| Variable | `VERCEL_ORG_ID` | `orgId` của project Vercel |
-| Variable | `VERCEL_PROJECT_ID` | `projectId` của frontend Vercel |
-| Variable | `FRONTEND_ORIGIN` | HTTPS origin frontend, không thêm path |
-| Secret | `VPS_SSH_KEY` | Private key riêng cho GitHub Actions |
-| Secret | `VPS_KNOWN_HOSTS` | Host key VPS đã xác minh |
-| Secret | `VERCEL_TOKEN` | Token deploy Vercel |
-| Secret | `MONITOR_EMAIL` | Email account CFO dành riêng cho smoke |
-| Secret | `MONITOR_PASSWORD` | Password của account CFO đó |
+| Loại     | Tên                 | Giá trị                                |
+| -------- | ------------------- | -------------------------------------- |
+| Variable | `VPS_HOST`          | Hostname hoặc IPv4 VPS                 |
+| Variable | `VPS_PORT`          | Cổng SSH, thường là `22`               |
+| Variable | `VPS_USER`          | User deploy, thường là `deploy`        |
+| Variable | `VERCEL_ORG_ID`     | `orgId` của project Vercel             |
+| Variable | `VERCEL_PROJECT_ID` | `projectId` của frontend Vercel        |
+| Variable | `FRONTEND_ORIGIN`   | HTTPS origin frontend, không thêm path |
+| Secret   | `VPS_SSH_KEY`       | Private key riêng cho GitHub Actions   |
+| Secret   | `VPS_KNOWN_HOSTS`   | Host key VPS đã xác minh               |
+| Secret   | `VERCEL_TOKEN`      | Token deploy Vercel                    |
+| Secret   | `MONITOR_EMAIL`     | Email account CFO dành riêng cho smoke |
+| Secret   | `MONITOR_PASSWORD`  | Password của account CFO đó            |
 
 Nếu muốn người duyệt release thủ công, bật required reviewers trong Environment.
 Workflow cần `contents: read`, `packages: write` chỉ ở bước publish; GitHub tự cấp
@@ -170,11 +170,10 @@ Lần đầu cần có template/script để tạo config Nginx và Redis image 
 CD deploy đầu tiên. Tại root repository, khai báo địa chỉ SSH của VPS rồi dùng
 commit đã commit vào Git:
 
-Trước đó, trên VPS tạo vùng bootstrap/release có thể ghi cho `deploy`:
+Trước đó, trên VPS tạo vùng release có thể ghi cho `deploy`:
 
 ```bash
 sudo install -d -o deploy -g deploy -m 750 \
-  /opt/superstore/bootstrap \
   /opt/superstore/releases
 ```
 
@@ -186,28 +185,30 @@ VPS_USER=deploy
 RELEASE_SHA=$(git rev-parse HEAD)
 git archive --format=tar "$RELEASE_SHA" deploy/production \
   | ssh -i "$SSH_KEY" -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
-      "mkdir -p '/opt/superstore/bootstrap/$RELEASE_SHA' && \
-       tar -xf - -C '/opt/superstore/bootstrap/$RELEASE_SHA'"
+      "mkdir -p '/opt/superstore/releases/$RELEASE_SHA' && \
+       tar -xf - -C '/opt/superstore/releases/$RELEASE_SHA'"
 ```
 
 Trên VPS, đặt biến theo SHA vừa chuyển và tạo thư mục cấu hình:
 
 ```bash
 RELEASE_SHA=PASTE_THE_FULL_40_CHARACTER_SHA
-BOOTSTRAP="/opt/superstore/bootstrap/$RELEASE_SHA/deploy/production"
+RELEASE="/opt/superstore/releases/$RELEASE_SHA"
+
+# Tạo release directory
+sudo install -d -o deploy -g deploy -m 750 "$RELEASE"
 
 sudo install -d -m 750 /etc/superstore/snowflake
-sudo install -d -o deploy -g deploy -m 750 \
-  /opt/superstore/releases
+
 sudo install -d -m 750 \
   /opt/superstore/data/staff \
   /opt/superstore/logs/api \
   /var/www/certbot/.well-known/acme-challenge
 
 sudo test -e /etc/superstore/app.env || \
-  sudo install -m 600 "$BOOTSTRAP/app.env.example" /etc/superstore/app.env
+  sudo install -m 600 "$releases/app.env.example" /etc/superstore/app.env
 sudo test -e /etc/superstore/stack.env || \
-  sudo install -m 600 "$BOOTSTRAP/stack.env.example" /etc/superstore/stack.env
+  sudo install -m 600 "$releases/stack.env.example" /etc/superstore/stack.env
 ```
 
 Sửa `/etc/superstore/app.env` và `/etc/superstore/stack.env` bằng editor trên VPS.
@@ -218,11 +219,13 @@ credentials; không để giá trị `CHANGE_ME`.
 ```bash
 sudo nano /etc/superstore/app.env
 sudo nano /etc/superstore/stack.env
+sudo nano /etc/superstore/images.source.env
 ```
 
 Snowflake config keys mà API hiện đọc:
 
 ```dotenv
+# app.env
 SNOWFLAKE_ACCOUNT=...
 SNOWFLAKE_USER=SUPERSTORE_API_USER
 SNOWFLAKE_PASSWORD=...
@@ -231,6 +234,11 @@ SNOWFLAKE_GOLD_SCHEMA=ANALYTIC_LAYER_GOLD_LAYER
 SNOWFLAKE_MART_SCHEMA=ANALYTIC_LAYER_MART_LAYER
 SNOWFLAKE_WAREHOUSE=COMPUTE_WH
 SNOWFLAKE_ROLE=ANALYTICS_READONLY
+
+# stack.env
+API_DOMAIN=
+MINIO_ROOT_USER=
+MINIO_ROOT_PASSWORD=
 ```
 
 ### 4.4. Pin Redis image một lần
@@ -239,8 +247,8 @@ SNOWFLAKE_ROLE=ANALYTICS_READONLY
 vào file mới; output đã tồn tại thì script từ chối ghi đè:
 
 ```bash
-sudo bash "$BOOTSTRAP/bin/pin-images.sh" \
-  "$BOOTSTRAP/images.source.env" \
+sudo bash "$releases/bin/pin-images.sh" \
+  /etc/superstore/images.source.env \
   /etc/superstore/images.lock.env
 ```
 
@@ -259,7 +267,7 @@ Nhập token ở prompt password; không đặt token trong command/file Git.
 DNS `A` phải trỏ tới VPS. Cài cấu hình HTTP bootstrap:
 
 ```bash
-sudo bash "$BOOTSTRAP/bin/install-nginx.sh" bootstrap
+sudo bash "$RELEASE/bin/install-nginx.sh" bootstrap
 ```
 
 Cấp certificate bằng ACME webroot:
@@ -274,7 +282,7 @@ sudo /snap/bin/certbot certonly --webroot \
 Sau khi certificate tồn tại, chuyển sang cấu hình TLS:
 
 ```bash
-sudo bash "$BOOTSTRAP/bin/install-nginx.sh" https
+sudo bash "$RELEASE/bin/install-nginx.sh" https
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -284,7 +292,7 @@ renewal. Cài hook:
 
 ```bash
 sudo install -D -m 755 \
-  "$BOOTSTRAP/certbot/reload-nginx.sh" \
+  "$RELEASE/certbot/reload-nginx.sh" \
   /etc/letsencrypt/renewal-hooks/deploy/20-superstore-reload-nginx.sh
 sudo /snap/bin/certbot renew --dry-run --run-deploy-hooks
 ```
@@ -406,5 +414,7 @@ của đúng release để tiết kiệm dung lượng, giữ lại thư mục �
 - Thành phần và trạng thái: [discovery_result.md](discovery_result.md)
 - Luồng request và filesystem: [system_architecture_lineage.md](system_architecture_lineage.md)
 - Xử lý lỗi theo workflow stage: [error_tracing.md](error_tracing.md)
+- Thực hành kiểm tra FastAPI, VPS và Snowflake: [fastapi_vps_check.md](fastapi_vps_check.md)
+- Kiến trúc monitoring: [monitoring/system_architecture_lineage.md](monitoring/system_architecture_lineage.md)
 - Backend: [API Operations](../API/operation.md)
 - Frontend: [Frontend Operations](../frontend/operation.md)
