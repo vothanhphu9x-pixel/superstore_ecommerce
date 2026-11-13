@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Superstore offsite backup every day
+
+[Timer]
+OnCalendar=*-*-* 03:15:00
+RandomizedDelaySec=15m
+Persistent=true
+Unit=superstore-backup.service
+
+[Install]
+WantedBy=timers.target

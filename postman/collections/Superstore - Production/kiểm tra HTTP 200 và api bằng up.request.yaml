@@ -1,0 +1,5 @@
+$kind: http-request
+name: kiểm tra HTTP 200 và api bằng up
+url: "{{FRONTEND_ORIGIN}}/api/health"
+method: GET
+order: 1794275435903

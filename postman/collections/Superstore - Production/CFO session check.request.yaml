@@ -1,0 +1,13 @@
+$kind: http-request
+name: CFO session check
+url: "{{FRONTEND_ORIGIN}}/api/internal/staff/me"
+method: GET
+headers:
+  Content-Type: application/json
+  Origin: "{{FRONTEND_ORIGIN}}"
+  x-api-key: "{{vault:API_KEY}}"
+  Cookie: "{{staff_cookie}}"
+settings:
+  disableCookies: true
+  tlsPreferServerCiphers: false
+order: 4251160716306839
