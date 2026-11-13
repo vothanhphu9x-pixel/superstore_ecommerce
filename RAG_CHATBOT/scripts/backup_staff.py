@@ -48,7 +48,7 @@ def create_snapshot(
     destination.chmod(0o600)
 
 
-def main():
+def main() -> None:
     source = Path(
         os.environ.get(
             "STAFF_DB_PATH",
@@ -57,7 +57,10 @@ def main():
     )
 
     destination = Path(
-        "/backup/internal_users.db"
+        os.environ.get(
+            "STAFF_BACKUP_DESTINATION",
+            "/tmp/internal_users.db",
+        )
     )
 
     create_snapshot(

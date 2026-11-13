@@ -1,0 +1,10 @@
+name: Superstore https
+values:
+  - key: FRONTEND_ORIGIN
+    value: 'https://superstore.gymtech.id.vn'
+  - key: BACKEND_ORIGIN
+    value: 'https://api.gymtech.id.vn'
+  - key: month_from
+    value: '20230101'
+  - key: month_to
+    value: '20271201'

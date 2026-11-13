@@ -56,6 +56,8 @@ public, Redis không public. Public readiness, docs, OpenAPI và Prometheus metr
 ├── stack.env                            [API_DOMAIN]
 ├── images.source.env                    [digest images]
 ├── images.lock.env                      [digest images đã pin]
+├── grafana.env                          [config for grafa]
+├── backup.env                           [root — AWS credential + age public recipient]
 └── snowflake/                           [secret mount read-only]
 
 /etc/sudoers.d/
@@ -82,6 +84,11 @@ public, Redis không public. Public readiness, docs, OpenAPI và Prometheus metr
 /var/www/certbot/.well-known/acme-challenge/ [TẠM — challenge file khi xác minh]
 /var/log/nginx/                           [GIỮ/rotate — Nginx access/error logs]
 
+/usr/local/lib/superstore-backup/          [BẢN CÀI — backup.sh chạy bởi systemd]
+/etc/systemd/system/superstore-backup.*   [service + timer backup hằng ngày]
+/var/lib/superstore-backup/work.*          [TẠM — stage, archive và verify]
+/var/lock/superstore-backup.lock          [khóa chống chạy trùng]
+
 /home/deploy/.ssh/                         [GIỮ — quyền SSH vào VPS]
 └── authorized_keys                        [public key tương ứng với VPS_SSH_KEY]
 ```
@@ -97,6 +104,8 @@ Các file này nằm trên máy Mac, tách biệt với filesystem VPS:
 
 /tmp/superstore_known_hosts                 [TẠM — host key lấy bằng ssh-keyscan;
                                              chỉ dùng sau khi fingerprint khớp với VPS]
+~/.config/superstore/
+└── superstore-backup.agekey                [PRIVATE KEY — chỉ dùng để giải mã backup]
 ```
 
 ## 4. Vai trò file runtime
@@ -116,3 +125,18 @@ Các file này nằm trên máy Mac, tách biệt với filesystem VPS:
 
 Vận hành và bootstrap: [operation.md](operation.md). Truy vết stage lỗi:
 [error_tracing.md](error_tracing.md).
+
+## 5. Backup offsite
+
+![Luồng backup VPS, S3 và restore kiểm tra](backup/backup_flow.svg)
+
+Backup là nhánh vận hành riêng: systemd timer gọi `backup.sh` trên VPS, tạo
+snapshot SQLite staff nhất quán, gom cấu hình và metadata release, mã hóa bằng
+age public recipient rồi lưu `.age` và `.sha256` lên S3. Sau upload, script tải
+lại hai file để kiểm tra checksum. Private key chỉ dùng trên máy khôi phục.
+
+Phạm vi là staff DB và cấu hình VPS; Snowflake, Redis, logs và image/source
+release không nằm trong archive. Restore drill tải object về máy khôi phục,
+kiểm tra checksum, giải mã và chạy SQLite integrity check; vẫn cần chạy thử
+với backup thật. Chi tiết nguồn, đường dẫn và điểm kiểm tra:
+[Backup Architecture](backup/system_architecture_lineage.md).

@@ -1,0 +1,35 @@
+$kind: http-request
+name: CFO Permission Denied
+url: "{{FRONTEND_ORIGIN}}/api/internal/dashboard/by-category?month_from={{month_from}}&month_to={{month_to}}&Content-Type=application/json&Origin={{FRONTEND_ORIGIN}}&Cookie={{staff_cookie}}&x-api-key={{vault:API_KEY}}"
+method: GET
+headers:
+  Content-Type: application/json
+  Origin: "{{FRONTEND_ORIGIN}}"
+  Cookie: "{{staff_cookie}}"
+  x-api-key: "{{vault:API_KEY}}"
+queryParams:
+  - key: month_from
+    value: "{{month_from}}"
+    disabled: false
+    description: ""
+  - key: month_to
+    value: "{{month_to}}"
+    disabled: false
+    description: ""
+  - key: Content-Type
+    value: application/json
+    disabled: false
+    description: ""
+  - key: Origin
+    value: "{{FRONTEND_ORIGIN}}"
+    disabled: false
+    description: ""
+  - key: Cookie
+    value: "{{staff_cookie}}"
+    disabled: false
+    description: ""
+  - key: x-api-key
+    value: "{{vault:API_KEY}}"
+    disabled: false
+    description: ""
+order: 4474839471247103
