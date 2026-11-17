@@ -10,7 +10,7 @@ ghi trạng thái đã kiểm chứng; không suy ra mọi ô trong hình đã c
 ```mermaid
 flowchart LR
     API[FastAPI /metrics] --> P[Prometheus]
-    N[Newman timers: Public + Staff mỗi phút] --> F[Prometheus text files]
+    N[Newman timers: Public mỗi 5 phút, Staff mỗi phút] --> F[Prometheus text files]
     F --> NE[Node Exporter: VPS + synthetic]
     NE --> P
     RE[Redis Exporter: Redis] --> P

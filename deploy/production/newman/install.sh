@@ -8,7 +8,7 @@ set -Eeuo pipefail
 }
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
-install -d -m 750 -o 10001 -g 10001 /opt/superstore/metrics/newman
+install -d -m 755 -o 10001 -g 10001 /opt/superstore/metrics/newman
 
 install -m 644 "$script_dir/superstore-newman@.service" /etc/systemd/system/
 install -m 644 "$script_dir/superstore-newman@public.timer" /etc/systemd/system/

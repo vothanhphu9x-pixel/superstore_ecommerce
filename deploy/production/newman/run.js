@@ -46,10 +46,11 @@ if (kind === "staff") {
   }
 }
 
-function atomicWrite(file, contents) {
+function atomicWrite(file, contents, mode = 0o600) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const temporary = `${file}.${process.pid}.tmp`;
-  fs.writeFileSync(temporary, contents, { mode: 0o600 });
+  fs.writeFileSync(temporary, contents, { mode });
+  fs.chmodSync(temporary, mode);
   fs.renameSync(temporary, file);
 }
 
@@ -107,7 +108,7 @@ function writeMetrics(result) {
   });
 
   atomicWrite(stateFile, `${JSON.stringify(state)}\n`);
-  atomicWrite(metricsFile, `${lines.join("\n")}\n`);
+  atomicWrite(metricsFile, `${lines.join("\n")}\n`, 0o644);
 }
 
 const started = Date.now();

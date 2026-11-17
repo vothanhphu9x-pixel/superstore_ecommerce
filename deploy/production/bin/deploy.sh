@@ -97,7 +97,12 @@ install -d \
   -o 10001 \
   -g 10001 \
   /opt/superstore/data/staff \
-  /opt/superstore/logs/api \
+  /opt/superstore/logs/api
+
+install -d \
+  -m 755 \
+  -o 10001 \
+  -g 10001 \
   /opt/superstore/metrics/newman
 
 install -d \

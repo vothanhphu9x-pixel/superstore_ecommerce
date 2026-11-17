@@ -394,7 +394,7 @@ Tham khảo: [Postman Monitors](https://learning.postman.com/docs/monitoring-you
 
 Newman đọc **chính các file YAML trong `postman/collections`** và chuyển trong
 bộ nhớ sang Postman Collection v2.1. Không cần export JSON hoặc Postman API.
-`public` và `staff` đều chạy mỗi phút. Mỗi lượt ghi kết quả tổng hợp,
+`public` chạy mỗi 5 phút, `staff` chạy mỗi phút. Mỗi lượt ghi kết quả tổng hợp,
 HTTP status và thời gian từng request vào file `.prom`; không ghi body, password
 hay cookie. Node Exporter đọc file này để Prometheus/Grafana hiển thị.
 Staff gọi lại 13 request mỗi phút; Redis cache có thể trả dashboard mà không
@@ -465,8 +465,12 @@ Kết quả theo lịch nằm ở `newman-{public,staff}-timer.prom` với nhãn
 ## 7. Xem kết quả trên Prometheus và Grafana
 
 Release mới mount `/opt/superstore/metrics/newman` vào Node Exporter và
-provision dashboard `Superstore — Newman synthetic checks`. Sau khi cài trên
-VPS, tạo lại đúng hai container để nạp mount/config mới:
+provision dashboard `Superstore — Newman synthetic checks`. Thư mục metrics cần
+quyền `755`, file `.prom` cần `644` để Node Exporter (user
+`nobody`) đọc được. File `.state.json` vẫn là `600`; các file `.prom` không chứa
+password hoặc cookie.
+
+Sau khi cài trên VPS, tạo lại đúng hai container để nạp mount/config mới:
 
 ```bash
 COMPOSE=/opt/superstore/current/deploy/production/bin/compose.sh
