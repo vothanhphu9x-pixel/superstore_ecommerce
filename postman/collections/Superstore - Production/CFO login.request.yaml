@@ -1,0 +1,21 @@
+$kind: http-request
+name: CFO login
+url: "{{FRONTEND_ORIGIN}}/api/internal/staff/login"
+method: POST
+headers:
+  Content-Type: application/json
+  x-api-key: "{{vault:API_KEY}}"
+  Origin: "{{FRONTEND_ORIGIN}}"
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{vault:CFO_EMAIL}}",
+      "password": "{{vault:CFO_PASSWORD}}"
+    }
+scripts:
+  - type: afterResponse
+    code: ""
+    language: text/javascript
+settings: {}
+order: 3870948366898521

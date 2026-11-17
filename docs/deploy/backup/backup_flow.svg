@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1480 590" role="img" aria-labelledby="title desc">
+  <title id="title">Superstore encrypted VPS backup flow</title>
+  <desc id="desc">Systemd timer starts the backup. A consistent staff SQLite snapshot and selected VPS configuration are staged, archived, encrypted with an age public key and uploaded to S3. The uploaded archive and checksum are downloaded for verification. Restoration is a separate local process using the age private key.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 L10 4 L0 8 Z" fill="#49637f"/></marker>
+    <style>
+      .bg{fill:#f8fafc}.box{fill:#fff;stroke:#94a3b8;stroke-width:2}.source{fill:#eff6ff;stroke:#60a5fa}.secure{fill:#ecfdf5;stroke:#34d399}.store{fill:#fef3c7;stroke:#f59e0b}.restore{fill:#f5f3ff;stroke:#a78bfa}
+      .line{fill:none;stroke:#49637f;stroke-width:3;marker-end:url(#arrow)}.title{font:700 32px system-ui,sans-serif;fill:#142d4e}.heading{font:700 20px system-ui,sans-serif;fill:#172b4d}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.section{font:700 17px system-ui,sans-serif;fill:#475569}
+    </style>
+  </defs>
+  <rect width="1480" height="590" class="bg"/>
+  <text x="55" y="55" class="title">SUPERSTORE — VPS BACKUP</text>
+  <text x="55" y="88" class="small">Dòng trên: backup tự động trên VPS   •   Dòng dưới: khôi phục để kiểm tra trên máy riêng</text>
+  <text x="55" y="135" class="section">BACKUP</text>
+  <rect x="55" y="155" width="205" height="145" rx="16" class="box source"/>
+  <text x="75" y="192" class="heading">systemd timer</text>
+  <text x="75" y="223" class="body">03:15 theo giờ VPS</text>
+  <text x="75" y="250" class="small">trễ ngẫu nhiên ≤ 15 phút</text>
+  <text x="75" y="275" class="small">gọi backup.sh bằng root</text>
+  <path d="M260 225 H289" class="line"/>
+  <rect x="290" y="155" width="225" height="145" rx="16" class="box source"/>
+  <text x="310" y="192" class="heading">Nguồn trên VPS</text>
+  <text x="310" y="223" class="body">SQLite staff snapshot</text>
+  <text x="310" y="250" class="small">cấu hình, khóa SSH công khai</text>
+  <text x="310" y="275" class="small">release SHA và image digest</text>
+  <path d="M515 225 H544" class="line"/>
+  <rect x="545" y="155" width="215" height="145" rx="16" class="box secure"/>
+  <text x="565" y="192" class="heading">Tạo gói tạm</text>
+  <text x="565" y="223" class="body">SQLite integrity_check</text>
+  <text x="565" y="250" class="small">tar.gz → age recipient</text>
+  <text x="565" y="275" class="small">tạo SHA-256 checksum</text>
+  <path d="M760 225 H789" class="line"/>
+  <rect x="790" y="155" width="210" height="145" rx="16" class="box store"/>
+  <text x="810" y="192" class="heading">S3 offsite</text>
+  <text x="810" y="223" class="body">archive.tar.gz.age</text>
+  <text x="810" y="250" class="small">+ file .sha256</text>
+  <text x="810" y="275" class="small">bucket / host / timestamp</text>
+  <path d="M1000 225 H1029" class="line"/>
+  <rect x="1030" y="155" width="390" height="145" rx="16" class="box secure"/>
+  <text x="1050" y="192" class="heading">Xác minh bản tải lên</text>
+  <text x="1050" y="223" class="body">Tải lại archive + checksum</text>
+  <text x="1050" y="250" class="small">so SHA-256, ghi journal, dọn gói tạm</text>
+  <text x="1050" y="275" class="small">chưa giải mã thử ở bước này</text>
+  <text x="55" y="370" class="section">RESTORE KIỂM TRA</text>
+  <rect x="55" y="390" width="430" height="145" rx="16" class="box restore"/>
+  <text x="75" y="427" class="heading">Máy khôi phục riêng</text>
+  <text x="75" y="458" class="body">age private key + S3 object key</text>
+  <text x="75" y="485" class="small">private key không nằm trong archive/S3</text>
+  <text x="75" y="510" class="small">restore-local.sh chạy trên macOS</text>
+  <path d="M485 463 H534" class="line"/>
+  <rect x="535" y="390" width="425" height="145" rx="16" class="box restore"/>
+  <text x="555" y="427" class="heading">Tải, kiểm tra, giải mã</text>
+  <text x="555" y="458" class="body">S3 → SHA-256 → age decrypt → untar</text>
+  <text x="555" y="485" class="small">SQLite integrity_check sau giải nén</text>
+  <text x="555" y="510" class="small">chỉ xuất artifact để kiểm tra</text>
+  <path d="M960 463 H1009" class="line"/>
+  <rect x="1010" y="390" width="410" height="145" rx="16" class="box restore"/>
+  <text x="1030" y="427" class="heading">Operator quyết định</text>
+  <text x="1030" y="458" class="body">Kiểm tra nội dung và quyền truy cập</text>
+  <text x="1030" y="485" class="small">script không tự ghi đè production</text>
+  <text x="1030" y="510" class="small">không tự rollback release</text>
+</svg>

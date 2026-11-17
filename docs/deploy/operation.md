@@ -415,9 +415,6 @@ Workflow đang để lại `release.tar.gz` sau khi giải nén tại release di
 này không được Compose sử dụng; sau khi xác nhận release ổn định, có thể xóa archive
 của đúng release để tiết kiệm dung lượng, giữ lại thư mục đã giải nén.
 
-<<<<<<< Updated upstream
-## 9. Tài liệu liên quan
-=======
 ## 9. Connect Grafana, Prometheus & Minio By SSH tunnel
 
 SSH tunnel không triển khai hay khởi chạy Grafana và Prometheus. Nó chỉ tạo đường truyền bảo mật từ máy Mac đến hai port localhost trên VPS:
@@ -703,7 +700,6 @@ VPS mới: rà soát chúng với IP/domain và quyền của VPS mới trước
 restore script không tự thay dữ liệu production.
 
 ## 13. Tài liệu liên quan
->>>>>>> Stashed changes
 
 - Thành phần và trạng thái: [discovery_result.md](discovery_result.md)
 - Checklist backup: [backup/discovery_result.md](backup/discovery_result.md)

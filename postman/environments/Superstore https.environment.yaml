@@ -1,5 +1,9 @@
 name: Superstore https
 values:
+  - key: FRONTEND_ORIGIN
+    value: 'https://superstore.gymtech.id.vn'
+  - key: BACKEND_ORIGIN
+    value: 'https://api.gymtech.id.vn'
   - key: frontend_origin
     value: 'https://superstore.gymtech.id.vn'
   - key: api_origin

@@ -98,16 +98,12 @@ Các file này nằm trên máy Mac, tách biệt với filesystem VPS:
 
 /tmp/superstore_known_hosts                 [TẠM — host key lấy bằng ssh-keyscan;
                                              chỉ dùng sau khi fingerprint khớp với VPS]
-<<<<<<< Updated upstream
-=======
 
 /Users/macos/Desktop/Superstore_ecommerce/ [LOCAL — hai thư mục dưới bị Git ignore]
 ├── .config/superstore/
 │   └── superstore-backup.agekey            [PRIVATE KEY — giải mã backup]
 └── superstore-restore-drill/
     └── restore-*/                          [BẢN GIẢI MÃ — staff DB và cấu hình VPS]
-
->>>>>>> Stashed changes
 ```
 
 ## 4. Vai trò file runtime
@@ -127,8 +123,6 @@ Các file này nằm trên máy Mac, tách biệt với filesystem VPS:
 
 Vận hành và bootstrap: [operation.md](operation.md). Truy vết stage lỗi:
 [error_tracing.md](error_tracing.md).
-<<<<<<< Updated upstream
-=======
 
 ## 5. Backup offsite
 
@@ -145,4 +139,3 @@ kiểm tra checksum, giải mã và chạy SQLite integrity check. Bản restore
 ngày 2026-11-14 đã đạt; khôi phục VPS mới chưa được diễn tập. Chi tiết:
 [Backup Architecture](backup/system_architecture_lineage.md) và
 [Backup Discovery Result](backup/discovery_result.md).
->>>>>>> Stashed changes

@@ -1,0 +1,14 @@
+$kind: http-request
+name: CFO logout
+url: "{{FRONTEND_ORIGIN}}/api/internal/staff/logout"
+method: POST
+headers:
+  Content-Type: application/json
+  Origin: "{{FRONTEND_ORIGIN}}"
+  Cookie: "{{staff_cookie}}"
+  x-api-key: "{{vault:API_KEY}}"
+scripts:
+  - type: afterResponse
+    code: ""
+    language: text/javascript
+order: 4479823115874293
