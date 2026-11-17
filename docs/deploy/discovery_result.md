@@ -1,57 +1,61 @@
 # Deploy — Discovery Result
 
-## 1. Mô hình triển khai
+## Trạng thái
 
-- FastAPI và Redis chạy trên VPS bằng `deploy/production/compose.yml`.
-- Nginx trên VPS kết thúc TLS và chỉ public `/api/*` tới API loopback.
-- Next.js frontend được deploy lên Vercel.
-- `.github/workflows/production.yml` chạy sau `Quality Gate` thành công trên `main`;
-  workflow kiểm tra đúng commit, publish API image theo digest, deploy hai tầng rồi chạy smoke.
+- **Verified:** đã chạy và có bằng chứng.
+- **Failed:** đã chạy nhưng không đạt.
+- **Blocked:** chưa thể chạy do bước trước, quyền, dịch vụ hoặc kết nối.
+- **Not Run:** chưa có kết quả thực tế trong lượt kiểm tra ghi ở bảng.
 
-Đây là review code ngày 2026-10-27; chưa chạy một release production trong lượt rà soát này.
+## Thông tin lần kiểm tra
 
-## 2. Nhóm file deploy
+- Ngày cập nhật: **2026-11-14**; phạm vi: PR CI → API image/GHCR → VPS → Vercel → production smoke.
+- Kết luận: log backup ngày **2026-11-13** cho thấy VPS có release hiện hành và API image pin bằng digest. Lần production smoke gần nhất được cung cấp (**2026-10-28**) dừng ở KPI `502`; chưa có URL/run mới chứng minh toàn bộ luồng CD đã đạt.
+- Kết quả backup và restore được theo dõi riêng trong [Backup Discovery Result](backup/discovery_result.md).
 
-| Đường dẫn | Vai trò |
+## Thành phần cần kiểm soát
+
+```text
+Quality Gate trên main → production.yml kiểm tra đúng SHA
+  → build/push API image theo digest → deploy.sh + Compose + Nginx trên VPS
+  → Vercel deploy Next.js → smoke_public.py → ghi kết quả release
+VPS systemd timer → S3 backup → restore drill (nhánh vận hành riêng)
+```
+
+| Nhóm file | Vai trò |
 |---|---|
-| `.github/workflows/production.yml` | Điều phối build/publish API, VPS, Vercel và production smoke |
-| `deploy/production/compose.yml` | API/Redis production, network, bind mounts, healthcheck và resource limits |
-| `app.env.example`, `stack.env.example` | Mẫu cấu hình runtime; secret thật chỉ ở VPS |
-| `images.source.env` | Image tag đầu vào để pin digest, hiện dùng Redis |
-| `bin/pin-images.sh` | Pull image và ghi digest vào lockfile mới; không ghi đè file có sẵn |
-| `bin/compose.sh` | Nạp stack, image lock, release env và gọi Compose |
-| `bin/deploy.sh` | Kiểm tra release/image, deploy, readiness/liveness và cập nhật symlink |
-| `bin/install-nginx.sh` | Render template, kiểm tra và reload Nginx |
-| `nginx/*.template`, `logging.conf` | HTTP bootstrap, TLS proxy, access/error log JSON |
-| `certbot/reload-nginx.sh` | Hook kiểm tra cấu hình rồi reload Nginx sau khi renew certificate |
-| `tests/smoke_public.py` | Kiểm tra public website, staff CFO, KPI/RBAC và logout sau deploy |
+| `.github/workflows/quality.yml`, `production.yml` | CI trước CD; CD chỉ nhận successful `push` trên `main` của đúng repository/SHA |
+| `deploy/production/compose.yml`, `bin/*.sh` | Runtime API/Redis, pin image, kiểm tra release, deploy và cập nhật `current`/`previous` |
+| `nginx/`, `certbot/` | TLS proxy, access/error logs và renew hook |
+| `deploy/production/tests/smoke_public.py` | Public health, login CFO/cookie, KPI, RBAC và logout |
+| `deploy/production/backup/` | Backup mã hóa S3 và restore drill |
 
-## 3. Ranh giới vận hành
+VPS giữ secret trong `/etc/superstore`, release/data/log trong `/opt/superstore`; Next.js chạy trên Vercel. Nginx không public `/metrics`, `/docs`, `/openapi.json` hoặc `/api/health/ready`.
 
-- PR Quality Gate không deploy production. CD chỉ nhận successful `push` run của repo
-  hiện tại trên `main`, checkout đúng SHA rồi từ chối nếu `main` đã tiến lên commit khác.
-- API image được workflow build/push bằng `GITHUB_TOKEN`, pin bằng digest và truyền cho VPS.
-  Không còn yêu cầu publish thủ công mỗi release.
-- Vercel project phải có production env `INTERNAL_API_URL`, `API_KEY`, `Frontend_Origin`.
-- VPS giữ `/etc/superstore` secrets/config, `/opt/superstore` releases/data/logs,
-  Nginx config, TLS certificate và ACME webroot.
-- Nginx chỉ mở API cần thiết; `/api/health/ready`, `/docs`, `/openapi.json` và
-  `/metrics` không public.
-- `deploy.sh` có thể khôi phục container release trước nếu deploy command lỗi.
-  Smoke fail sau khi API/Vercel deploy xong không tự rollback; phải kiểm tra workflow/log.
-- Workflow chạy `sudo bash` trên script nằm trong thư mục release mà user `deploy` ghi được.
-  Allowlist sudoers theo đúng path này chưa tạo ranh giới quyền mạnh; cần harden cơ chế
-  đặc quyền trước khi xem VPS là production an toàn.
+## Checklist kết quả
 
-## 4. Kiểm tra trong lượt rà soát
+| Gate | Kỳ vọng | Kết quả | Bằng chứng / lần chạy |
+|---|---|---|---|
+| DEP-01 — CI/SHA | Quality Gate pass trên `main`; CD checkout đúng commit đã test | Not Run | Cần URL Quality Gate và production workflow cùng SHA cho release mới |
+| DEP-02 — API image/VPS | GHCR digest chạy trên VPS và release hiện hành hợp lệ | Verified | Backup journal: `Current release verified` và backup hoàn tất; `backup.sh` kiểm tra image digest trước upload, 2026-11-13 |
+| DEP-03 — HTTPS/Nginx | Public health qua HTTPS; cổng API không public trực tiếp | Not Run | Chưa có smoke/network check mới trong lượt này |
+| DEP-04 — Vercel | Next.js production là commit tương ứng với API | Not Run | Cần deployment URL/commit của Vercel cho release mới |
+| DEP-05 — Smoke | `DEPLOY-01`–`DEPLOY-06` đều pass | Failed | Lần log gần nhất được cung cấp 2026-10-28: KPI trả `502` tại `DEPLOY-04`; cần chạy lại để biết trạng thái hiện tại |
+| DEP-06 — Recovery | Khi deploy lỗi, release trước hoạt động lại; smoke fail được xử lý có kiểm soát | Not Run | Chưa diễn tập; smoke fail sau deploy không tự rollback đồng thời VPS và Vercel |
+| DEP-07 — Backup | S3 backup và restore local xác minh được | Verified | [Backup Discovery Result](backup/discovery_result.md), log 2026-11-13 và local check 2026-11-14 |
 
-| Hạng mục | Trạng thái |
-|---|---|
-| Workflow, Compose, scripts, templates | Đã đối chiếu code |
-| VPS, DNS, TLS, GHCR pull | Chưa kiểm tra từ máy chủ |
-| Vercel production env/runtime | Chưa kiểm tra |
-| Deploy smoke thực tế | Chưa chạy |
+Đây là **kết quả theo bằng chứng gần nhất**, không phải khẳng định production đang ở trạng thái đó tại thời điểm đọc. Chỉ cập nhật gate khi có run URL/SHA hoặc log mới. Allowlist `sudo` gọi script trong release do user `deploy` ghi được; cần rà soát ranh giới đặc quyền trước khi coi đó là kiểm soát quyền mạnh.
 
-Quy trình: [operation.md](operation.md). Luồng file/runtime:
-[system_architecture_lineage.md](system_architecture_lineage.md). Xử lý lỗi:
-[error_tracing.md](error_tracing.md).
+## Tiêu chí hoàn tất
+
+- [x] Có release đang chạy trên VPS với API image pin digest tại lần backup được ghi nhận.
+- [ ] Có CI/CD run cùng SHA và Vercel deployment tương ứng.
+- [ ] Production smoke mới đạt đủ sáu case.
+- [ ] Diễn tập recovery/rollback cho cả VPS và Vercel.
+
+## Tài liệu liên quan
+
+- Cấu hình, release và recovery: [Deploy Operations](operation.md).
+- Cấu trúc runtime: [Deploy Architecture](system_architecture_lineage.md).
+- Truy vết lỗi: [Error Tracing](error_tracing.md).
+- Checklist backup: [Backup Discovery Result](backup/discovery_result.md).

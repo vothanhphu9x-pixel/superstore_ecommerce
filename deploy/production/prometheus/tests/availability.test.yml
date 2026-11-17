@@ -1,0 +1,53 @@
+rule_files:
+  - ../rules/availability.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: target_down_then_recovers
+    interval: 1m
+    input_series:
+      - series: 'up{job="fastapi",instance="api:8000"}'
+        values: '0 0 0 1 1'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: SuperstoreScrapeTargetDown
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: SuperstoreScrapeTargetDown
+        exp_alerts:
+          - exp_labels:
+              job: fastapi
+              instance: api:8000
+              severity: critical
+            exp_annotations:
+              summary: Prometheus cannot scrape fastapi
+              description: Target api:8000 has been unreachable for at least 2 minutes.
+      - eval_time: 4m
+        alertname: SuperstoreScrapeTargetDown
+        exp_alerts: []
+
+  - name: redis_unavailable_while_exporter_is_up
+    interval: 1m
+    input_series:
+      - series: 'up{job="redis",instance="redis-exporter:9121"}'
+        values: '1 1 1 1 1'
+      - series: 'redis_up{job="redis",instance="redis-exporter:9121"}'
+        values: '0 0 0 1 1'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: SuperstoreRedisUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: redis
+              instance: redis-exporter:9121
+              severity: critical
+            exp_annotations:
+              summary: Redis exporter cannot reach Redis
+              description: Redis is unavailable from redis-exporter:9121 for at least 2 minutes.
+      - eval_time: 2m
+        alertname: SuperstoreScrapeTargetDown
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: SuperstoreRedisUnavailable
+        exp_alerts: []

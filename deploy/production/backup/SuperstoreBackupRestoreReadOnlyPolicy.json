@@ -1,0 +1,28 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadBucketLocation",
+      "Effect": "Allow",
+      "Action": "s3:GetBucketLocation",
+      "Resource": "arn:aws:s3:::superstore-production-backup-703057690904"
+    },
+    {
+      "Sid": "ListBackupPrefix",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::superstore-production-backup-703057690904",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": ["superstore-vps/", "superstore-vps/*"]
+        }
+      }
+    },
+    {
+      "Sid": "ReadBackupArtifacts",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:GetObjectAttributes"],
+      "Resource": "arn:aws:s3:::superstore-production-backup-703057690904/superstore-vps/*"
+    }
+  ]
+}

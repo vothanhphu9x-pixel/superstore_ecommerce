@@ -1,0 +1,11 @@
+$kind: http-request
+name: 401 Website Staff/me
+url: "{{frontend_origin}}/api/internal/staff/me"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      const expected = Number(pm.info.requestName.slice(0, 3));
+      pm.test("HTTP " + expected, () => pm.response.to.have.status(expected));
+    language: text/javascript
+order: 1000

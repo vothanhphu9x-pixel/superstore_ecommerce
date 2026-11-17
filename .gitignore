@@ -24,6 +24,7 @@ release.env
 
 # Production secrets
 deploy/production/*.env
+deploy/production/newman/newman.env
 !deploy/production/images.sources.env
 !deploy/production/*.env.example
 
@@ -31,6 +32,11 @@ deploy/production/*.env
 *.pem
 *.p8
 *.key
+*.agekey
+
+# Local backup and decrypted restore data
+.config/superstore/
+superstore-restore-drill/
 
 # Temporary authentication files
 staff-cookies.txt

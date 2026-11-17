@@ -3,6 +3,7 @@ local.file_match "fastapi" {
     {
       "__path__"   = "/logs/api/http.log",
       "service"    = "fastapi",
+      "log_type"   = "http",
       "environment" = "production",
     },
   ]
@@ -13,11 +14,28 @@ loki.source.file "fastapi" {
   forward_to = [loki.write.local.receiver]
 }
 
+local.file_match "fastapi_application" {
+  path_targets = [
+    {
+      "__path__"   = "/logs/api/application.log",
+      "service"    = "fastapi",
+      "log_type"   = "application",
+      "environment" = "production",
+    },
+  ]
+}
+
+loki.source.file "fastapi_application" {
+  targets    = local.file_match.fastapi_application.targets
+  forward_to = [loki.write.local.receiver]
+}
+
 local.file_match "nginx" {
   path_targets = [
     {
       "__path__"   = "/logs/nginx/superstore-access.log",
       "service"    = "nginx",
+      "log_type"   = "access",
       "environment" = "production",
     },
   ]
@@ -25,6 +43,22 @@ local.file_match "nginx" {
 
 loki.source.file "nginx" {
   targets    = local.file_match.nginx.targets
+  forward_to = [loki.write.local.receiver]
+}
+
+local.file_match "nginx_error" {
+  path_targets = [
+    {
+      "__path__"   = "/logs/nginx/superstore-error.log",
+      "service"    = "nginx",
+      "log_type"   = "error",
+      "environment" = "production",
+    },
+  ]
+}
+
+loki.source.file "nginx_error" {
+  targets    = local.file_match.nginx_error.targets
   forward_to = [loki.write.local.receiver]
 }
 

@@ -64,6 +64,7 @@ public, Redis không public. Public readiness, docs, OpenAPI và Prometheus metr
 /opt/superstore/                         [GIỮ — release và runtime data]
 ├── releases/<COMMIT_SHA>/               [release immutable theo commit]
 │   ├── deploy/production/                [Compose/scripts/templates]
+│       ├── backup/                      [file backup de restore]
 │   ├── images.lock.env                  [copy từ /etc nếu chưa có]
 │   ├── release.env                      [TẠO TỰ ĐỘNG: API digest + SHA]
 │   └── release.tar.gz                   [TẠM; workflow hiện chưa tự xóa]
@@ -80,7 +81,7 @@ public, Redis không public. Public readiness, docs, OpenAPI và Prometheus metr
 
 /etc/letsencrypt/                         [GIỮ — certificate/renewal]
 /var/www/certbot/.well-known/acme-challenge/ [TẠM — challenge file khi xác minh]
-/var/log/nginx/                           [GIỮ/rotate — Nginx access/error logs]
+/var/log/nginx/superstore-access.log      [GIỮ/rotate — Nginx access/error logs]
 
 /home/deploy/.ssh/                         [GIỮ — quyền SSH vào VPS]
 └── authorized_keys                        [public key tương ứng với VPS_SSH_KEY]
@@ -97,6 +98,16 @@ Các file này nằm trên máy Mac, tách biệt với filesystem VPS:
 
 /tmp/superstore_known_hosts                 [TẠM — host key lấy bằng ssh-keyscan;
                                              chỉ dùng sau khi fingerprint khớp với VPS]
+<<<<<<< Updated upstream
+=======
+
+/Users/macos/Desktop/Superstore_ecommerce/ [LOCAL — hai thư mục dưới bị Git ignore]
+├── .config/superstore/
+│   └── superstore-backup.agekey            [PRIVATE KEY — giải mã backup]
+└── superstore-restore-drill/
+    └── restore-*/                          [BẢN GIẢI MÃ — staff DB và cấu hình VPS]
+
+>>>>>>> Stashed changes
 ```
 
 ## 4. Vai trò file runtime
@@ -116,3 +127,22 @@ Các file này nằm trên máy Mac, tách biệt với filesystem VPS:
 
 Vận hành và bootstrap: [operation.md](operation.md). Truy vết stage lỗi:
 [error_tracing.md](error_tracing.md).
+<<<<<<< Updated upstream
+=======
+
+## 5. Backup offsite
+
+![Luồng backup VPS, S3 và restore kiểm tra](backup/backup_flow.svg)
+
+Backup là nhánh vận hành riêng: systemd timer gọi `backup.sh` trên VPS, tạo
+snapshot SQLite staff nhất quán, gom cấu hình và metadata release, mã hóa bằng
+age public recipient rồi lưu `.age` và `.sha256` lên S3. Sau upload, script tải
+lại hai file để kiểm tra checksum. Private key chỉ dùng trên máy khôi phục.
+
+Phạm vi là staff DB và cấu hình VPS; Snowflake, Redis, logs và image/source
+release không nằm trong archive. Restore drill tải object về máy khôi phục,
+kiểm tra checksum, giải mã và chạy SQLite integrity check. Bản restore local
+ngày 2026-11-14 đã đạt; khôi phục VPS mới chưa được diễn tập. Chi tiết:
+[Backup Architecture](backup/system_architecture_lineage.md) và
+[Backup Discovery Result](backup/discovery_result.md).
+>>>>>>> Stashed changes

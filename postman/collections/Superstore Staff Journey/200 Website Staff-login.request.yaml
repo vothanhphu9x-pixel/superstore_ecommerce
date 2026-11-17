@@ -1,0 +1,37 @@
+$kind: http-request
+name: 200 Website Staff/login
+url: "{{frontend_origin}}/api/internal/staff/login"
+method: POST
+headers:
+  Origin: "{{frontend_origin}}"
+  Content-Type: application/json
+body:
+  type: json
+  content: '{ "email": "{{monitor_email_sales}}", "password": "{{monitor_password_sales}}" }'
+scripts:
+  - type: afterResponse
+    code: |-
+      const expected = Number(pm.info.requestName.slice(0, 3));
+      pm.test("HTTP " + expected, () => pm.response.to.have.status(expected));
+
+      pm.test("Sales login and secure cookie", () => {
+        pm.response.to.have.status(200);
+        const profile = pm.response.json();
+        pm.expect(profile.role).to.eql("sales");
+        pm.expect(profile.metrics).to.include.members([
+          "kpi",
+          "revenue-trend",
+          "by-category",
+          "by-region",
+          "top-products",
+        ]);
+        const cookie = pm.response.headers.get("set-cookie") || "";
+        pm.expect(cookie).to.match(/httponly/i);
+        pm.expect(cookie).to.match(/secure/i);
+        pm.expect(cookie).to.match(/samesite=lax/i);
+        const token = cookie.match(/^superstore_staff=([^;]+)/i)?.[1];
+        pm.expect(token).to.be.a("string").and.not.empty;
+        pm.variables.set("staff_session", token);
+      });
+    language: text/javascript
+order: 2000

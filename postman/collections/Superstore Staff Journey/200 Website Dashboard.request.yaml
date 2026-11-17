@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{frontend_origin}}/api/internal/dashboard"
+method: GET
+headers:
+  Origin: "{{frontend_origin}}"
+  Content-Type: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      const expected = Number(pm.info.requestName.slice(0, 3));
+      pm.test("HTTP " + expected, () => pm.response.to.have.status(expected));
+
+      pm.test("Five visible metrics", () => {
+        pm.expect(pm.response.json().metrics).to.include.members([
+          "kpi",
+          "revenue-trend",
+          "by-category",
+          "by-region",
+          "top-products",
+        ]);
+      });
+    language: text/javascript
+order: 4000

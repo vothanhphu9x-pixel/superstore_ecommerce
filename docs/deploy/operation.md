@@ -222,6 +222,12 @@ sudo nano /etc/superstore/stack.env
 sudo nano /etc/superstore/images.source.env
 ```
 
+Trong `grafana.env`, dùng `GF_SMTP_USER`, `GF_SMTP_PASSWORD` và
+`GF_SMTP_FROM_ADDRESS` (cùng địa chỉ gửi). Nếu file cũ còn
+`GRAFANA_SMTP_USER`/`GRAFANA_SMTP_PASSWORD`, đổi tên hai key này trước khi
+khởi động lại Grafana. Compose chỉ đọc file này vào container; không nội suy
+các key trong file thành biến `${...}`.
+
 Snowflake config keys mà API hiện đọc:
 
 ```dotenv
@@ -409,9 +415,298 @@ Workflow đang để lại `release.tar.gz` sau khi giải nén tại release di
 này không được Compose sử dụng; sau khi xác nhận release ổn định, có thể xóa archive
 của đúng release để tiết kiệm dung lượng, giữ lại thư mục đã giải nén.
 
+<<<<<<< Updated upstream
 ## 9. Tài liệu liên quan
+=======
+## 9. Connect Grafana, Prometheus & Minio By SSH tunnel
+
+SSH tunnel không triển khai hay khởi chạy Grafana và Prometheus. Nó chỉ tạo đường truyền bảo mật từ máy Mac đến hai port localhost trên VPS:
+
+```
+ssh -N \
+  -L 3001:127.0.0.1:3001 \
+  -L 9090:127.0.0.1:9090 \
+  -L 9001:127.0.0.1:9001 \
+  deploy@YOUR_VPS
+```
+
+| Máy Mac (Local)  | VPS (Host)       | Dịch vụ       |
+| ---------------- | ---------------- | ------------- |
+| `localhost:3001` | `127.0.0.1:3001` | Grafana       |
+| `localhost:9090` | `127.0.0.1:9090` | Prometheus    |
+| `localhost:9000` | `127.0.0.1:9000` | MinIO API     |
+| `localhost:9001` | `127.0.0.1:9001` | MinIO Console |
+
+Một lưu ý: Trước khi kiểm tra 4 Targets ở trạng thái UP, phải bảo đảm FastAPI đã expose /metrics, Redis Exporter và Node Exporter hoạt động, đồng thời Prometheus có thể truy cập chúng qua Docker network
+
+## 10. Cài Uptime Kuma
+
+```
+# tạo thư mục, tải image và lấy diges
+mkdir -p ~/superstore-kuma
+cd ~/superstore-kuma
+
+docker pull louislam/uptime-kuma:2.5.5
+docker image inspect \
+  --format '{{index .RepoDigests 0}}' \
+  louislam/uptime-kuma:2.5.5
+
+# .env
+KUMA_IMAGE=louislam/uptime-kuma@sha256:THAY_BANG_DIGEST_THAT
+
+# neu thue vps for kuma
+ssh -N -L 3002:127.0.0.1:3002 USER@MONITOR_HOST
+```
+
+| Máy Mac (Local)  | VPS (Host)       | Dịch vụ |
+| ---------------- | ---------------- | ------- |
+| `localhost:3002` | `127.0.0.1:3002` | KUMA    |
+
+## 11. postman
+
+Tạo hai Postman Monitors (public và staff journey) cùng các Uptime Kuma
+monitors theo [hướng dẫn đo Phase 4](monitoring/synthetic_baseline.md).
+Postman tạo traffic tổng hợp cho dashboard; Prometheus đo HTTP API và tài
+nguyên VPS. Ngưỡng cho tải người dùng thật cần hiệu chỉnh khi có traffic thật.
+
+## 12. Backup
+
+Luồng: Mac giữ **age private key** → VPS sao lưu tự động mỗi ngày → S3 giữ file
+đã mã hóa → Mac tải và kiểm tra bản khôi phục → khi có sự cố, dựng VPS và deploy
+đúng release. Backup chỉ gồm staff SQLite, cấu hình VPS và metadata release;
+không gồm dữ liệu Snowflake/MinIO/Redis, logs, certificate hay source/image
+của release.
+
+Ghi ngày chạy, trạng thái từng gate và bằng chứng vào
+[Backup Discovery Result](backup/discovery_result.md). Mục chưa có kết quả để `Not Run`.
+
+### 12.1. Chuẩn bị trước khi cài
+
+Commit/push `deploy/production/backup/` và `RAG_CHATBOT/scripts/backup_staff.py`,
+đợi Quality Gate/CD deploy API image chứa script mới. Trên Mac, tạo key **một
+lần** trong repository local; Git bỏ qua thư mục này. Lệnh dưới giữ nguyên key
+nếu đã tồn tại, để vẫn giải mã được các backup cũ:
+
+```bash
+cd /Users/macos/Desktop/Superstore_ecommerce
+brew install age awscli
+mkdir -p .config/superstore
+chmod 700 .config .config/superstore
+if [ ! -e .config/superstore/superstore-backup.agekey ]; then
+  age-keygen -o .config/superstore/superstore-backup.agekey
+fi
+chmod 600 .config/superstore/superstore-backup.agekey
+age-keygen -y .config/superstore/superstore-backup.agekey
+```
+
+Dòng `age1...` cuối cùng là **public recipient** để điền vào VPS. Sao lưu
+private key ở nơi an toàn khác; mất key thì không giải mã được backup.
+
+**AWS:** dùng bucket trong `SUPERSTORE_BACKUP_BUCKET` và prefix
+`superstore-vps/`. Tạo hai IAM user nếu chưa có, mỗi user gắn đúng một inline policy:
+
+| IAM user                       | Inline policy                                                                                                      | Nơi giữ access key                    |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| `superstore-vps-backup-writer` | [SuperstoreBackupWriterPolicy](../../deploy/production/backup/SuperstoreBackupWriterPolicy.json)                   | VPS: `/etc/superstore/backup.env`     |
+| `superstore-back-up-restore`   | [SuperstoreBackupRestoreReadOnlyPolicy](../../deploy/production/backup/SuperstoreBackupRestoreReadOnlyPolicy.json) | Mac: AWS profile `superstore-restore` |
+
+### 12.2. Cài backup tự động trên VPS
+
+Script yêu cầu API production đang chạy, staff DB, `current` release, các file
+cấu hình trong `/etc/superstore`, Nginx config và SSH `authorized_keys`; thiếu file nào thì
+backup sẽ dừng và báo đường dẫn. Cài công cụ và tạo file cấu hình root-only:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y age curl unzip
+AWS_CLI_TMP=$(mktemp -d)
+curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip \
+  -o "$AWS_CLI_TMP/awscliv2.zip"
+unzip -q "$AWS_CLI_TMP/awscliv2.zip" -d "$AWS_CLI_TMP"
+sudo "$AWS_CLI_TMP/aws/install"
+aws --version
+sudo test -e /etc/superstore/backup.env || \
+  sudo install -o root -g root -m 600 \
+    /opt/superstore/current/deploy/production/backup/backup.env.example \
+    /etc/superstore/backup.env
+sudo nano /etc/superstore/backup.env
+sudo chown root:root /etc/superstore/backup.env
+sudo chmod 600 /etc/superstore/backup.env
+```
+
+Ví dụ AWS CLI trên dành cho VPS `amd64` như mục 4; với ARM64, dùng bản
+`awscli-exe-linux-aarch64.zip` từ [AWS CLI installation guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
+Thư mục `$AWS_CLI_TMP` chỉ chứa bộ cài tạm, có thể xóa sau khi `aws --version`
+thành công.
+
+Điền các biến `AWS_DEFAULT_REGION`, `AWS_ACCESS_KEY_ID`,
+`AWS_SECRET_ACCESS_KEY`, `SUPERSTORE_BACKUP_BUCKET`,
+`SUPERSTORE_BACKUP_PREFIX=superstore-vps` và `SUPERSTORE_AGE_RECIPIENT=age1...`.
+Chỉ public recipient nằm trên VPS; không đặt age private key ở đây. Sau mỗi lần
+thay `backup.sh` hoặc systemd unit trong release, chạy lại installer vì systemd
+dùng **bản copy** đã cài:
+
+```bash
+sudo bash /opt/superstore/current/deploy/production/backup/install.sh
+sudo systemctl start superstore-backup.service
+sudo journalctl -u superstore-backup.service -n 100 --no-pager
+systemctl list-timers superstore-backup.timer
+```
+
+Journal cần có `Backup completed: s3://...`. Timer chạy hằng ngày lúc **03:15
+theo giờ VPS**, có thể trễ ngẫu nhiên tối đa 15 phút; `Persistent=true` cho
+phép chạy bù sau khi VPS bật lại. Kiểm tra timezone bằng `timedatectl`.
+Mỗi lượt script chụp SQLite nhất quán, mã hóa bằng age, upload `.age` và
+`.sha256`, tải lại để kiểm tra checksum. Bản trên S3 được giữ; file tạm trên VPS
+được dọn khi script kết thúc bình thường.
+
+### 12.3. Tải về Mac và diễn tập khôi phục
+
+Trên Mac, từ root repository đăng nhập AWS bằng **principal chỉ đọc** rồi liệt kê
+object. Chọn **key của file `.tar.gz.age`**, không chọn file `.sha256`:
+
+```bash
+cd /Users/macos/Desktop/Superstore_ecommerce
+aws configure --profile superstore-restore
+export AWS_PROFILE=superstore-restore
+export SUPERSTORE_BACKUP_BUCKET=YOUR_BUCKET_NAME
+export AGE_IDENTITY_FILE="$PWD/.config/superstore/superstore-backup.agekey"
+aws s3 ls "s3://$SUPERSTORE_BACKUP_BUCKET/superstore-vps/" --recursive
+```
+
+Tại root repository, đặt `OBJECT_KEY` bằng đường dẫn object **bên trong
+bucket**, rồi chạy:
+
+```bash
+umask 077
+mkdir -p "$PWD/superstore-restore-drill"
+chmod 700 "$PWD/superstore-restore-drill"
+OBJECT_KEY='superstore-vps/VPS_HOSTNAME/YYYYMMDDTHHMMSSZ/superstore-...tar.gz.age'
+bash deploy/production/backup/restore-local.sh \
+  "$OBJECT_KEY" \
+  "$PWD/superstore-restore-drill"
+```
+
+Script tải cả checksum, so SHA-256, giải mã, giải nén vào thư mục `restore-*`
+mới và chạy SQLite `integrity_check`. Ghi lại đường dẫn in sau
+`Restore artifact verified at:` rồi kiểm tra manifest và staff DB tại đó:
+
+```bash
+RESTORE_DIR="$PWD/superstore-restore-drill/restore-THAY_BANG_TEN_THUC_TE"
+cat "$RESTORE_DIR/metadata/backup-manifest.env"
+test -s "$RESTORE_DIR/data/staff/internal_users.db"
+```
+
+Thư mục restore chứa secret và database **đã giải mã**; nó nằm trong repo local
+nhưng bị Git ignore. Giới hạn quyền truy cập và xóa sau khi diễn tập xong.
+
+### 12.4. Khôi phục khi VPS gặp sự cố
+
+**Trên Mac:** hoàn thành mục 12.3. Đọc commit và GHCR digest từ manifest, kiểm tra
+commit còn trong Git, rồi chuyển source/config/SQLite qua SSH:
+
+```bash
+RELEASE_SHA=$(sed -n 's/^release_sha=//p' \
+  "$RESTORE_DIR/metadata/backup-manifest.env")
+API_IMAGE=$(sed -n 's/^api_image=//p' \
+  "$RESTORE_DIR/metadata/backup-manifest.env")
+git fetch origin
+git cat-file -e "$RELEASE_SHA^{commit}"
+printf 'Release: %s\nImage: %s\n' "$RELEASE_SHA" "$API_IMAGE"
+
+VPS_HOST=NEW_VPS_IP
+VPS_PORT=22
+SSH_KEY="$HOME/.ssh/superstore_github_actions"
+ssh -i "$SSH_KEY" -p "$VPS_PORT" deploy@"$VPS_HOST" \
+  'umask 077; mkdir -p ~/restore-upload'
+scp -i "$SSH_KEY" -P "$VPS_PORT" -r "$RESTORE_DIR/etc/superstore" \
+  "$RESTORE_DIR/data/staff/internal_users.db" \
+  deploy@"$VPS_HOST":restore-upload/
+git archive "$RELEASE_SHA" deploy/production \
+  | ssh -i "$SSH_KEY" -p "$VPS_PORT" deploy@"$VPS_HOST" \
+      "mkdir -p '/opt/superstore/releases/$RELEASE_SHA' && \
+       tar -xf - -C '/opt/superstore/releases/$RELEASE_SHA'"
+```
+
+`api_image` là GHCR digest; nếu rỗng hoặc image không còn trên GHCR, cần
+khôi phục image trước. Bản giải mã chuyển qua SSH nằm tạm trong home của
+`deploy`; không lưu trong repo. VPS mới cần hoàn thành Docker, Nginx, Certbot,
+DNS, SSH và thư mục release do `deploy` sở hữu theo mục 4 **trước** các lệnh trên.
+
+**Trên VPS mới:** cài lại cấu hình đã kiểm tra và staff DB **trước khi chạy API**:
+
+```bash
+sudo install -d -m 750 /etc/superstore
+for name in app.env stack.env grafana.env images.lock.env images.source.env; do
+  sudo install -o root -g root -m 600 \
+    "/home/deploy/restore-upload/superstore/$name" \
+    "/etc/superstore/$name"
+done
+sudo install -d -o 10001 -g 10001 -m 750 /opt/superstore/data/staff
+sudo install -o 10001 -g 10001 -m 600 \
+  /home/deploy/restore-upload/internal_users.db \
+  /opt/superstore/data/staff/internal_users.db
+```
+
+Nếu backup có `etc/superstore/snowflake/`, khôi phục riêng thư mục đó với quyền
+đọc phù hợp cho API user `10001`. Kiểm tra domain và secret trong các file
+`.env` trước khi dùng. Certificate không nằm trong backup. Cài lại Nginx và
+Certbot theo mục 4.2, rồi tạo certificate và HTTPS config từ source release:
+
+```bash
+RELEASE_SHA=PASTE_40_CHARACTER_SHA
+NGINX_INSTALLER="/opt/superstore/releases/$RELEASE_SHA/deploy/production/bin/install-nginx.sh"
+sudo install -d -m 755 /var/www/certbot/.well-known/acme-challenge
+sudo bash "$NGINX_INSTALLER" bootstrap
+API_DOMAIN=$(sudo sed -n 's/^API_DOMAIN=//p' /etc/superstore/stack.env)
+sudo /snap/bin/certbot certonly --webroot \
+  --webroot-path /var/www/certbot \
+  --domain "$API_DOMAIN"
+sudo bash "$NGINX_INSTALLER" https
+```
+
+Nếu GHCR private, đăng nhập GHCR cho Docker root như mục 4.4. Với **digest đã
+lấy trên Mac**, chạy trên VPS:
+
+```bash
+API_IMAGE='ghcr.io/owner/repository-api@sha256:PASTE_DIGEST'
+sudo bash "/opt/superstore/releases/$RELEASE_SHA/deploy/production/bin/deploy.sh" \
+  "$RELEASE_SHA" "$API_IMAGE"
+```
+
+`deploy.sh` kéo image, kiểm tra readiness/HTTPS rồi cập nhật symlink `current`.
+Tạo lại các bucket MinIO cần cho monitoring nếu dùng, vì dữ liệu MinIO không
+nằm trong backup.
+Kiểm tra `/api/health/ready`, staff login, dashboard và production smoke theo
+mục 7. Sau khi xác nhận, xóa bản giải mã trong `restore-upload` trên VPS. Tạo
+lại `/etc/superstore/backup.env` (không có trong artifact), cài timer theo mục
+12.2 và chạy backup mới. Bản backup gần nhất là mốc phục hồi: thay đổi staff
+sau mốc đó cần tạo lại.
+
+Nếu chỉ khôi phục staff DB trên **VPS cũ**, stop API trước khi cài file đã
+chuyển vào `/home/deploy/restore-upload/`, rồi chạy lại:
+
+```bash
+sudo bash /opt/superstore/current/deploy/production/bin/compose.sh stop api
+sudo install -o 10001 -g 10001 -m 600 \
+  /home/deploy/restore-upload/internal_users.db \
+  /opt/superstore/data/staff/internal_users.db
+sudo bash /opt/superstore/current/deploy/production/bin/compose.sh \
+  up -d --wait api
+curl -i http://127.0.0.1:8000/api/health/ready
+```
+
+Không thay SQLite khi API còn đang ghi.
+
+Không tự chép đè `authorized_keys`, sudoers hoặc Nginx config từ artifact lên
+VPS mới: rà soát chúng với IP/domain và quyền của VPS mới trước. Backup và
+restore script không tự thay dữ liệu production.
+
+## 13. Tài liệu liên quan
+>>>>>>> Stashed changes
 
 - Thành phần và trạng thái: [discovery_result.md](discovery_result.md)
+- Checklist backup: [backup/discovery_result.md](backup/discovery_result.md)
 - Luồng request và filesystem: [system_architecture_lineage.md](system_architecture_lineage.md)
 - Xử lý lỗi theo workflow stage: [error_tracing.md](error_tracing.md)
 - Thực hành kiểm tra FastAPI, VPS và Snowflake: [fastapi_vps_check.md](fastapi_vps_check.md)

@@ -206,7 +206,7 @@ jobs:
           archive="$RUNNER_TEMP/superstore-release.tar.gz"
           release_dir="/opt/superstore/releases/$RELEASE_SHA"
 
-          tar -czf "$archive" deploy/production
+          tar -czf "$archive" deploy/production postman
 
           ssh \
             -i "$ssh_dir/id_key" \

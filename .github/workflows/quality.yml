@@ -246,6 +246,26 @@ jobs:
           tail -n 100 "$RUNNER_TEMP/api.log" || true
           tail -n 100 "$RUNNER_TEMP/frontend.log" || true
 
+  newman:
+    name: Newman synthetic checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: deploy/production/newman/package-lock.json
+      - name: Install pinned Newman dependencies
+        working-directory: deploy/production/newman
+        run: npm ci
+      - name: Validate Postman YAML conversion and offline flow
+        working-directory: deploy/production/newman
+        run: |
+          npm run check
+          npm test
+
   configuration:
     name: Compose and dbt parse
     runs-on: ubuntu-latest
@@ -273,6 +293,21 @@ jobs:
         run: docker compose --env-file data_platform/.env.example -f data_platform/docker-compose.yml config --quiet
       - name: Validate DE source contract
         run: python scripts/check_de_pipeline_contract.py
+      - name: Validate production Prometheus config and rules
+        run: |
+          docker run --rm --entrypoint /bin/promtool \
+            -v "$PWD/deploy/production/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+            -v "$PWD/deploy/production/prometheus/rules:/etc/prometheus/rules:ro" \
+            prom/prometheus:v3.13.5 \
+            check config /etc/prometheus/prometheus.yml
+          docker run --rm --entrypoint /bin/promtool \
+            -v "$PWD/deploy/production/prometheus/rules:/etc/prometheus/rules:ro" \
+            prom/prometheus:v3.13.5 \
+            check rules /etc/prometheus/rules/availability.yml
+          docker run --rm --entrypoint /bin/promtool \
+            -v "$PWD/deploy/production/prometheus:/etc/prometheus/project:ro" \
+            prom/prometheus:v3.13.5 \
+            test rules /etc/prometheus/project/tests/availability.test.yml
       - name: Install dbt
         run: python -m pip install "dbt-snowflake==1.11.3"
       - name: Prepare secret-free dbt profile

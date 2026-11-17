@@ -70,16 +70,28 @@ sudo tail -n 100 /var/log/nginx/superstore-error.log
 
 ### 1.3. Thao tác an toàn
 
-| Tình huống             | Lệnh                                 | Tác dụng                                                  |
-| ---------------------- | ------------------------------------ | --------------------------------------------------------- |
-| Kiểm tra service       | `docker compose ps`                  | Xem trạng thái các container trong project                |
-| Xem log                | `docker compose logs --tail=100 api` | Đọc 100 dòng log gần nhất của service `api`               |
-| Theo dõi log           | `docker compose logs -f api`         | Theo dõi log mới liên tục                                 |
-| Khởi động lại service  | `docker compose restart api`         | Restart container hiện tại                                |
-| Tải image mới          | `docker compose pull api`            | Pull image theo cấu hình và tag trong Compose             |
-| Tạo/cập nhật container | `docker compose up -d api`           | Đồng bộ container với cấu hình và image hiện có           |
-| Dừng service           | `docker compose stop api`            | Dừng service, không xóa container                         |
-| Dừng cả project        | `docker compose down`                | Dừng và xóa container, network do Compose project quản lý |
+Trên VPS, dùng helper của release hiện hành:
+
+```bash
+COMPOSE=/opt/superstore/current/deploy/production/bin/compose.sh
+```
+
+| Tình huống | Lệnh | Tác dụng |
+| --- | --- | --- |
+| Kiểm tra service | `sudo bash "$COMPOSE" ps` | Xem trạng thái container |
+| Xem log | `sudo bash "$COMPOSE" logs --tail=100 api` | Đọc 100 dòng log API gần nhất |
+| Theo dõi log | `sudo bash "$COMPOSE" logs -f api` | Theo dõi log mới |
+| Khởi động lại | `sudo bash "$COMPOSE" restart api` | Restart container hiện tại; không áp dụng env, cấu hình Compose hay image mới |
+| Đồng bộ cấu hình | `sudo bash "$COMPOSE" up -d api` | Tạo lại khi cấu hình service, env hoặc image tham chiếu đã thay đổi |
+| Nạp lại file bind mount | `sudo bash "$COMPOSE" up -d --no-deps --force-recreate alloy` | Tạo lại riêng Alloy để đọc `config.alloy` mới trong release hiện hành |
+| Dừng service | `sudo bash "$COMPOSE" stop api` | Dừng API, không xóa container |
+| Dừng cả project | `sudo bash "$COMPOSE" down` | Dừng và xóa container, network của project; không dùng trong vận hành thường ngày |
+
+`up -d` không tự tạo lại container khi chỉ thay đổi **nội dung** file bind mount.
+Nếu chỉ sửa `config.alloy`, kiểm tra file mới đã có trong `/opt/superstore/current` rồi
+chạy `--force-recreate alloy`; trạng thái `Running` sau `up -d` không chứng minh
+Alloy đã nạp file mới. Nếu file mới chỉ nằm trên máy local, cần commit và deploy
+release trước.
 
 Không dùng `docker compose down`, không xóa volume `staff` và không `pull` image
 thủ công. Deploy phiên bản mới phải đi qua CD để giữ image digest và release

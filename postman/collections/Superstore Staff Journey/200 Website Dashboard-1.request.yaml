@@ -1,0 +1,14 @@
+$kind: http-request
+name: 200 Website Dashboard
+url: "{{frontend_origin}}/dashboard"
+method: GET
+headers:
+  Origin: "{{frontend_origin}}"
+  Content-Type: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      const expected = Number(pm.info.requestName.slice(0, 3));
+      pm.test("HTTP " + expected, () => pm.response.to.have.status(expected));
+    language: text/javascript
+order: 11000
