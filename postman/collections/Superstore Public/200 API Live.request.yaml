@@ -1,0 +1,21 @@
+$kind: http-request
+name: 200 API Live
+url: "{{api_origin}}/api/health/live"
+method: GET
+scripts:
+  - type: beforeRequest
+    code: ""
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      const expected = Number(pm.info.requestName.slice(0, 3));
+      pm.test("HTTP " + expected, () => pm.response.to.have.status(expected));
+
+      pm.test("API live", () => {
+        pm.response.to.have.status(200);
+        const body = pm.response.json();
+        pm.expect(body.status).to.eql("ok");
+        pm.expect(body.release).to.match(/^[0-9a-f]{40}$/);
+      });
+    language: text/javascript
+order: 1794802187474

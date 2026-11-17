@@ -1,0 +1,21 @@
+$kind: http-request
+name: 200 Website Staff/logout
+url: "{{frontend_origin}}/api/internal/staff/logout"
+method: POST
+headers:
+  Origin: "{{frontend_origin}}"
+  Content-Type: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      const expected = Number(pm.info.requestName.slice(0, 3));
+      pm.test("HTTP " + expected, () => pm.response.to.have.status(expected));
+
+      pm.test("Staff cookie cleared", () => {
+        const cookie = pm.response.headers.get("set-cookie") || "";
+        pm.expect(cookie).to.match(/^superstore_staff=/i);
+        pm.expect(cookie).to.match(/max-age=0|expires=/i);
+      });
+      pm.variables.unset("staff_session");
+    language: text/javascript
+order: 12000

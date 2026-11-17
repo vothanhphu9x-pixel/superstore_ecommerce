@@ -1,0 +1,20 @@
+$kind: http-request
+name: 200 Website Staff/me
+url: "{{frontend_origin}}/api/internal/staff/me"
+method: GET
+headers:
+  Origin: "{{frontend_origin}}"
+  Content-Type: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      const expected = Number(pm.info.requestName.slice(0, 3));
+      pm.test("HTTP " + expected, () => pm.response.to.have.status(expected));
+
+      pm.test("Sales session", () => {
+        pm.expect(pm.response.json().role).to.eql("sales");
+      });
+    language: text/javascript
+settings:
+  disableCookies: false
+order: 3000

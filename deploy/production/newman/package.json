@@ -1,0 +1,13 @@
+{
+  "name": "superstore-newman-monitor",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "check": "node --check collection.js && node --check run.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "newman": "6.2.3",
+    "yaml": "2.9.1"
+  }
+}

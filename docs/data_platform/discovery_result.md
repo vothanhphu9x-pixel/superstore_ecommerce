@@ -1,76 +1,55 @@
-# Data Pipeline Discovery Result
+# Data Platform — Discovery Result
 
-## Status definitions
+## Trạng thái
 
-- **Verified** — đã chạy kiểm tra và có evidence.
-- **Failed** — đã chạy nhưng kết quả không đạt.
-- **Blocked** — chưa thể chạy vì thiếu dịch vụ, quyền hoặc kết nối.
-- **Not Run** — chưa thực hiện trong lần validation này.
-- **Not Applicable** — không thuộc phạm vi production hiện tại.
+- **Verified:** đã chạy và có bằng chứng.
+- **Failed:** đã chạy nhưng không đạt.
+- **Blocked:** chưa thể chạy do bước trước, quyền, dịch vụ hoặc kết nối.
+- **Not Run:** chưa có kết quả thực tế trong lượt kiểm tra ghi ở bảng.
 
-## Identification
+## Thông tin lần kiểm tra
 
-- Validation date: 2026-09-21
-- Environment: Local macOS / Docker Compose / Snowflake
-- Scope: Odoo PostgreSQL → Debezium → Kafka → MinIO → Snowflake → dbt → Airflow
-- Result status: Complete — all validation gates passed
+- Ngày cập nhật: **2026-11-14**; môi trường: Mac local/Docker Compose, Snowflake bên ngoài.
+- Phạm vi: Odoo PostgreSQL → Debezium → Kafka → MinIO → Snowflake Bronze → dbt → Airflow.
+- Kết luận: **kiểm tra tĩnh đạt**. Lần chạy Airflow gần nhất được cung cấp (**2026-11-13**) dừng ở `load_snowflake` do Snowflake báo sai username/password; chưa có bằng chứng một DagRun mới thành công.
+- Lần validation **2026-09-21** từng đạt end-to-end; đây là bằng chứng lịch sử, không thay thế cho kiểm tra tài khoản Snowflake mới.
 
-> Các container/service hiện đang được tắt có chủ đích. Trạng thái **Verified** ghi nhận
-> lần validation thành công gần nhất, không khẳng định service đang online tại thời điểm đọc.
+## Thành phần cần kiểm soát
 
-## Source baseline
+```text
+Odoo CDC + 4 CSV → MinIO → Bronze → Staging → Snapshot/Silver → Gold → Mart
+                         Airflow điều phối và test sau từng lớp
+```
 
-| Component | Current count |
-|---|---:|
-| Odoo CDC tables | 44 |
-| External CSV production tables | 4 |
-| Bronze sources | 48 |
-| Staging models | 48 |
-| Snapshots | 3 |
-| Silver models | 19 |
-| Gold dimensions | 11 |
-| Gold facts | 17 |
-| Mart models | 10 |
+Baseline ghi ở lần kiểm tra 2026-09-21: **44 CDC**, **4 CSV**, **48 Bronze source**, **48 Staging**, **3 Snapshot**, **19 Silver**, **11 Gold dimension**, **17 Gold fact**, **10 Mart**. Snapshot hỗ trợ SCD2, không phải một lớp phân tích riêng. Khi mô hình thay đổi, lấy lại số từ code thay vì xem baseline này là số liệu hiện hành.
 
-Snapshot là nhánh hỗ trợ SCD2 trong Layer 2, không phải một lớp phân tích độc lập.
+Trong code hiện tại, `hr_job` và `res_country` có staging model; consumer commit Kafka offset sau khi upload MinIO thành công; bốn CSV production được đưa vào nguồn và hai CSV legacy không ingest.
 
-## Validation results
+## Checklist kết quả
 
-| Gate | Expected | Result | Evidence |
+| Gate | Kỳ vọng | Kết quả | Bằng chứng / lần chạy |
 |---|---|---|---|
-| Static pipeline contract | Model/source counts và tài liệu khớp code | Verified | `python3 scripts/check_de_pipeline_contract.py` |
-| Docker Compose | Config hợp lệ | Verified | `docker compose -f data_platform/docker-compose.yml config --quiet` |
-| PostgreSQL CDC | `wal_level=logical` | Verified | `SHOW wal_level;` trả về `logical` trong lần chạy gần nhất |
-| Debezium connector | Connector và tasks `RUNNING` | Verified | Connector status trả về `RUNNING` cho connector và tasks |
-| Kafka topics | Topic của 44 bảng CDC tồn tại | Verified | Kafka topic listing của lần chạy thành công |
-| MinIO | Có Parquet theo table/date partition | Verified | MinIO object listing và bước download thành công |
-| Snowflake Bronze | 48 raw tables tồn tại và có dữ liệu | Verified | `INFORMATION_SCHEMA` và bước Bronze load thành công |
-| dbt parse | Parse thành công | Verified | `dbt parse --profiles-dir .dbt` |
-| dbt staging test | PASS | Verified | `dbt test --select staging --profiles-dir .dbt` |
-| dbt snapshot test | PASS | Verified | `dbt test --select resource_type:snapshot --profiles-dir .dbt` |
-| dbt silver test | PASS | Verified | `dbt test --select silver --profiles-dir .dbt` |
-| dbt gold test | PASS | Verified | `dbt test --select gold --profiles-dir .dbt` |
-| dbt mart test | PASS | Verified | `dbt test --select mart --profiles-dir .dbt` |
-| Airflow DAG | DagRun `SUCCESS` | Verified | Airflow Grid và task logs của DagRun thành công gần nhất |
+| DE-01 — Source contract | Debezium, consumer, loader, dbt source/staging và các ràng buộc tĩnh khớp | Verified | `python3 scripts/check_de_pipeline_contract.py`: OK, 2026-11-14 |
+| DE-02 — Compose | Cấu hình Compose hợp lệ | Verified | `docker compose ... config --quiet` với `.env.example`, 2026-11-14; không khởi động container |
+| DE-03 — PostgreSQL/CDC | `wal_level=logical`, connector và Kafka topics hoạt động | Not Run | Kết quả cũ đạt 2026-09-21; chưa kiểm tra runtime hiện tại |
+| DE-04 — MinIO | Parquet từ CDC/CSV tồn tại và consumer hoàn tất upload | Not Run | Kết quả cũ đạt 2026-09-21; chưa kiểm tra runtime hiện tại |
+| DE-05 — Snowflake Bronze | Loader kết nối đúng account/user và nạp được raw tables | Failed | Airflow `load_snowflake`, 2026-11-13: lỗi `250001 (08001) Incorrect username or password` |
+| DE-06 — dbt parse | Project/profile/macros/YAML parse thành công | Not Run | Chưa chạy lại với cấu hình tài khoản mới |
+| DE-07 — dbt data tests | Staging → Snapshot → Silver → Gold → Mart và singular tests đạt | Blocked | Loader chưa nạp Bronze trong DagRun mới; pass cũ thuộc 2026-09-21 |
+| DE-08 — Airflow | DagRun end-to-end `SUCCESS` | Failed | DagRun 2026-11-13 dừng ở `load_snowflake`; các task sau không chạy |
 
-Khi bật lại stack, chỉ cần re-run các gate runtime nếu code, cấu hình hoặc môi trường đã thay đổi.
+Khi chạy lại, ghi **ngày, DagRun/commit và bằng chứng** vào từng gate. Chỉ đổi `Failed`/`Blocked` sang `Verified` sau khi có lần chạy mới đạt. `dbt parse` và Compose config không kiểm tra dữ liệu Snowflake.
 
-## Verified implementation decisions
+## Tiêu chí hoàn tất
 
-- `hr_job` và `res_country` đã có dedicated staging model.
-- Kafka consumer tắt auto-commit và chỉ commit offset sau khi upload MinIO thành công.
-- CSV production chỉ gồm bốn nguồn; hai CSV legacy không được ingest.
-- Static contract xác nhận đủ 44 CDC, 4 CSV, 48 Staging, 3 Snapshot, 19 Silver, 11 Dimension, 17 Fact và 10 Mart.
+- [x] Source contract và cú pháp Compose đạt trên code hiện tại.
+- [ ] Sửa thông tin đăng nhập Snowflake trong môi trường Airflow rồi chạy lại Bronze load.
+- [ ] Chạy lại dbt parse, test của từng lớp và singular tests.
+- [ ] Ghi DagRun mới có trạng thái `SUCCESS`.
 
-## Known limitation
+Giới hạn đã biết: loader MinIO → Snowflake vẫn quét Parquet lịch sử; `record_hash` theo từng record dùng để tránh nạp trùng.
 
-- MinIO-to-Snowflake vẫn quét toàn bộ Parquet lịch sử; Snowflake chống nạp trùng bằng `record_hash` theo từng record.
+## Tài liệu liên quan
 
-## Completion criteria
-
-STEP 4 đã hoàn tất:
-
-- [x] Tất cả runtime gate đã được xác minh trong lần chạy thành công gần nhất.
-- [x] dbt test của Staging, Snapshot, Silver, Gold và Mart đều PASS.
-- [x] Airflow DagRun end-to-end có trạng thái `SUCCESS`.
-- [x] Evidence đã được ghi trong bảng validation.
+- Lệnh vận hành và recovery: [Data Platform Operations](operation.md).
+- Luồng các lớp: [System Architecture Lineage](System_Architecture_Lineage.md).

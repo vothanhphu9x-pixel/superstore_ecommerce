@@ -1,43 +1,51 @@
 # Frontend — Discovery Result
 
-## 1. Phạm vi
+## Trạng thái
 
-- Next.js 16 App Router; internal dashboard và staff login.
-- Browser gọi cùng origin Next.js; Next Route Handler làm BFF tới FastAPI.
-- Production frontend được deploy lên Vercel bởi `.github/workflows/production.yml`.
-- Đây là đối chiếu code ngày 2026-10-27; lint/build/E2E chưa chạy lại trong lượt rà soát này.
+- **Verified:** đã chạy và có bằng chứng.
+- **Failed:** đã chạy nhưng không đạt.
+- **Blocked:** chưa thể chạy do thiếu dịch vụ, quyền hoặc kết nối.
+- **Not Run:** chưa có kết quả thực tế; đọc code không được tính là pass.
 
-## 2. Route và trách nhiệm
+## Thông tin lần kiểm tra
 
-| Next.js route | Chức năng |
-|---|---|
-| `/login` | Form đăng nhập; nhận `next` path đã kiểm tra |
-| `/dashboard` | Dashboard nội bộ; `proxy.ts` redirect sớm nếu thiếu cookie, server layout xác thực lại với FastAPI |
-| `/api/internal/[...path]` | BFF allowlist: GET profile/dashboard, POST login/logout; kiểm tra Origin với POST |
-| `/api/health` | Server-side probe tới FastAPI `/api/health/live` |
+- Ngày cập nhật: **2026-11-14**; môi trường: Mac local.
+- Phạm vi: Next.js 16, login, dashboard và BFF tới FastAPI.
+- Kết luận: **lint, type-check và production build đạt**; E2E local cần Docker/Redis nên chưa chạy trong lượt này.
 
-Dashboard gồm KPI, doanh thu theo tháng, category, region và top products. UI chỉ hiển
-thị metric trong `StaffProfile.metrics`; backend vẫn là nơi quyết định quyền.
+## Thành phần cần kiểm soát
 
-## 3. Luồng bảo mật
+```text
+Browser → /login, /dashboard
+        → /api/internal/[...path] (Next BFF) → FastAPI staff/dashboard
+        → /api/health                  → FastAPI /api/health/live
+```
 
-- `API_KEY` và `INTERNAL_API_URL` chỉ dùng ở Next server (`internalApi.ts` có `server-only`).
-- Browser gửi cookie `superstore_staff` tới same-origin BFF; Next chuyển cookie lên FastAPI.
-- FastAPI `Set-Cookie` được BFF chuyển nguyên về browser; JavaScript không đọc được `HttpOnly`.
-- `proxy.ts` chỉ kiểm tra cookie có tồn tại để redirect nhanh. `(internal)/layout.tsx`
-  gọi `/api/staff/me` để kiểm tra session thật trước khi render dashboard.
-- POST login/logout chỉ chấp nhận đúng `Frontend_Origin`; thiếu cấu hình này ở production
-  làm BFF trả lỗi cấu hình.
+`proxy.ts` redirect nhanh khi thiếu cookie; layout nội bộ hỏi FastAPI `/api/staff/me` để xác minh session. BFF kiểm tra allowlist method/path và Origin cho POST, gắn API key ở server, chuyển `HttpOnly` cookie. Dashboard chỉ hiển thị metric trong staff profile; FastAPI vẫn quyết định quyền truy cập.
 
-## 4. Kiểm tra
+Dashboard hiển thị KPI, revenue trend, category, region và top products khi role được phép xem.
 
-| Hạng mục | Trạng thái lượt rà soát |
-|---|---|
-| Route, env boundary, login/session flow | Đã đối chiếu code |
-| `npm ci`, lint, typecheck, build | Chưa chạy lại |
-| Playwright E2E | Chưa chạy lại |
-| Production/Vercel runtime | Chưa kiểm tra |
+## Checklist kết quả
 
-Không kế thừa kết quả cũ làm bằng chứng cho phiên bản hiện tại. Cách chạy:
-[operation.md](operation.md). Kiến trúc: [system_architecture_lineage.md](system_architecture_lineage.md).
-Khoanh vùng lỗi: [error_tracing.md](error_tracing.md).
+| Gate | Kỳ vọng | Kết quả | Bằng chứng / lần chạy |
+|---|---|---|---|
+| FE-01 — Lint | ESLint không có lỗi | Verified | `npm run lint`, 2026-11-14 |
+| FE-02 — Type-check | TypeScript không có lỗi | Verified | `npm run typecheck`, 2026-11-14 |
+| FE-03 — Build | Next.js production build tạo được route | Verified | `npm run build`; có `/login`, `/dashboard`, `/api/internal/[...path]`, 2026-11-14 |
+| FE-04 — E2E local | Login/logout, sai mật khẩu và chặn cross-site POST đạt | Blocked | Docker daemon local không kết nối được; chưa chạy Playwright trong lượt này |
+| FE-05 — CI | Frontend job và Playwright trên PR đạt | Not Run | Cần URL/SHA của Quality Gate run mới |
+| FE-06 — Vercel | Public website và BFF production hoạt động | Not Run | Cần production smoke run mới; xem [Deploy Discovery](../deploy/discovery_result.md) |
+
+Build thành công chỉ kiểm tra code/build-time; không thay thế E2E hoặc production smoke.
+
+## Tiêu chí hoàn tất
+
+- [x] Lint, type-check và build local đạt.
+- [ ] Bật stack rồi chạy E2E local đạt.
+- [ ] Ghi CI run của commit được deploy.
+- [ ] Ghi production smoke run sau deploy.
+
+## Tài liệu liên quan
+
+- Lệnh chạy: [Frontend Operations](operation.md) và [Test Operations](../tests/operation.md).
+- Luồng và bảo mật: [Frontend Architecture](system_architecture_lineage.md).

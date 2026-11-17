@@ -1,95 +1,104 @@
 # Monitoring — System Architecture & Lineage
 
-![Superstore production monitoring architecture](monitoring.png)
+![Kiến trúc Monitoring mục tiêu](monitoring.png)
 
-> Sơ đồ là kiến trúc mục tiêu. Hiện API đã có instrumentation Prometheus,
-> endpoint `/metrics` nội bộ và HTTP/application logs; Prometheus, Grafana,
-> Loki, Alloy, Uptime Kuma và Postman Monitor chưa được chạy như service trong
-> production stack.
+Hình trên là **kiến trúc mục tiêu**. [Discovery Result](discovery_result.md)
+ghi trạng thái đã kiểm chứng; không suy ra mọi ô trong hình đã chạy trên production.
 
-## 1. HTTP APIs — kiểm thử khả dụng và hành vi
+## 1. Luồng đang có
 
-| Thành phần | Vai trò | Câu hỏi trả lời |
-| --- | --- | --- |
-| Postman Monitor | Chạy collection API theo lịch | Endpoint có trả đúng status/body/contract không? |
-| Uptime Kuma | Ping HTTP định kỳ, đo thời gian phản hồi | API hoặc website có đang truy cập được không? |
-| API/Uptime alert | Gửi cảnh báo khi monitor fail | Khi nào cần người vận hành xử lý? |
+```mermaid
+flowchart LR
+    API[FastAPI /metrics] --> P[Prometheus]
+    N[Newman timers: Public + Staff mỗi phút] --> F[Prometheus text files]
+    F --> NE[Node Exporter: VPS + synthetic]
+    NE --> P
+    RE[Redis Exporter: Redis] --> P
+    P --> G[Grafana Explore]
+    P -. sau deploy: Phase 4 .-> AR[Alert rules: scrape và Redis]
+    AR -. Phase 7 .-> AM[Alertmanager: chưa cài]
 
-Postman Monitor kiểm tra **đúng chức năng**. Uptime Kuma kiểm tra **còn truy cập
-được**. Một endpoint có thể trả `200` nhưng payload sai; vì vậy hai loại kiểm tra
-không thay thế nhau.
+    AH[FastAPI http.log] --> A[Alloy]
+    NG[Nginx access log] --> A
+    APP[FastAPI application.log: sau deploy] -.-> A
+    NELOG[Nginx error log: sau deploy] -.-> A
+    A --> L[Loki]
+    L --> M[MinIO: loki-logs]
+    L --> G
 
-## 2. Metrics — theo dõi số liệu vận hành
-
-```text
-FastAPI instrumentation/exporter → Prometheus → Grafana Metrics Dashboard
+    K[Uptime Kuma: stack riêng] --> PUB[Public health endpoint]
 ```
 
-| Thành phần | Vai trò | Ví dụ dữ liệu |
-| --- | --- | --- |
-| Instrumentation / exporter | Đo và xuất metrics từ ứng dụng/hạ tầng | request count, latency, status code, CPU, RAM |
-| Prometheus | Pull và lưu metrics theo thời gian | error rate 5 phút, p95 latency, memory usage |
-| Grafana Metrics Dashboard | Biểu diễn metrics bằng biểu đồ | traffic, lỗi 5xx, request chậm, resource usage |
+| Nhánh        | Nguồn → đích                                                  | Dùng để làm gì                                               |
+| ------------ | ------------------------------------------------------------- | ------------------------------------------------------------ |
+| Metrics      | FastAPI, Node Exporter, Redis Exporter → Prometheus → Grafana | Đếm request, đo thời gian xử lý, theo dõi VPS và Redis       |
+| Logs         | `http.log`, Nginx access log → Alloy → Loki/MinIO → Grafana   | Tìm request theo thời gian, route, status và request ID      |
+| Logs bổ sung | `application.log`, Nginx error log → Alloy                    | Cấu hình đã có trong repo; cần deploy và kiểm chứng trên VPS |
+| Availability | Uptime Kuma → public health endpoint                          | Phát hiện endpoint không truy cập được từ bên ngoài          |
+| Synthetic    | Newman → Node Exporter text files → Prometheus → Grafana       | Kiểm tra luồng staff, ghi pass/fail và thời gian từng request |
 
-Trong dự án hiện tại, `core/observability.py` tạo HTTP Counter/Histogram và
-`api/routers/operations.py` có endpoint `/metrics`. Nginx production hiện không
-public endpoint này; Prometheus sau này phải scrape qua mạng nội bộ/VPS, không
-phải mở `/metrics` ra Internet.
+Prometheus còn scrape chính nó. `prometheus.yml` khai báo bốn job: `fastapi`,
+`redis`, `node`, `prometheus`. Grafana có hai datasource Prometheus và Loki;
+repo đã có dashboard Newman trong mã nguồn; cần deploy, chạy timer và xác nhận
+dữ liệu thật trên Grafana.
 
-## 3. Logs — truy vết sự kiện và lỗi
+Phase 3 có [thư viện PromQL/LogQL](promql_logql_library.md) để dùng lại cho
+dashboard và alert. Query chỉ được xác nhận sau khi chạy trên production theo
+[Operation §3](operation.md). Phase 4 đã chuẩn bị rule cho target/Redis;
+[Baseline & Thresholds](baseline_thresholds.md) ghi những ngưỡng còn cần đo.
 
-```text
-API / Nginx / Docker logs → Grafana Alloy → Loki → Grafana Logs Explorer
-```
+## 2. Dữ liệu được thu thập
 
-| Thành phần | Vai trò | Dùng khi |
-| --- | --- | --- |
-| Grafana Alloy | Đọc, gắn nhãn và gửi logs | Thu thập log từ API, Nginx, Docker |
-| Loki | Lưu trữ/tìm kiếm logs tập trung | Cần tìm request hoặc traceback cụ thể |
-| Grafana Logs Explorer | Giao diện tìm, lọc và đối chiếu logs | Điều tra lỗi theo thời gian/request ID |
+| Nguồn                   | Cấu hình                                   | Lưu ý                                                                                                                                            |
+| ----------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| FastAPI metrics         | `core/observability.py` → `/metrics`       | Counter `superstore_http_requests_total{method,route,status}`; Histogram `superstore_http_request_duration_seconds{method,route}` tính bằng giây |
+| FastAPI HTTP log        | `/opt/superstore/logs/api/http.log`        | JSON: request ID, method, route, status và `duration_ms`                                                                                         |
+| Nginx access log        | `/var/log/nginx/superstore-access.log`     | JSON: request ID từ upstream, method, route, status và duration                                                                                   |
+| FastAPI application log | `/opt/superstore/logs/api/application.log` | Hoạt động của FastAPI: xử lý request, thông báo ứng dụng, lỗi Python                                                                             |
+| Nginx error log         | `/var/log/nginx/superstore-error.log`      | Lỗi Nginx: kết nối backend thất bại, timeout, lỗi proxy                                                                                          |
+| Docker stdout/stderr    | `compose.sh logs`                          | Xem trực tiếp bằng Compose; **chưa được Alloy thu thập**                                                                                         |
 
-Logs đang có trên VPS:
+FastAPI loại `/metrics`, `/api/health/live` và `/api/health/ready` khỏi HTTP
+Counter/Histogram và `http.log`. Khi kiểm tra log hoặc Counter tăng, hãy gọi
+một route khác, chẳng hạn `/api/staff/me`.
 
-| Nguồn | Đường dẫn | Nội dung |
-| --- | --- | --- |
-| FastAPI HTTP | `/opt/superstore/logs/api/http.log` | request ID, route, status, thời gian xử lý |
-| FastAPI application | `/opt/superstore/logs/api/application.log` | startup, lỗi và thông báo ứng dụng |
-| Nginx | `/var/log/nginx/superstore-*.log` | TLS, proxy và request đến public API |
-| Docker | `compose.sh logs api redis` | stdout/stderr và traceback container |
+Phase 2 đối chiếu `x-request-id` trong response với `request_id` ở FastAPI
+`http.log`, Nginx access log và hai stream Loki. Hai log bổ sung phục vụ điều
+tra lỗi; application log không có `request_id` nên không dùng để nối từng
+request. Docker stdout/stderr xem qua Compose, tránh ingest trùng log file.
 
-`http.log` phục vụ truy vết từng request; nó không tự là Prometheus metric và
-chưa tự được gửi lên Loki cho đến khi Alloy được cấu hình.
+Prometheus giữ dữ liệu tối đa **30 ngày hoặc 5 GB**; Loki đặt retention **14
+ngày** và dùng bucket MinIO `loki-logs`. Các cổng API, Prometheus, Grafana và
+Uptime Kuma chỉ bind `127.0.0.1` trên VPS; mở giao diện quản trị qua SSH tunnel.
+Loki Compactor đánh dấu log quá hạn rồi xóa các chunk tương ứng trong MinIO
+sau `retention_delete_delay: 2h`; không đặt thêm lifecycle xóa toàn bucket.
 
-## 4. Grafana — trung tâm quan sát
+## 3. Chưa hoàn thiện
 
-Grafana kết nối hai nguồn dữ liệu độc lập:
+| Thành phần                           | Trạng thái hiện biết                                                         |
+| ------------------------------------ | ---------------------------------------------------------------------------- |
+| Prometheus alert rules               | Có hai rule trong repo; cần deploy và xác nhận Prometheus đã nạp              |
+| Alertmanager                         | Chưa có trong production stack; chưa có đường gửi email từ Prometheus        |
+| Grafana SMTP                         | Đã sửa cách nạp biến từ `grafana.env`; cần gửi email thử để xác nhận         |
+| Newman synthetic timer               | Có code, CI và dashboard trong repo; cần cài timer và kiểm chứng trên VPS   |
+| Postman Cloud Monitor                | Tùy chọn thay Newman; không bật song song nếu muốn tránh traffic trùng      |
+| Uptime Kuma monitor cụ thể           | Kuma đang chạy; cấu hình và lịch sử check public endpoint cần xác minh riêng |
 
-```text
-Prometheus → Metrics Dashboard / metric-based alert
-Loki       → Logs Explorer / log-based alert
-```
+## 4. File và cách kiểm tra
 
-Grafana không thay Prometheus hay Loki. Nó hiển thị dữ liệu, tạo dashboard và
-gửi alert dựa trên dữ liệu mà hai hệ thống này đã thu thập.
+| File                                                                | Vai trò                                               |
+| ------------------------------------------------------------------- | ----------------------------------------------------- |
+| `deploy/production/compose.yml`, `prometheus.yml`                   | Container, network, scrape targets, retention metrics |
+| `deploy/production/prometheus/rules/availability.yml`              | Rule phát hiện target/Redis không sẵn sàng              |
+| `deploy/production/config.alloy`, `loki.yml`                        | Chọn bốn file log sau deploy; chuyển tiếp và lưu log  |
+| `deploy/production/grafana/provisioning/datasources/superstore.yml` | Khai báo datasource Prometheus/Loki                   |
+| `deploy/production/newman/`, `grafana/dashboards/`                  | Chạy collection theo lịch và hiển thị synthetic       |
+| [PromQL & LogQL Query Library](promql_logql_library.md)            | Truy vấn Phase 3; chờ xác minh trên production        |
+| [Baseline & Thresholds](baseline_thresholds.md)                    | Phép đo và ngưỡng cần chốt ở Phase 4                  |
+| [Synthetic Baseline](synthetic_baseline.md)                         | Tạo Postman/Kuma monitor và đo public health         |
+| `deploy/kuma/docker-compose.yml`                                    | Uptime Kuma ở stack riêng                             |
+| [Operation](operation.md)                                           | Lệnh kiểm tra Phase 0–4 và kết quả mong đợi            |
+| [Discovery Result](discovery_result.md)                             | Bằng chứng, trạng thái DONE/VERIFY/MISSING/BROKEN     |
 
-## 5. Phân biệt nhanh
-
-| Thành phần | Trả lời câu hỏi |
-| --- | --- |
-| Postman Monitor | API có trả về kết quả đúng theo test không? |
-| Uptime Kuma | API/website có đang hoạt động và truy cập được không? |
-| Prometheus | Hệ thống hoạt động thế nào qua các chỉ số theo thời gian? |
-| Loki | Đã xảy ra request, sự kiện hoặc lỗi gì? |
-| Grafana | Metrics/logs đang cho thấy gì và khi nào phải cảnh báo? |
-
-## 6. Thứ tự triển khai đề xuất
-
-1. Giữ health checks/CD smoke hiện có làm baseline.
-2. Cài Uptime Kuma cho public health endpoint.
-3. Chạy Prometheus nội bộ để scrape `/metrics`, sau đó thêm Grafana dashboard.
-4. Cài Alloy để chuyển API/Nginx/Docker logs vào Loki.
-5. Tạo alert cho API down, tỷ lệ 5xx, latency cao và lỗi lặp lại.
-
-Xem thêm [Deploy Operations](../operation.md),
-[FastAPI VPS Check](../fastapi_vps_check.md) và
-[Deploy Error Tracing](../error_tracing.md).
+Không dùng HTTP metrics để suy ra doanh thu hoặc số đơn hàng; các chỉ số kinh
+doanh lấy từ Snowflake/dbt.

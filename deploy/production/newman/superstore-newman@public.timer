@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Superstore public checks every minute
+
+[Timer]
+OnCalendar=minutely
+Persistent=true
+Unit=superstore-newman@public.service
+
+[Install]
+WantedBy=timers.target

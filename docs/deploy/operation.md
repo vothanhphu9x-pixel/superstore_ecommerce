@@ -181,7 +181,7 @@ sudo install -d -o deploy -g deploy -m 750 \
 VPS_HOST=your-vps.example.com
 VPS_PORT=22
 VPS_USER=deploy
-SSH_KEY="$HOME/.ssh/superstore_github_actions"
+  SSH_KEY="$HOME/.ssh/superstore_github_actions"
 RELEASE_SHA=$(git rev-parse HEAD)
 git archive --format=tar "$RELEASE_SHA" deploy/production \
   | ssh -i "$SSH_KEY" -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
@@ -194,7 +194,6 @@ Trên VPS, đặt biến theo SHA vừa chuyển và tạo thư mục cấu hìn
 ```bash
 RELEASE_SHA=PASTE_THE_FULL_40_CHARACTER_SHA
 RELEASE="/opt/superstore/releases/$RELEASE_SHA"
-CONFIG_DIR="$RELEASE/deploy/production"
 
 # Tạo release directory
 sudo install -d -o deploy -g deploy -m 750 "$RELEASE"
@@ -203,20 +202,13 @@ sudo install -d -m 750 /etc/superstore/snowflake
 
 sudo install -d -m 750 \
   /opt/superstore/data/staff \
-  /opt/superstore/logs/api
-sudo install -d -m 755 /var/www/certbot/.well-known/acme-challenge
+  /opt/superstore/logs/api \
+  /var/www/certbot/.well-known/acme-challenge
 
 sudo test -e /etc/superstore/app.env || \
-  sudo install -m 600 "$CONFIG_DIR/app.env.example" /etc/superstore/app.env
+  sudo install -m 600 "$releases/app.env.example" /etc/superstore/app.env
 sudo test -e /etc/superstore/stack.env || \
-  sudo install -m 600 "$CONFIG_DIR/stack.env.example" /etc/superstore/stack.env
-sudo test -e /etc/superstore/images.source.env || \
-  sudo install -m 600 "$CONFIG_DIR/images.source.env" /etc/superstore/images.source.env
-sudo test -e /etc/superstore/grafana.env || \
-  sudo install -m 600 "$CONFIG_DIR/grafana.env.example" /etc/superstore/grafana.env
-
-sudo chown root:root /etc/superstore/grafana.env
-sudo chmod 600 /etc/superstore/grafana.env
+  sudo install -m 600 "$releases/stack.env.example" /etc/superstore/stack.env
 ```
 
 Sửa `/etc/superstore/app.env` và `/etc/superstore/stack.env` bằng editor trên VPS.
@@ -228,81 +220,45 @@ credentials; không để giá trị `CHANGE_ME`.
 sudo nano /etc/superstore/app.env
 sudo nano /etc/superstore/stack.env
 sudo nano /etc/superstore/images.source.env
-sudo nano /etc/superstore/grafana.env
 ```
+
+Trong `grafana.env`, dùng `GF_SMTP_USER`, `GF_SMTP_PASSWORD` và
+`GF_SMTP_FROM_ADDRESS` (cùng địa chỉ gửi). Nếu file cũ còn
+`GRAFANA_SMTP_USER`/`GRAFANA_SMTP_PASSWORD`, đổi tên hai key này trước khi
+khởi động lại Grafana. Compose chỉ đọc file này vào container; không nội suy
+các key trong file thành biến `${...}`.
 
 Snowflake config keys mà API hiện đọc:
 
 ```dotenv
 # app.env
-APP_NAME=
-APP_ENV=production
-LOG_LEVEL=
-
-API_KEY=
-
-STAFF_JWT_SECRET=
-STAFF_SESSION_TTL_HOURS=8
-STAFF_COOKIE_SECURE=true
-STAFF_DB_PATH=
-INTERNAL_EMAIL_DOMAINS=
-AUTH_RATE_LIMIT_PER_MINUTE=10
-TRUST_PROXY_HEADERS=false
-
-CACHE_ENABLED=true
-REDIS_URL=
-CACHE_TTL_SECONDS=900
-CACHE_KEY_PREFIX=
-
-LOG_FILE=
-APP_LOG_DIR=
-
-SNOWFLAKE_ACCOUNT=
-SNOWFLAKE_USER=
-SNOWFLAKE_PASSWORD=
-SNOWFLAKE_DATABASE=
-SNOWFLAKE_GOLD_SCHEMA=
-SNOWFLAKE_MART_SCHEMA=
-SNOWFLAKE_WAREHOUSE=
-SNOWFLAKE_ROLE=
-SNOWFLAKE_MAX_ROWS=1000
-SNOWFLAKE_QUERY_TIMEOUT=30
+SNOWFLAKE_ACCOUNT=...
+SNOWFLAKE_USER=SUPERSTORE_API_USER
+SNOWFLAKE_PASSWORD=...
+SNOWFLAKE_DATABASE=SUPERSTORE_DB
+SNOWFLAKE_GOLD_SCHEMA=ANALYTIC_LAYER_GOLD_LAYER
+SNOWFLAKE_MART_SCHEMA=ANALYTIC_LAYER_MART_LAYER
+SNOWFLAKE_WAREHOUSE=COMPUTE_WH
+SNOWFLAKE_ROLE=ANALYTICS_READONLY
 
 # stack.env
 API_DOMAIN=
 MINIO_ROOT_USER=
 MINIO_ROOT_PASSWORD=
-
-# grafana
-GF_SECURITY_ADMIN_USER=
-GF_SECURITY_ADMIN_PASSWORD=
-GF_AUTH_ANONYMOUS_ENABLED=
-GF_USERS_ALLOW_SIGN_UP=
 ```
 
-Tạo bucket loki-logs trong MinIO.
+### 4.4. Pin Redis image một lần
 
-```
-ssh -N \
-  -L 3001:127.0.0.1:9001 \
-  deploy@YOUR_VPS
-
-# access
-open localhost:9090 -> create loki-logs
-```
-
-### 4.4. Pin image hạ tầng một lần
-
-`images.source.env` khai báo tag của các image hạ tầng. Script pull image và ghi digest
+`images.source.env` khai báo Redis image tag ban đầu. Script pull image và ghi digest
 vào file mới; output đã tồn tại thì script từ chối ghi đè:
 
 ```bash
-sudo bash "$CONFIG_DIR/bin/pin-images.sh" \
+sudo bash "$releases/bin/pin-images.sh" \
   /etc/superstore/images.source.env \
   /etc/superstore/images.lock.env
 ```
 
-Lockfile cần đủ các biến `*_IMAGE` mà Compose sử dụng; API image digest được CD tạo và
+Lockfile chỉ cần `REDIS_IMAGE=...@sha256:...`; API image digest được CD tạo và
 ghi vào `release.env` mỗi release. Nếu GHCR package private, đăng nhập Docker dưới
 root bằng token chỉ có quyền đọc package; Docker pull của deploy chạy qua `sudo`:
 
@@ -317,7 +273,7 @@ Nhập token ở prompt password; không đặt token trong command/file Git.
 DNS `A` phải trỏ tới VPS. Cài cấu hình HTTP bootstrap:
 
 ```bash
-sudo bash "$CONFIG_DIR/bin/install-nginx.sh" bootstrap
+sudo bash "$RELEASE/bin/install-nginx.sh" bootstrap
 ```
 
 Cấp certificate bằng ACME webroot:
@@ -332,7 +288,7 @@ sudo /snap/bin/certbot certonly --webroot \
 Sau khi certificate tồn tại, chuyển sang cấu hình TLS:
 
 ```bash
-sudo bash "$CONFIG_DIR/bin/install-nginx.sh" https
+sudo bash "$RELEASE/bin/install-nginx.sh" https
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -342,7 +298,7 @@ renewal. Cài hook:
 
 ```bash
 sudo install -D -m 755 \
-  "$CONFIG_DIR/certbot/reload-nginx.sh" \
+  "$RELEASE/certbot/reload-nginx.sh" \
   /etc/letsencrypt/renewal-hooks/deploy/20-superstore-reload-nginx.sh
 sudo /snap/bin/certbot renew --dry-run --run-deploy-hooks
 ```
@@ -459,6 +415,9 @@ Workflow đang để lại `release.tar.gz` sau khi giải nén tại release di
 này không được Compose sử dụng; sau khi xác nhận release ổn định, có thể xóa archive
 của đúng release để tiết kiệm dung lượng, giữ lại thư mục đã giải nén.
 
+<<<<<<< Updated upstream
+## 9. Tài liệu liên quan
+=======
 ## 9. Connect Grafana, Prometheus & Minio By SSH tunnel
 
 SSH tunnel không triển khai hay khởi chạy Grafana và Prometheus. Nó chỉ tạo đường truyền bảo mật từ máy Mac đến hai port localhost trên VPS:
@@ -505,6 +464,11 @@ ssh -N -L 3002:127.0.0.1:3002 USER@MONITOR_HOST
 
 ## 11. postman
 
+Tạo hai Postman Monitors (public và staff journey) cùng các Uptime Kuma
+monitors theo [hướng dẫn đo Phase 4](monitoring/synthetic_baseline.md).
+Postman tạo traffic tổng hợp cho dashboard; Prometheus đo HTTP API và tài
+nguyên VPS. Ngưỡng cho tải người dùng thật cần hiệu chỉnh khi có traffic thật.
+
 ## 12. Backup
 
 Luồng: Mac giữ **age private key** → VPS sao lưu tự động mỗi ngày → S3 giữ file
@@ -513,30 +477,38 @@ Luồng: Mac giữ **age private key** → VPS sao lưu tự động mỗi ngày
 không gồm dữ liệu Snowflake/MinIO/Redis, logs, certificate hay source/image
 của release.
 
+Ghi ngày chạy, trạng thái từng gate và bằng chứng vào
+[Backup Discovery Result](backup/discovery_result.md). Mục chưa có kết quả để `Not Run`.
+
 ### 12.1. Chuẩn bị trước khi cài
 
 Commit/push `deploy/production/backup/` và `RAG_CHATBOT/scripts/backup_staff.py`,
 đợi Quality Gate/CD deploy API image chứa script mới. Trên Mac, tạo key **một
-lần** và giữ private key ngoài VPS/Git:
+lần** trong repository local; Git bỏ qua thư mục này. Lệnh dưới giữ nguyên key
+nếu đã tồn tại, để vẫn giải mã được các backup cũ:
 
 ```bash
+cd /Users/macos/Desktop/Superstore_ecommerce
 brew install age awscli
-mkdir -p "$HOME/.config/superstore"
-chmod 700 "$HOME/.config/superstore"
-age-keygen -o "$HOME/.config/superstore/superstore-backup.agekey"
-chmod 600 "$HOME/.config/superstore/superstore-backup.agekey"
-age-keygen -y "$HOME/.config/superstore/superstore-backup.agekey"
+mkdir -p .config/superstore
+chmod 700 .config .config/superstore
+if [ ! -e .config/superstore/superstore-backup.agekey ]; then
+  age-keygen -o .config/superstore/superstore-backup.agekey
+fi
+chmod 600 .config/superstore/superstore-backup.agekey
+age-keygen -y .config/superstore/superstore-backup.agekey
 ```
 
 Dòng `age1...` cuối cùng là **public recipient** để điền vào VPS. Sao lưu
-private key ở nơi an toàn khác; mất key thì không giải mã được backup. Trên AWS.
+private key ở nơi an toàn khác; mất key thì không giải mã được backup.
 
-chuẩn bị bucket và IAM user đúng tên `superstore-vps-backup-writer` với quyền
-upload **và tải lại** object trong prefix backup; script kiểm tra tên IAM này.
-Không cấp quyền xóa object cho backup writer. Tài khoản restore trên Mac cần
-quyền liệt kê bucket và đọc object. Repo không tạo bucket, Object Lock
-hay retention policy: cấu hình và xác minh các phần đó riêng trên AWS trước khi
-coi backup có khả năng chống xóa.
+**AWS:** dùng bucket trong `SUPERSTORE_BACKUP_BUCKET` và prefix
+`superstore-vps/`. Tạo hai IAM user nếu chưa có, mỗi user gắn đúng một inline policy:
+
+| IAM user                       | Inline policy                                                                                                      | Nơi giữ access key                    |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| `superstore-vps-backup-writer` | [SuperstoreBackupWriterPolicy](../../deploy/production/backup/SuperstoreBackupWriterPolicy.json)                   | VPS: `/etc/superstore/backup.env`     |
+| `superstore-back-up-restore`   | [SuperstoreBackupRestoreReadOnlyPolicy](../../deploy/production/backup/SuperstoreBackupRestoreReadOnlyPolicy.json) | Mac: AWS profile `superstore-restore` |
 
 ### 12.2. Cài backup tự động trên VPS
 
@@ -590,14 +562,15 @@ Mỗi lượt script chụp SQLite nhất quán, mã hóa bằng age, upload `.a
 
 ### 12.3. Tải về Mac và diễn tập khôi phục
 
-Trên Mac cài công cụ, đăng nhập AWS bằng **principal chỉ đọc** rồi liệt kê
+Trên Mac, từ root repository đăng nhập AWS bằng **principal chỉ đọc** rồi liệt kê
 object. Chọn **key của file `.tar.gz.age`**, không chọn file `.sha256`:
 
 ```bash
+cd /Users/macos/Desktop/Superstore_ecommerce
 aws configure --profile superstore-restore
 export AWS_PROFILE=superstore-restore
 export SUPERSTORE_BACKUP_BUCKET=YOUR_BUCKET_NAME
-export AGE_IDENTITY_FILE="$HOME/.config/superstore/superstore-backup.agekey"
+export AGE_IDENTITY_FILE="$PWD/.config/superstore/superstore-backup.agekey"
 aws s3 ls "s3://$SUPERSTORE_BACKUP_BUCKET/superstore-vps/" --recursive
 ```
 
@@ -606,11 +579,12 @@ bucket**, rồi chạy:
 
 ```bash
 umask 077
-mkdir -p "$HOME/superstore-restore-drill"
+mkdir -p "$PWD/superstore-restore-drill"
+chmod 700 "$PWD/superstore-restore-drill"
 OBJECT_KEY='superstore-vps/VPS_HOSTNAME/YYYYMMDDTHHMMSSZ/superstore-...tar.gz.age'
 bash deploy/production/backup/restore-local.sh \
   "$OBJECT_KEY" \
-  "$HOME/superstore-restore-drill"
+  "$PWD/superstore-restore-drill"
 ```
 
 Script tải cả checksum, so SHA-256, giải mã, giải nén vào thư mục `restore-*`
@@ -618,14 +592,13 @@ mới và chạy SQLite `integrity_check`. Ghi lại đường dẫn in sau
 `Restore artifact verified at:` rồi kiểm tra manifest và staff DB tại đó:
 
 ```bash
-RESTORE_DIR="$HOME/superstore-restore-drill/restore-THAY_BANG_TEN_THUC_TE"
+RESTORE_DIR="$PWD/superstore-restore-drill/restore-THAY_BANG_TEN_THUC_TE"
 cat "$RESTORE_DIR/metadata/backup-manifest.env"
 test -s "$RESTORE_DIR/data/staff/internal_users.db"
 ```
 
-Thư mục restore chứa secret và database **đã giải mã**; giữ ngoài repo, giới
-hạn quyền truy cập và xóa sau khi diễn tập xong. Chỉ có dòng `Backup completed`
-trên VPS chưa đủ: cần diễn tập tải/giải mã định kỳ để xác nhận khả năng phục hồi.
+Thư mục restore chứa secret và database **đã giải mã**; nó nằm trong repo local
+nhưng bị Git ignore. Giới hạn quyền truy cập và xóa sau khi diễn tập xong.
 
 ### 12.4. Khôi phục khi VPS gặp sự cố
 
@@ -730,8 +703,10 @@ VPS mới: rà soát chúng với IP/domain và quyền của VPS mới trước
 restore script không tự thay dữ liệu production.
 
 ## 13. Tài liệu liên quan
+>>>>>>> Stashed changes
 
 - Thành phần và trạng thái: [discovery_result.md](discovery_result.md)
+- Checklist backup: [backup/discovery_result.md](backup/discovery_result.md)
 - Luồng request và filesystem: [system_architecture_lineage.md](system_architecture_lineage.md)
 - Xử lý lỗi theo workflow stage: [error_tracing.md](error_tracing.md)
 - Thực hành kiểm tra FastAPI, VPS và Snowflake: [fastapi_vps_check.md](fastapi_vps_check.md)

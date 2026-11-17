@@ -1,0 +1,15 @@
+$kind: http-request
+name: 200 Website login
+url: "{{frontend_origin}}/login"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      const expected = Number(pm.info.requestName.slice(0, 3));
+      pm.test("HTTP " + expected, () => pm.response.to.have.status(expected));
+
+      pm.test("Login HTML", () => {
+        pm.expect(pm.response.text()).to.include("Staff sign in");
+      });
+    language: text/javascript
+order: 2981708506812332
