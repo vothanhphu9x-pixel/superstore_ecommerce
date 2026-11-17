@@ -27,7 +27,7 @@ image="superstore-newman:$(basename "$release_dir")"
 exec 9>"/var/lock/superstore-newman-$kind.lock"
 flock -w 120 9 || { printf 'Another %s run is still active.\n' "$kind" >&2; exit 1; }
 
-install -d -m 750 -o 10001 -g 10001 "$metrics_dir"
+install -d -m 755 -o 10001 -g 10001 "$metrics_dir"
 
 if ! docker image inspect "$image" >/dev/null 2>&1; then
   docker build --pull --tag "$image" "$script_dir"

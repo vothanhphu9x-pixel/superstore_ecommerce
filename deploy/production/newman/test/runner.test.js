@@ -84,9 +84,13 @@ test("YAML collections run offline and publish secret-free metrics", async () =>
     for (const kind of ["public", "staff"]) {
       const result = await run(kind, origin, metricsDir);
       assert.equal(result.code, 0, result.output);
-      const text = fs.readFileSync(path.join(metricsDir, `newman-${kind}-manual.prom`), "utf8");
+      const promFile = path.join(metricsDir, `newman-${kind}-manual.prom`);
+      const stateFile = path.join(metricsDir, `newman-${kind}-manual.state.json`);
+      const text = fs.readFileSync(promFile, "utf8");
       assert.match(text, new RegExp(`newman_last_run_success\\{collection="${kind}",mode="manual"\\} 1`));
       assert.doesNotMatch(text, /test-password-only|test-token/);
+      assert.equal(fs.statSync(promFile).mode & 0o777, 0o644);
+      assert.equal(fs.statSync(stateFile).mode & 0o777, 0o600);
     }
   } finally {
     server.close();

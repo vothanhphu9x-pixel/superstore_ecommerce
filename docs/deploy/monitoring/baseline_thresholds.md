@@ -14,8 +14,8 @@ query khi so sánh các mốc; ghi ngày thay đổi cấu hình nếu phải đ
 | `T0 + 14 ngày` | 14 ngày; ≥95% số lượt, có số mẫu theo từng route | Chọn ngưỡng API từ baseline 14 ngày; rà lại giới hạn tài nguyên |
 | `T0 + 30 ngày` | 30 ngày; ≥95% số lượt, kiểm tra chu kỳ ngày/tuần | Thay baseline 14 ngày bằng 30 ngày; chốt ngưỡng và lịch rà soát |
 
-Với Newman mỗi phút, mỗi ngày dự kiến Public **1.440 lượt** và Staff Journey
-**1.440 lượt**. Nếu chọn Postman Cloud theo lịch §4 của
+Với Newman, mỗi ngày dự kiến Public **288 lượt** (mỗi 5 phút) và Staff Journey
+**1.440 lượt** (mỗi phút). Nếu chọn Postman Cloud theo lịch §4 của
 [Synthetic Baseline](synthetic_baseline.md), Staff Journey là **24 lượt/ngày**.
 Lượt thiếu hoặc fail không được tính là pass. Nếu chưa đủ dữ liệu ở một mốc, tiếp tục dùng ngưỡng
 của mốc trước và ghi lý do; không tự nâng ngưỡng để che lỗi. Các phép đo hiện
