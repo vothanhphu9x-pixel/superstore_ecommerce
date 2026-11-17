@@ -9,6 +9,8 @@ readonly WORK_ROOT="/var/lib/superstore-backup"
   exit 1
 }
 
+umask 077
+
 [[ -r "$BACKUP_ENV" ]] || {
   printf "Missing %s\n" "$BACKUP_ENV" >&2
   exit 1
@@ -148,9 +150,9 @@ docker exec "$api_container" \
   env STAFF_BACKUP_DESTINATION=/tmp/superstore-staff-backup.db \
   python -m scripts.backup_staff
 
-docker cp \
-  "$api_container:/tmp/superstore-staff-backup.db" \
-  "$stage_dir/data/staff/internal_users.db"
+docker exec "$api_container" \
+  cat /tmp/superstore-staff-backup.db \
+  > "$stage_dir/data/staff/internal_users.db"
 
 docker exec "$api_container" \
   rm -f /tmp/superstore-staff-backup.db

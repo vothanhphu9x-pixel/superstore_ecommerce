@@ -1,0 +1,17 @@
+$kind: http-request
+name: 200 Website health
+url: "{{frontend_origin}}/api/health"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      const expected = Number(pm.info.requestName.slice(0, 3));
+      pm.test("HTTP " + expected, () => pm.response.to.have.status(expected));
+
+      pm.test("Next.js reaches FastAPI", () => {
+        const body = pm.response.json();
+        pm.expect(body.status).to.eql("ok");
+        pm.expect(body.api).to.eql("up");
+      });
+    language: text/javascript
+order: 1868639822166816

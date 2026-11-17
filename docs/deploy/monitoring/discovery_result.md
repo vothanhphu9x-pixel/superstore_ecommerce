@@ -1,0 +1,119 @@
+# Monitoring — Discovery Result
+
+## 1. Quy ước và phạm vi
+
+| Trạng thái | Ý nghĩa                                               |
+| ---------- | ----------------------------------------------------- |
+| DONE       | Đã kiểm tra và có kết quả phù hợp                     |
+| VERIFY     | Có cấu hình hoặc dịch vụ nhưng chưa kiểm thử đầu cuối |
+| MISSING    | Chưa triển khai                                       |
+| BROKEN     | Đã kiểm tra và có lỗi                                 |
+
+**Phạm vi:** Phase 0 — audit production Monitoring; Phase 1–4 bổ sung checklist
+kiểm chứng. Kết quả Phase 0 dựa trên log VPS người vận hành cung cấp ngày
+**2026-11-14** và cấu hình trong repo. Kuma đang chạy, log Nginx và FastAPI đã
+được tìm thấy trong Loki, Alertmanager chưa cài. Đây là bằng chứng của lượt
+audit, không phải health check liên tục.
+
+## 2. Kết quả Phase 0
+
+| Thành phần         | Kết quả | Bằng chứng / giới hạn                                                                                                                        |
+| ------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| FastAPI metrics    | DONE    | `/metrics` có HTTP Counter và Histogram; middleware tạo nhãn method/route/status                                                             |
+| Prometheus         | DONE    | Bốn target `fastapi`, `redis`, `node`, `prometheus` đã trả `up=1` trong lượt kiểm tra                                                        |
+| Redis Exporter     | DONE    | Prometheus trả `redis_up=1`                                                                                                                  |
+| Node Exporter      | DONE    | Prometheus có `node_cpu_seconds_total`; truy vấn `count(...)` trả `16` chuỗi, không phải số CPU                                              |
+| FastAPI HTTP file  | DONE    | Request `GET /api/staff/me` trả `403`; `http.log` tăng từ 160160 lên 160441 byte, có dòng route `/staff/me` lúc 16:03:53 UTC ngày 2026-11-14 |
+| Alloy              | DONE    | Đã bắt đầu tail cả hai file; đường FastAPI → Loki được xác nhận bằng request mới                                                             |
+| Loki/MinIO         | DONE    | Loki upload index thành công; Grafana Explore có log Nginx                                                                                   |
+| Grafana datasource | DONE    | Truy vấn Prometheus `status=ok`; Explore Loki có log Nginx                                                                                   |
+| FastAPI → Loki     | DONE    | `http.log` có dòng mới và truy vấn `{service="fastapi"}` hiện log                                                                            |
+| Uptime Kuma        | DONE    | Người vận hành xác nhận container đang chạy; monitor public endpoint và lịch sử check chưa có bằng chứng lưu trong audit này                 |
+| Grafana SMTP       | VERIFY  | Đã sửa Compose và `grafana.env`; chưa có kết quả gửi email thử                                                                               |
+| Alert rules        | VERIFY  | Hai rule target/Redis đã thêm trong repo; chưa có bằng chứng Prometheus production nạp rule                                                |
+| Alertmanager       | MISSING | Người vận hành xác nhận chưa cài; chưa có đường gửi email từ Prometheus                                                                     |
+
+Trong release đã kiểm tra, Alloy đọc `http.log` và Nginx access log. Repo đã
+thêm `application.log` và Nginx error log cho release kế tiếp; Docker
+stdout/stderr vẫn xem trực tiếp bằng Compose.
+
+Postman Monitor có trong sơ đồ mục tiêu nhưng không thuộc checklist Phase 0;
+chưa có bằng chứng để kết luận trạng thái triển khai của dịch vụ bên ngoài này.
+
+## 3. Phase 1 — metrics
+
+| Kiểm tra                                  | Trạng thái | Bằng chứng hiện có / còn cần                                                                     |
+| ----------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------ |
+| Counter tăng sau request thật             | Done       | Đã thấy Counter trong `/metrics`; cần đo giá trị Prometheus trước/sau ba request `/api/staff/me` |
+| Nhãn `method`, `route`, `status`          | Done       | Code khai báo ba nhãn; cần đối chiếu nhãn thực tế với HTTP response và route mẫu                 |
+| Histogram `_count`, bucket `+Inf`, `_sum` | Done       | Code ghi duration bằng giây; cần đối chiếu giá trị thật và kiểm tra `_count` bằng bucket `+Inf`  |
+| VPS CPU/RAM/disk/network                  | Done       | Node Exporter trả chuỗi CPU; cần kiểm tra thêm RAM, disk, network và đơn vị                      |
+| Redis                                     | Done       | `redis_up=1` đã xác nhận kết nối; cần kiểm tra metric bộ nhớ Redis                               |
+
+Chưa có kết quả chạy các lệnh Phase 1 trên VPS trong lượt này. Điền số liệu,
+thời gian và trạng thái DONE/BROKEN sau khi chạy [Operation §1](operation.md).
+
+## 4. Phase 2 — logs
+
+| Kiểm tra                                                                 | Trạng thái | Bằng chứng hiện có / còn cần                                                                    |
+| ------------------------------------------------------------------------ | ---------- | ----------------------------------------------------------------------------------------------- |
+| Cùng `x-request-id` trong response, FastAPI `http.log`, Nginx access log | Done       | Hai file đã có log; cần đối chiếu cùng một request mới                                          |
+| Cùng ID trong Loki/Grafana                                               | Done       | Đã thấy log FastAPI và Nginx riêng lẻ; cần tìm cùng ID ở cả hai stream                          |
+| Alloy control 4 file                                                     | Done       | config.alloy add 4 file: http.log, application.log, superstore-access.log, superstore-error.log |
+
+Docker stdout/stderr **không ingest thêm**: API đã ghi log ra console và file;
+người vận hành xem bằng `compose.sh logs` để tránh bản sao trùng trong Loki.
+Giữ Phase 2 ở trạng thái VERIFY tới khi có kết quả [Operation §2](operation.md)
+trên VPS sau deploy.
+
+## 5. Phase 3 — thư viện PromQL và LogQL
+
+[Query Library](promql_logql_library.md) có truy vấn API rate/5xx/P95/P99,
+VPS, Redis, scrape target và log lỗi/5xx/timeout. Tên metric FastAPI được đối
+chiếu với `core/observability.py`; nhãn `log_type` khớp `config.alloy` mới.
+
+| Nhóm                        | Trạng thái | Cần kiểm chứng trên production                                                       |
+| --------------------------- | ---------- | ------------------------------------------------------------------------------------ |
+| API PromQL                  | Done       | Query trả `status=success`, rate tăng sau request; P95/P99 có giá trị và đơn vị giây |
+| VPS/Redis/Prometheus PromQL | Done       | Metric/nhãn thực tế khớp, nhất là `mountpoint="/"`; Redis và bốn target có dữ liệu   |
+| LogQL trên hai log hiện có  | Done       | Truy vấn hợp lệ; đối chiếu kết quả với log theo `request_id`                         |
+| LogQL `log_type` mới        | Done       | Chỉ kiểm chứng sau khi release chứa `config.alloy` mới đã chạy trên VPS              |
+
+Không dùng query Phase 3 cho dashboard hoặc alert trước khi chạy
+[Operation §3](operation.md) và ghi lại kết quả thật.
+
+## 6. Phase 4 — baseline, threshold và alert rules
+
+[Baseline & Thresholds](baseline_thresholds.md) quy định ba lần quyết định:
+**sau 1 ngày, 14 ngày và 30 ngày** kể từ `T0` (runner theo lịch pass từ login
+đến dashboard). Chưa có chuỗi số đo production được lưu để xác nhận ngưỡng
+5xx, P95, CPU, RAM, disk hoặc Redis memory.
+
+| Kiểm tra | Trạng thái | Cần xác nhận |
+| --- | --- | --- |
+| Hai URL public health | DONE | GET ngày 2026-11-15 10:27 UTC: API và website đều `200`, JSON đúng; đây là một lần kiểm tra, chưa phải baseline |
+| Uptime Kuma monitor cụ thể | VERIFY | Xác nhận lịch sử check và uptime ở cả ba mốc |
+| Newman runner + Grafana dashboard | VERIFY | Code và CI có trong repo; cần xác nhận timer, hai series `mode="timer"` và dashboard trên VPS |
+| Newman timer hoặc Postman Cloud Monitor | VERIFY | Chọn một runner; xác nhận lượt **theo lịch** login `200`, `/staff/me` `200`, dashboard pass; lượt chạy tay không đủ |
+| Baseline 1 ngày | VERIFY | Ghi `T0`, 24 giờ dữ liệu, số lượt thực và giới hạn tài nguyên tạm |
+| Baseline 14 ngày | VERIFY | Ghi độ phủ, số mẫu/route, P95, 5xx và ngưỡng cũ → mới |
+| Baseline 30 ngày | VERIFY | Xác nhận dữ liệu còn đủ trong Prometheus (`30d` hoặc `5GB`), chốt ngưỡng |
+| Ngưỡng 5xx/P95/tài nguyên | MISSING | Công thức và ngưỡng tạm đã chọn trong tài liệu; cần số đo thật, rule và xác nhận đã nạp |
+| Rule target/Redis | VERIFY | PR CI chạy `promtool check/test`; cần xác nhận Prometheus `/api/v1/rules` sau deploy |
+| Chuyển tiếp email | MISSING | Alertmanager và thử gửi ở Phase 7 |
+
+Không đánh dấu DONE chỉ vì rule tồn tại trong repo. Xem lệnh kiểm tra tại
+[Operation §4](operation.md).
+
+## 7. Việc kế tiếp
+
+1. Ghi bằng chứng Phase 1 trước/sau vào bảng trên nếu đã chạy trên VPS.
+2. Deploy cấu hình Alloy mới, đối chiếu request ID và hai nguồn log bổ sung.
+3. Kiểm chứng từng query Phase 3 trên Prometheus/Loki production.
+4. Đo baseline Phase 4 theo mốc 1 → 14 → 30 ngày, ghi lần thay ngưỡng và xác
+   nhận rule đã nạp; sau đó thêm rule 5xx/P95/tài nguyên. Phase 7 mới thêm Alertmanager và thử gửi cảnh báo.
+   Thử email Grafana trước khi đánh dấu SMTP **DONE**.
+5. Xác minh lịch sử check public endpoint của Kuma và runner collection đã chọn khi có
+   quyền truy cập hai giao diện đó.
+
+Đường dữ liệu và phạm vi thực tế: [System Architecture & Lineage](system_architecture_lineage.md).

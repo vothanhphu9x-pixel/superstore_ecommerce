@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Superstore staff journey every minute
+
+[Timer]
+OnCalendar=minutely
+Persistent=true
+Unit=superstore-newman@staff.service
+
+[Install]
+WantedBy=timers.target

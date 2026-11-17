@@ -1,0 +1,45 @@
+$kind: http-request
+name: 200 Website Dashboard/kpi
+url: "{{frontend_origin}}/api/internal/dashboard/kpi?month_from={{month_from}}&month_to={{month_to}}"
+method: GET
+headers:
+  Origin: "{{frontend_origin}}"
+  Content-Type: application/json
+  "": ""
+queryParams:
+  month_from: "{{month_from}}"
+  month_to: "{{month_to}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      const expected = Number(pm.info.requestName.slice(0, 3));
+      pm.test("HTTP " + expected, () => pm.response.to.have.status(expected));
+
+      const fields = {
+        kpi: ["REVENUE", "GROSS_PROFIT", "ORDERS", "AVG_ORDER_VALUE", "MARGIN_PCT"],
+        "revenue-trend": ["MONTH_DATE_KEY", "REVENUE", "COGS", "GROSS_PROFIT"],
+        "by-category": ["CATEGORY", "REVENUE", "GROSS_PROFIT"],
+        "by-region": ["REGION", "REVENUE", "GROSS_PROFIT"],
+        "top-products": [
+          "PRODUCT_ID",
+          "PRODUCT_NAME",
+          "CATEGORY",
+          "REVENUE",
+          "GROSS_PROFIT",
+          "QUANTITY",
+        ],
+      };
+      pm.test("Metric contract and populated data", () => {
+        pm.response.to.have.status(200);
+        const body = pm.response.json();
+        const required = fields[body.metric];
+        pm.expect(required).to.be.an("array");
+        const rows = Array.isArray(body.data) ? body.data : [body.data];
+        pm.expect(body.row_count).to.eql(rows.length);
+        pm.expect(rows.length).to.be.greaterThan(0);
+        rows.forEach((row) =>
+          required.forEach((key) => pm.expect(row).to.have.property(key)),
+        );
+      });
+    language: text/javascript
+order: 5000

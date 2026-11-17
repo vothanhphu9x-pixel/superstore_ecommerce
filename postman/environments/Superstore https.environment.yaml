@@ -4,7 +4,15 @@ values:
     value: 'https://superstore.gymtech.id.vn'
   - key: BACKEND_ORIGIN
     value: 'https://api.gymtech.id.vn'
+  - key: frontend_origin
+    value: 'https://superstore.gymtech.id.vn'
+  - key: api_origin
+    value: 'https://api.gymtech.id.vn'
   - key: month_from
     value: '20230101'
   - key: month_to
     value: '20271201'
+  - key: monitor_email_cfo
+    value: cfo@gmail.com
+  - key: monitor_email_sales
+    value: sales@gmail.com

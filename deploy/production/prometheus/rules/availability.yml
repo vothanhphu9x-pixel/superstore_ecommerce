@@ -1,0 +1,20 @@
+groups:
+  - name: superstore-availability
+    rules:
+      - alert: SuperstoreScrapeTargetDown
+        expr: up{job=~"fastapi|redis|node|prometheus"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus cannot scrape {{ $labels.job }}"
+          description: "Target {{ $labels.instance }} has been unreachable for at least 2 minutes."
+
+      - alert: SuperstoreRedisUnavailable
+        expr: redis_up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis exporter cannot reach Redis"
+          description: "Redis is unavailable from {{ $labels.instance }} for at least 2 minutes."

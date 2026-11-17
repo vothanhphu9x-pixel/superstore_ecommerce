@@ -1,0 +1,93 @@
+{
+  "id": null,
+  "uid": "superstore-newman",
+  "title": "Superstore — Newman synthetic checks",
+  "tags": ["superstore", "synthetic", "newman"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-24h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Latest run: Public / Staff (1=pass)",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "newman_last_run_success{mode=\"timer\"}", "legendFormat": "{{collection}}", "refId": "A", "instant": true }],
+      "fieldConfig": { "defaults": { "min": 0, "max": 1, "mappings": [{ "type": "value", "options": { "0": { "text": "FAIL", "color": "red" }, "1": { "text": "PASS", "color": "green" } } }] }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "colorMode": "background", "graphMode": "none", "justifyMode": "auto" }
+    },
+    {
+      "id": 2,
+      "title": "Seconds since last run",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "time() - newman_last_run_timestamp_seconds{mode=\"timer\"}", "legendFormat": "{{collection}}", "refId": "A", "instant": true }],
+      "fieldConfig": { "defaults": { "unit": "s", "min": 0 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "colorMode": "value", "graphMode": "none", "justifyMode": "auto" }
+    },
+    {
+      "id": 3,
+      "title": "Failed runs — last 24 hours",
+      "type": "stat",
+      "gridPos": { "x": 6, "y": 5, "w": 6, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "increase(newman_runs_failed_total{mode=\"timer\"}[24h])", "legendFormat": "{{collection}}", "refId": "A", "instant": true }],
+      "fieldConfig": { "defaults": { "decimals": 0, "min": 0 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "colorMode": "value", "graphMode": "none", "justifyMode": "auto" }
+    },
+    {
+      "id": 4,
+      "title": "Success rate — last 14 days",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 5, "w": 6, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "100 * (increase(newman_runs_total{mode=\"timer\"}[14d]) - increase(newman_runs_failed_total{mode=\"timer\"}[14d])) / increase(newman_runs_total{mode=\"timer\"}[14d])", "legendFormat": "{{collection}}", "refId": "A", "instant": true }],
+      "fieldConfig": { "defaults": { "unit": "percent", "decimals": 1, "min": 0, "max": 100 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "colorMode": "value", "graphMode": "none", "justifyMode": "auto" }
+    },
+    {
+      "id": 5,
+      "title": "Success rate — last 30 days",
+      "type": "stat",
+      "gridPos": { "x": 18, "y": 5, "w": 6, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "100 * (increase(newman_runs_total{mode=\"timer\"}[30d]) - increase(newman_runs_failed_total{mode=\"timer\"}[30d])) / increase(newman_runs_total{mode=\"timer\"}[30d])", "legendFormat": "{{collection}}", "refId": "A", "instant": true }],
+      "fieldConfig": { "defaults": { "unit": "percent", "decimals": 1, "min": 0, "max": 100 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "colorMode": "value", "graphMode": "none", "justifyMode": "auto" }
+    },
+    {
+      "id": 8,
+      "title": "Success rate — last 24 hours",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 5, "w": 6, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "100 * (increase(newman_runs_total{mode=\"timer\"}[24h]) - increase(newman_runs_failed_total{mode=\"timer\"}[24h])) / increase(newman_runs_total{mode=\"timer\"}[24h])", "legendFormat": "{{collection}}", "refId": "A", "instant": true }],
+      "fieldConfig": { "defaults": { "unit": "percent", "decimals": 1, "min": 0, "max": 100 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "colorMode": "value", "graphMode": "none", "justifyMode": "auto" }
+    },
+    {
+      "id": 6,
+      "title": "Collection run duration",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 10, "w": 24, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "newman_last_run_duration_seconds{mode=\"timer\"}", "legendFormat": "{{collection}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "s", "min": 0 }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "id": 7,
+      "title": "Latest HTTP status by request",
+      "type": "table",
+      "gridPos": { "x": 0, "y": 18, "w": 24, "h": 10 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "newman_request_last_http_status{mode=\"timer\"}", "format": "table", "refId": "A", "instant": true }],
+      "fieldConfig": { "defaults": { "decimals": 0 }, "overrides": [] },
+      "options": { "showHeader": true }
+    }
+  ]
+}

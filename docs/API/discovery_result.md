@@ -1,51 +1,53 @@
 # API — Discovery Result
 
-## 1. Phạm vi
+## Trạng thái
 
-- FastAPI cung cấp dashboard analytics nội bộ; dữ liệu chỉ đọc từ Snowflake.
-- Staff đăng nhập bằng SQLite-backed account; session là cookie `HttpOnly`.
-- Redis dùng cho login rate limit và metric cache.
-- Tài liệu này ghi nhận code được đọc ngày 2026-10-27; các lệnh kiểm tra chưa được chạy lại trong lượt rà soát này.
+- **Verified:** đã chạy và có bằng chứng.
+- **Failed:** đã chạy nhưng không đạt.
+- **Blocked:** chưa thể chạy do thiếu dịch vụ, quyền hoặc kết nối.
+- **Not Run:** chưa có kết quả thực tế; đọc code không được tính là pass.
 
-## 2. API hiện có
+## Thông tin lần kiểm tra
 
-| Route | Mục đích | Bảo vệ |
-|---|---|---|
-| `GET /health/live` | Liveness cơ bản của FastAPI | Không yêu cầu key |
-| `GET /health/ready`, `GET /health` | Kiểm tra Snowflake và Redis | Không yêu cầu key |
-| `GET /api/health/live` | Probe nhẹ, trả `status` và `release` | Không yêu cầu key |
-| `GET /api/health/ready` | Kiểm tra staff SQLite và Redis | Không yêu cầu key; nội bộ trên production |
-| `GET /api/dashboard` | Metric được staff hiện tại xem được + contract | API key + staff cookie |
-| `GET /api/dashboard/{metric}` | Đọc một metric theo tháng | API key + staff cookie + RBAC |
-| `POST /api/staff/login` | Xác thực staff, đặt cookie session | API key |
-| `GET /api/staff/me` | Đọc profile/session hiện tại | API key + staff cookie |
-| `POST /api/staff/logout` | Xóa cookie session | API key |
-| `GET /metrics` | Prometheus counters/histogram | Không nằm trong OpenAPI; production không public |
+- Ngày cập nhật: **2026-11-14**; môi trường: Mac local.
+- Phạm vi: FastAPI, staff authentication/RBAC, dashboard, Redis và Snowflake.
+- Kết luận: **17 test độc lập đạt**; bộ pytest đầy đủ chưa đạt vì các ca login trả `503` khi Redis local không khả dụng. Chưa kiểm tra Snowflake thật trong lượt này.
 
-Metric hiện được khai báo: `kpi`, `revenue-trend`, `by-category`, `by-region`, `top-products`.
-Nguồn chính là Gold `fact_sales`, `dim_product` và Mart `mart_revenue_monthly`.
+## Thành phần cần kiểm soát
 
-## 3. Trách nhiệm và giới hạn
+```text
+Browser/Next BFF → API key → staff cookie + RBAC → dashboard
+                                                 ├─ Redis: rate limit/cache
+                                                 └─ Snowflake: Gold/Mart, chỉ đọc
+```
 
-- `api/routers/`: endpoint, xác thực route và response.
-- `api/services/`: kiểm tra month key.
-- `api/schemas/`: request/response Pydantic.
-- `analytics/`: kết nối Snowflake, SQL, relation allowlist và metric contract.
-- `core/`: config, API key, staff session/RBAC, Redis cache/rate limit, client IP và logging.
-- `scripts/manage_staff.py`: CLI quản lý account; SQLite nằm trong `data/` local hoặc mount `/app/data` trong container.
+Route chính: `/api/staff/login|me|logout`, `/api/dashboard`, `/api/dashboard/{metric}`. `/health/live` kiểm tra tiến trình; `/health/ready` kiểm tra Snowflake/Redis; `/api/health/ready` kiểm tra staff store/Redis. `/metrics` phục vụ Prometheus, không public qua Nginx production.
 
-`API_KEY` xác thực client nội bộ/BFF; `STAFF_JWT_SECRET` ký session staff. Hai secret này
-không thay thế nhau. API key thiếu hoặc placeholder khiến protected route trả `503`;
-key gửi sai trả `403`. Cookie thiếu/sai trả `401`; role không được phép trả `403`.
+`API_KEY` xác thực BFF; `STAFF_JWT_SECRET` ký staff session. Hai secret có chức năng khác nhau. SQLite staff nằm trong `RAG_CHATBOT/data/` khi chạy local hoặc mount `/app/data` trong container.
 
-## 4. Tình trạng xác minh
+Năm metric hiện có: `kpi`, `revenue-trend`, `by-category`, `by-region`, `top-products`. Query đọc Gold `fact_sales`/`dim_product` và Mart `mart_revenue_monthly`; response phải qua data contract trước khi trả về.
 
-| Hạng mục | Trạng thái trong lượt rà soát |
-|---|---|
-| Route, config, query và contract | Đã đối chiếu code |
-| Unit/API tests | Chưa chạy lại |
-| Docker/Compose runtime | Chưa kiểm tra |
-| Kết nối Snowflake thật | Chưa kiểm tra |
+## Checklist kết quả
 
-Không xem kết quả cũ trong tài liệu là bằng chứng cho code hiện tại. Hướng dẫn chạy:
-[operation.md](operation.md). Kiến trúc: [system_architecture_lineage.md](system_architecture_lineage.md).
+| Gate | Kỳ vọng | Kết quả | Bằng chứng / lần chạy |
+|---|---|---|---|
+| API-01 — Auth core | Hash, session và RBAC unit tests đạt | Verified | `pytest` nhóm auth core/contracts/validation/observability: **17 passed**, 2026-11-14 |
+| API-02 — Toàn bộ pytest | Mọi test Auth, Dashboard, Integration, Operations đạt | Failed | **25 passed, 13 failed**; login trả `503` khi Redis local không chạy, 2026-11-14 |
+| API-03 — Redis | Rate limit dùng Redis và login trả trạng thái mong đợi | Blocked | Docker daemon local không kết nối được; cần bật Redis rồi chạy lại API-02 |
+| API-04 — Snowflake | Readiness và dashboard đọc được dữ liệu thật bằng role chỉ đọc | Not Run | Chưa thử kết nối/query trong lượt này |
+| API-05 — Docker runtime | Container API lên và `/api/health/live` trả `200` | Blocked | Docker daemon local không khả dụng |
+| API-06 — Production auth | Login, cookie, RBAC và KPI qua public BFF đạt | Not Run | Cần production smoke run mới; xem [Deploy Discovery](../deploy/discovery_result.md) |
+
+Khi chạy lại, ghi ngày, kết quả và bằng chứng mới cho từng gate. Test chạy với SQLite tạm/mock Snowflake **không chứng minh** Snowflake production hoạt động.
+
+## Tiêu chí hoàn tất
+
+- [x] Unit tests độc lập với Redis/Snowflake đạt.
+- [ ] Khởi động Redis, chạy lại toàn bộ backend pytest và đạt.
+- [ ] Xác minh readiness/query Snowflake ở môi trường đã cấu hình.
+- [ ] Xác minh API production bằng smoke run mới.
+
+## Tài liệu liên quan
+
+- Lệnh chạy: [API Operations](operation.md) và [Test Operations](../tests/operation.md).
+- Luồng hệ thống: [API Architecture](system_architecture_lineage.md).

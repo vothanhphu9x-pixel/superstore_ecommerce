@@ -1,0 +1,11 @@
+$kind: http-request
+name: 404 Public metric
+url: "{{api_origin}}/metrics"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      const expected = Number(pm.info.requestName.slice(0, 3));
+      pm.test("HTTP " + expected, () => pm.response.to.have.status(expected));
+    language: text/javascript
+order: 4471698382866645

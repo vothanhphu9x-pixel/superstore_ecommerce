@@ -1,0 +1,18 @@
+$kind: http-request
+name: 200 Cached Website Dashboard/kpi
+url: "{{frontend_origin}}/api/internal/dashboard/kpi?month_from={{month_from}}&month_to={{month_to}}"
+method: GET
+headers:
+  Origin: "{{frontend_origin}}"
+  Content-Type: application/json
+queryParams:
+  month_from: "{{month_from}}"
+  month_to: "{{month_to}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("KPI cached in Redis", () => {
+        pm.expect(pm.response.json().cached).to.eql(true);
+      });
+    language: text/javascript
+order: 10000

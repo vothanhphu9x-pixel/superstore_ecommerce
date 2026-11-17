@@ -51,9 +51,30 @@ Các bước chạy test không đặt ở đây; xem [Test Operations](../tests
 ## 3. Kết nối Snowflake
 
 API dùng user riêng `SUPERSTORE_API_USER` với role chỉ đọc `ANALYTICS_READONLY`.
-Tạo/cấp role một lần bằng script `data_platform/setup/02_snowflake_role.sql` dưới
-`ACCOUNTADMIN`; không dùng `ACCOUNTADMIN`, loader role hay dbt role để chạy API hằng ngày.
-Sau đó cấu hình trong `RAG_CHATBOT/.env`:
+Sau khi chạy `data_platform/setup/01_snowflake_init.sql`, từ root repository chạy
+script 02 một lần bằng tài khoản quản trị Snowflake:
+
+```bash
+snowsql \
+  -a <ACCOUNT_IDENTIFIER> \
+  -u <ADMIN_USER> \
+  -r ACCOUNTADMIN \
+  -f data_platform/setup/02_snowflake_role.sql
+```
+
+Script tạo API user và role chỉ đọc, rồi cấp quyền truy vấn Gold/Mart; script không
+đặt mật khẩu. Trong SnowSQL hoặc Snowsight, đặt mật khẩu và kiểm tra quyền:
+
+```sql
+USE ROLE ACCOUNTADMIN;
+ALTER USER SUPERSTORE_API_USER
+    SET PASSWORD = '<STRONG_PASSWORD>'
+        DEFAULT_ROLE = ANALYTICS_READONLY
+        MUST_CHANGE_PASSWORD = FALSE;
+SHOW GRANTS TO USER SUPERSTORE_API_USER;
+```
+
+Sau đó cấu hình cùng mật khẩu trong `RAG_CHATBOT/.env`:
 
 ```dotenv
 SNOWFLAKE_ACCOUNT=...
@@ -66,19 +87,9 @@ SNOWFLAKE_GOLD_SCHEMA=ANALYTIC_LAYER_GOLD_LAYER
 SNOWFLAKE_MART_SCHEMA=ANALYTIC_LAYER_MART_LAYER
 ```
 
-Kiểm tra quyền và đặt mật khẩu trong SnowSQL/Snowsight, không nhập câu SQL ở shell:
-
-```sql
-USE ROLE ACCOUNTADMIN;
-SHOW GRANTS TO USER SUPERSTORE_API_USER;
-ALTER USER SUPERSTORE_API_USER
-    SET PASSWORD = '<STRONG_PASSWORD>'
-        DEFAULT_ROLE = ANALYTICS_READONLY
-        MUST_CHANGE_PASSWORD = FALSE;
-```
-
-Không ghi password vào command history, Git hoặc log. Nếu đổi tên user, cập nhật cả
-script setup và `SNOWFLAKE_USER`.
+Không nhập câu SQL vào shell hoặc lưu mật khẩu trong Git/log. Nếu đổi tên user, cập
+nhật cả script setup và `SNOWFLAKE_USER`. API hằng ngày dùng role
+`ANALYTICS_READONLY`, không dùng `ACCOUNTADMIN`, loader role hay dbt role.
 
 ## 4. Quản lý staff
 

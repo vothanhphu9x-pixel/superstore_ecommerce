@@ -6,6 +6,8 @@ set -Eeuo pipefail
   exit 1
 }
 
+umask 077
+
 : "${SUPERSTORE_BACKUP_BUCKET:?Set SUPERSTORE_BACKUP_BUCKET}"
 : "${AGE_IDENTITY_FILE:?Set AGE_IDENTITY_FILE}"
 

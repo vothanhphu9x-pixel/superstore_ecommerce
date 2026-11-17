@@ -59,9 +59,12 @@ khi source trong release thay đổi.
 ## 3. Restore kiểm tra
 
 ```text
-Máy khôi phục riêng
+Máy Mac — /Users/macos/Desktop/Superstore_ecommerce/ (Git ignore)
+├── .config/superstore/superstore-backup.agekey   Private key giải mã
+└── superstore-restore-drill/restore-*/           Staff DB + cấu hình đã giải mã
+
 S3 object + .sha256 → so checksum → age private key giải mã
-  → giải nén vào thư mục restore mới → SQLite integrity_check
+  → giải nén vào restore-* → SQLite integrity_check
   → operator kiểm tra artifact; không tự ghi đè production
 ```
 
@@ -73,4 +76,5 @@ Trên máy khôi phục, `download-*` bị xóa khi kết thúc, còn `restore-*
 
 Backup này không chứa Snowflake, dữ liệu MinIO/Redis, logs, certificate, toàn bộ release
 source hoặc Docker image. Xem [kiến trúc deploy](../system_architecture_lineage.md)
-để thấy vị trí backup trong production.
+để thấy vị trí backup trong production. Trạng thái từng bước và bằng chứng:
+[Backup Discovery Result](discovery_result.md).
