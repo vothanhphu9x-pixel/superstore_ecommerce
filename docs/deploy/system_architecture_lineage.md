@@ -61,6 +61,9 @@ public, Redis không public. Public readiness, docs, OpenAPI và Prometheus metr
 ├── backup.env                           [GIỮ — AWS credential + age recipient; không vào archive]
 ├── images.source.env                    [tham chiếu image nguồn]
 ├── images.lock.env                      [digest images đã pin]
+├── alertmanager/
+│   ├── config.yml                       [route/receiver; container đọc read-only]
+│   └── smtp_password                    [SMTP app password; container đọc read-only]
 └── snowflake/                           [secret mount read-only]
 
 /etc/sudoers.d/
@@ -70,6 +73,7 @@ public, Redis không public. Public readiness, docs, OpenAPI và Prometheus metr
 ├── releases/<COMMIT_SHA>/               [release immutable theo commit]
 │   ├── deploy/production/               [Compose/scripts/templates]
 │   │   ├── backup/                      [source backup/restore + install.sh]
+│   │   ├── alertmanager/                [config mẫu; service nằm trong Compose chung]
 │   │   └── newman/                      [runner, Dockerfile, timer, install.sh]
 │   ├── postman/                          [collection YAML cho public/staff]
 │   ├── images.lock.env                  [copy từ /etc nếu chưa có]
@@ -111,6 +115,8 @@ API container /tmp/superstore-staff-backup.db [TẠM — xóa sau khi sao chép]
 /var/www/certbot/.well-known/acme-challenge/ [TẠM — challenge file khi xác minh]
 /var/log/nginx/superstore-access.log      [GIỮ/rotate — Nginx access log]
 /var/log/nginx/superstore-error.log       [GIỮ/rotate — Nginx error log]
+
+Docker volume alertmanager_data            [GIỮ — trạng thái Alertmanager]
 
 /home/deploy/.ssh/                         [GIỮ — quyền SSH vào VPS]
 └── authorized_keys                        [public key tương ứng với VPS_SSH_KEY]

@@ -14,9 +14,9 @@ flowchart LR
     F --> NE[Node Exporter: VPS + synthetic]
     NE --> P
     RE[Redis Exporter: Redis] --> P
-    P --> G[Grafana Explore]
+    P --> G[Grafana: DevOps, Dev, Newman dashboards]
     P -. sau deploy: Phase 4 .-> AR[Alert rules: scrape và Redis]
-    AR -. Phase 7 .-> AM[Alertmanager: chưa cài]
+    AR -. Phase 7: triển khai và thử email .-> AM[Alertmanager: cùng Compose production]
 
     AH[FastAPI http.log] --> A[Alloy]
     NG[Nginx access log] --> A
@@ -39,13 +39,18 @@ flowchart LR
 
 Prometheus còn scrape chính nó. `prometheus.yml` khai báo bốn job: `fastapi`,
 `redis`, `node`, `prometheus`. Grafana có hai datasource Prometheus và Loki;
-repo đã có dashboard Newman trong mã nguồn; cần deploy, chạy timer và xác nhận
-dữ liệu thật trên Grafana.
+Newman dashboard được provision từ repo, hai dashboard DevOps/Dev có bản export
+trong `docs` và được quản lý trong Grafana.
 
 Phase 3 có [thư viện PromQL/LogQL](promql_logql_library.md) để dùng lại cho
 dashboard và alert. Query chỉ được xác nhận sau khi chạy trên production theo
 [Operation §3](operation.md). Phase 4 đã chuẩn bị rule cho target/Redis;
-[Baseline & Thresholds](baseline_thresholds.md) ghi những ngưỡng còn cần đo.
+[Threshold, SLI/SLO](threshold_sli_slo.md) ghi những ngưỡng còn cần đo.
+Phase 5 dùng hai dashboard theo vai trò DevOps/Dev và dashboard Newman. Phase 6
+xác định [SLI/SLO và error budget](threshold_sli_slo.md); chưa chốt target
+30 ngày hoặc dựng SLO dashboard. Phase 7 chuẩn bị
+Alert Delivery trong [Operation §7](operation.md); luồng email
+chưa được kiểm chứng trên VPS.
 
 ## 2. Dữ liệu được thu thập
 
@@ -78,9 +83,9 @@ sau `retention_delete_delay: 2h`; không đặt thêm lifecycle xóa toàn bucke
 | Thành phần                           | Trạng thái hiện biết                                                         |
 | ------------------------------------ | ---------------------------------------------------------------------------- |
 | Prometheus alert rules               | Có hai rule trong repo; cần deploy và xác nhận Prometheus đã nạp              |
-| Alertmanager                         | Chưa có trong production stack; chưa có đường gửi email từ Prometheus        |
+| Alertmanager                         | Nằm trong Compose production; chưa có bằng chứng đã chạy/gửi email trên VPS   |
 | Grafana SMTP                         | Đã sửa cách nạp biến từ `grafana.env`; cần gửi email thử để xác nhận         |
-| Newman synthetic timer               | Có code, CI và dashboard trong repo; cần cài timer và kiểm chứng trên VPS   |
+| Newman synthetic timer               | Public/staff timer đã chạy PASS ngày 2026-11-17; cần theo dõi lần chạy mới  |
 | Postman Cloud Monitor                | Tùy chọn thay Newman; không bật song song nếu muốn tránh traffic trùng      |
 | Uptime Kuma monitor cụ thể           | Kuma đang chạy; cấu hình và lịch sử check public endpoint cần xác minh riêng |
 
@@ -89,15 +94,16 @@ sau `retention_delete_delay: 2h`; không đặt thêm lifecycle xóa toàn bucke
 | File                                                                | Vai trò                                               |
 | ------------------------------------------------------------------- | ----------------------------------------------------- |
 | `deploy/production/compose.yml`, `prometheus.yml`                   | Container, network, scrape targets, retention metrics |
+| `deploy/production/alertmanager/config.yml.example`                | Config mẫu; Compose và image pin ở production chung  |
 | `deploy/production/prometheus/rules/availability.yml`              | Rule phát hiện target/Redis không sẵn sàng              |
 | `deploy/production/config.alloy`, `loki.yml`                        | Chọn bốn file log sau deploy; chuyển tiếp và lưu log  |
 | `deploy/production/grafana/provisioning/datasources/superstore.yml` | Khai báo datasource Prometheus/Loki                   |
 | `deploy/production/newman/`, `grafana/dashboards/`                  | Chạy collection theo lịch và hiển thị synthetic       |
 | [PromQL & LogQL Query Library](promql_logql_library.md)            | Truy vấn Phase 3; chờ xác minh trên production        |
-| [Baseline & Thresholds](baseline_thresholds.md)                    | Phép đo và ngưỡng cần chốt ở Phase 4                  |
+| [Threshold, SLI/SLO và Error Budget](threshold_sli_slo.md)          | Ngưỡng Phase 4, phạm vi SLI và công thức SLO Phase 6 |
 | [Synthetic Baseline](synthetic_baseline.md)                         | Tạo Postman/Kuma monitor và đo public health         |
 | `deploy/kuma/docker-compose.yml`                                    | Uptime Kuma ở stack riêng                             |
-| [Operation](operation.md)                                           | Lệnh kiểm tra Phase 0–4 và kết quả mong đợi            |
+| [Operation](operation.md)                                           | Lệnh kiểm tra Phase 0–7 và kết quả mong đợi            |
 | [Discovery Result](discovery_result.md)                             | Bằng chứng, trạng thái DONE/VERIFY/MISSING/BROKEN     |
 
 Không dùng HTTP metrics để suy ra doanh thu hoặc số đơn hàng; các chỉ số kinh

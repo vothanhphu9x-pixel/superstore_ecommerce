@@ -25,7 +25,6 @@ release.env
 # Production secrets
 deploy/production/*.env
 deploy/production/newman/newman.env
-!deploy/production/images.sources.env
 !deploy/production/*.env.example
 
 # Private keys

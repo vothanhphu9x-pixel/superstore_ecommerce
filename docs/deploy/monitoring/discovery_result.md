@@ -9,7 +9,7 @@
 | MISSING    | Chưa triển khai                                       |
 | BROKEN     | Đã kiểm tra và có lỗi                                 |
 
-**Phạm vi:** Phase 0 — audit production Monitoring; Phase 1–4 bổ sung checklist
+**Phạm vi:** Phase 0 — audit production Monitoring; Phase 1–7 bổ sung checklist
 kiểm chứng. Kết quả Phase 0 dựa trên log VPS người vận hành cung cấp ngày
 **2026-11-14** và cấu hình trong repo. Kuma đang chạy, log Nginx và FastAPI đã
 được tìm thấy trong Loki, Alertmanager chưa cài. Đây là bằng chứng của lượt
@@ -30,8 +30,8 @@ audit, không phải health check liên tục.
 | FastAPI → Loki     | DONE    | `http.log` có dòng mới và truy vấn `{service="fastapi"}` hiện log                                                                            |
 | Uptime Kuma        | DONE    | Người vận hành xác nhận container đang chạy; monitor public endpoint và lịch sử check chưa có bằng chứng lưu trong audit này                 |
 | Grafana SMTP       | VERIFY  | Đã sửa Compose và `grafana.env`; chưa có kết quả gửi email thử                                                                               |
-| Alert rules        | VERIFY  | Hai rule target/Redis đã thêm trong repo; chưa có bằng chứng Prometheus production nạp rule                                                |
-| Alertmanager       | MISSING | Người vận hành xác nhận chưa cài; chưa có đường gửi email từ Prometheus                                                                     |
+| Alert rules        | VERIFY  | Hai rule target/Redis đã thêm trong repo; chưa có bằng chứng Prometheus production nạp rule                                                  |
+| Alertmanager       | MISSING | Trong audit 14/11 chưa cài; repo hiện có Compose/config mẫu, chưa có bằng chứng chạy hoặc gửi email trên VPS                                 |
 
 Trong release đã kiểm tra, Alloy đọc `http.log` và Nginx access log. Repo đã
 thêm `application.log` và Nginx error log cho release kế tiếp; Docker
@@ -84,28 +84,61 @@ Không dùng query Phase 3 cho dashboard hoặc alert trước khi chạy
 
 ## 6. Phase 4 — baseline, threshold và alert rules
 
-[Baseline & Thresholds](baseline_thresholds.md) quy định ba lần quyết định:
+[Threshold, SLI/SLO](threshold_sli_slo.md) quy định ba lần quyết định:
 **sau 1 ngày, 14 ngày và 30 ngày** kể từ `T0` (runner theo lịch pass từ login
 đến dashboard). Chưa có chuỗi số đo production được lưu để xác nhận ngưỡng
 5xx, P95, CPU, RAM, disk hoặc Redis memory.
 
-| Kiểm tra | Trạng thái | Cần xác nhận |
-| --- | --- | --- |
-| Hai URL public health | DONE | GET ngày 2026-11-15 10:27 UTC: API và website đều `200`, JSON đúng; đây là một lần kiểm tra, chưa phải baseline |
-| Uptime Kuma monitor cụ thể | VERIFY | Xác nhận lịch sử check và uptime ở cả ba mốc |
-| Newman runner + Grafana dashboard | VERIFY | Code và CI có trong repo; cần xác nhận timer, hai series `mode="timer"` và dashboard trên VPS |
-| Newman timer hoặc Postman Cloud Monitor | VERIFY | Chọn một runner; xác nhận lượt **theo lịch** login `200`, `/staff/me` `200`, dashboard pass; lượt chạy tay không đủ |
-| Baseline 1 ngày | VERIFY | Ghi `T0`, 24 giờ dữ liệu, số lượt thực và giới hạn tài nguyên tạm |
-| Baseline 14 ngày | VERIFY | Ghi độ phủ, số mẫu/route, P95, 5xx và ngưỡng cũ → mới |
-| Baseline 30 ngày | VERIFY | Xác nhận dữ liệu còn đủ trong Prometheus (`30d` hoặc `5GB`), chốt ngưỡng |
-| Ngưỡng 5xx/P95/tài nguyên | MISSING | Công thức và ngưỡng tạm đã chọn trong tài liệu; cần số đo thật, rule và xác nhận đã nạp |
-| Rule target/Redis | VERIFY | PR CI chạy `promtool check/test`; cần xác nhận Prometheus `/api/v1/rules` sau deploy |
-| Chuyển tiếp email | MISSING | Alertmanager và thử gửi ở Phase 7 |
+| Kiểm tra                          | Trạng thái | Cần xác nhận                                                                                                        |
+| --------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------- |
+| Hai URL public health             | DONE       | GET ngày 2026-11-15 10:27 UTC: API và website đều `200`, JSON đúng; đây là một lần kiểm tra, chưa phải baseline     |
+| Uptime Kuma monitor cụ thể        | Done       | Xác nhận lịch sử check và uptime ở cả ba mốc                                                                        |
+| Newman runner + Grafana dashboard | DONE       | Hai service chạy PASS ngày 2026-11-17; bản export dashboard có trong `docs`, cần theo dõi dữ liệu mới               |
+| Newman timer hoặc Postman         | Done       | Chọn một runner; xác nhận lượt **theo lịch** login `200`, `/staff/me` `200`, dashboard pass; lượt chạy tay không đủ |
+| Baseline 1 ngày                   | Done       | Ghi `T0`, 24 giờ dữ liệu, số lượt thực và giới hạn tài nguyên tạm                                                   |
+| Baseline 14 ngày                  | VERIFY     | Ghi độ phủ, số mẫu/route, P95, 5xx và ngưỡng cũ → mới                                                               |
+| Baseline 30 ngày                  | VERIFY     | Xác nhận dữ liệu còn đủ trong Prometheus (`30d` hoặc `5GB`), chốt ngưỡng                                            |
+| Dashboard: Devops & Dev           | Done       | Monitoring data                                                                                                     |
+| Ngưỡng 5xx/P95/tài nguyên         | Done       | Công thức và ngưỡng tạm đã chọn trong tài liệu; cần số đo thật, rule và xác nhận đã nạp                             |
+| Rule target/Redis                 | Done       | PR CI chạy `promtool check/test`; cần xác nhận Prometheus `/api/v1/rules` sau deploy                                |
+| Chuyển tiếp email                 | MISSING    | Alertmanager và thử gửi ở Phase 7                                                                                   |
 
 Không đánh dấu DONE chỉ vì rule tồn tại trong repo. Xem lệnh kiểm tra tại
 [Operation §4](operation.md).
 
-## 7. Việc kế tiếp
+## 7. Phase 5 — dashboard theo vai trò
+
+| Kiểm tra                         | Trạng thái | Bằng chứng / việc còn lại                                                                |
+| -------------------------------- | ---------- | ---------------------------------------------------------------------------------------- |
+| DevOps Operations                | DONE       | Đã có bản export JSON; kiểm tra URL/panel trên Grafana theo [Operation §5](operation.md) |
+| Dev Troubleshooting              | DONE       | Đã có bản export JSON; đối chiếu log mới và `request_id` trên production                 |
+| Newman Synthetic                 | DONE       | JSON được provision từ release; kiểm tra hai series `mode="timer"` và freshness          |
+| Đồng bộ export với bản đang chạy | VERIFY     | Export lại sau mỗi lần sửa dashboard trong Grafana                                       |
+
+Hai dashboard DevOps/Dev hiện là công cụ vận hành; không phải SLO dashboard.
+
+## 8. Phase 6 — SLI, SLO và error budget
+
+| Kiểm tra                                     | Trạng thái | Bằng chứng / việc còn lại                                                                |
+| -------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------- |
+| Định nghĩa API, latency và Staff Journey SLI | DONE       | [Threshold, SLI/SLO](threshold_sli_slo.md) và metric trong `core/observability.py`       |
+| Đo SLI 24 giờ, 14 ngày, 30 ngày              | Done       | Chạy `SLI-01`–`SLI-05` trên production, ghi vào sheet **SLI SLO** và lưu bằng chứng      |
+| Độ phủ và freshness Newman                   | Done       | Đối chiếu run thực tế với 1.440 staff/288 public mỗi 24 giờ                              |
+| Retention đủ 30 ngày                         | Done       | Prometheus giới hạn 30 ngày **hoặc** 5 GB; xác nhận dữ liệu đầu cửa sổ còn truy vấn được |
+| SLO target và latency threshold              | Done       | Chốt từ baseline đủ kỳ, ghi chủ sở hữu và ngày áp dụng; chưa dùng mục tiêu ví dụ         |
+| Error budget, burn rate và SLO dashboard     | Done       | Chỉ tính/dựng sau khi target được chốt; chưa có alert production                         |
+
+## 9. Phase 7 — Alert Delivery và Incident Response
+
+| Kiểm tra                              | Trạng thái | Bằng chứng / việc còn lại                                                                     |
+| ------------------------------------- | ---------- | --------------------------------------------------------------------------------------------- |
+| Alertmanager, route và receiver       | VERIFY     | Compose/config mẫu trong repo đã kiểm tra cú pháp; chưa có bằng chứng service/SMTP production |
+| Prometheus gửi alert tới Alertmanager | MISSING    | Xác nhận `/api/v1/alertmanagers` sau deploy                                                   |
+| Pending → Firing → email nhận được    | MISSING    | Thử rule có kiểm soát và lưu thời gian/receiver                                               |
+| Resolved và chống gửi trùng           | MISSING    | Xác nhận email resolved và `repeat_interval`                                                  |
+| Phân loại P1–P4, timeline/postmortem  | DONE       | Hướng dẫn ngắn ở [Operation §7](operation.md); chưa có incident thật để áp dụng |
+
+## 10. Việc kế tiếp
 
 1. Ghi bằng chứng Phase 1 trước/sau vào bảng trên nếu đã chạy trên VPS.
 2. Deploy cấu hình Alloy mới, đối chiếu request ID và hai nguồn log bổ sung.
@@ -115,5 +148,10 @@ Không đánh dấu DONE chỉ vì rule tồn tại trong repo. Xem lệnh kiể
    Thử email Grafana trước khi đánh dấu SMTP **DONE**.
 5. Xác minh lịch sử check public endpoint của Kuma và runner collection đã chọn khi có
    quyền truy cập hai giao diện đó.
+6. Chạy [Operation §6](operation.md), ghi số đo SLI và chốt SLO khi đủ 30 ngày;
+   sau đó mới tạo dashboard error budget.
+7. Chuẩn bị Alertmanager, người nhận và SMTP secret theo [Operation §7](operation.md);
+   kiểm thử email bằng rule có kiểm soát. Chưa bật cảnh báo theo error budget
+   khi target SLO chưa được chốt.
 
 Đường dữ liệu và phạm vi thực tế: [System Architecture & Lineage](system_architecture_lineage.md).

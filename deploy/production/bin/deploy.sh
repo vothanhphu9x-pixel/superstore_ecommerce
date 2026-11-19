@@ -38,10 +38,37 @@ fi
 
 umask 077
 
+[[ -f /etc/superstore/alertmanager/config.yml ]] || {
+  printf 'Alertmanager config is missing. Complete Monitoring Operation Phase 7 before deploy.\n' >&2
+  exit 1
+}
+
+if grep -q 'example.invalid' /etc/superstore/alertmanager/config.yml; then
+  printf 'Replace Alertmanager example email addresses before deploy.\n' >&2
+  exit 1
+fi
+
+[[ -s /etc/superstore/alertmanager/smtp_password ]] || {
+  printf 'Alertmanager SMTP password file is missing or empty.\n' >&2
+  exit 1
+}
+
+if ! grep -Eq '^ALERTMANAGER_IMAGE=.+@sha256:[0-9a-f]{64}$' \
+  /etc/superstore/images.lock.env; then
+  printf 'Pin ALERTMANAGER_IMAGE in the shared images.lock.env before deploy.\n' >&2
+  exit 1
+fi
+
 if [[ ! -f "$release_dir/images.lock.env" ]]; then
   install -m 600 \
     /etc/superstore/images.lock.env \
     "$release_dir/images.lock.env"
+fi
+
+if ! grep -Eq '^ALERTMANAGER_IMAGE=.+@sha256:[0-9a-f]{64}$' \
+  "$release_dir/images.lock.env"; then
+  printf 'This release has an older image lock; create a new release.\n' >&2
+  exit 1
 fi
 
 if [[ -f "$release_dir/release.env" ]]; then
@@ -117,6 +144,9 @@ dc config --quiet
 
 dc pull
 
+dc run --rm --no-deps --entrypoint /bin/amtool \
+  alertmanager check-config /etc/alertmanager/config.yml
+
 dc run --rm --no-deps api python -c '
 import os
 
@@ -137,6 +167,16 @@ list_staff_users()
 '
 
 dc up -d --wait --wait-timeout 120
+
+curl \
+  --fail \
+  --silent \
+  --show-error \
+  --retry 6 \
+  --retry-all-errors \
+  --retry-delay 3 \
+  --max-time 8 \
+  http://127.0.0.1:9093/-/ready
 
 dc exec -T api python -c \
   "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health/ready', timeout=8)"

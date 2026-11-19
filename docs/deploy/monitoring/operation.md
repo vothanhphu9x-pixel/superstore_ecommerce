@@ -19,8 +19,8 @@ sudo docker ps -a --format '{{.Names}}\t{{.Status}}' |
   grep -Ei 'alertmanager|kuma' || true
 ```
 
-**Mong đợi hiện tại:** có Uptime Kuma `Up`, không có Alertmanager. VPS không cài
-`rg`; dùng `grep` trong các lệnh ở tài liệu này.
+**Trước Phase 7:** có Uptime Kuma `Up`, chưa có Alertmanager. **Sau Phase 7:**
+cả hai phải `Up`. VPS không cài `rg`; dùng `grep` trong các lệnh ở tài liệu này.
 
 ### 0.2. Kiểm tra metrics và Prometheus
 
@@ -361,7 +361,7 @@ có người dùng thật, baseline API chỉ phản ánh traffic synthetic.
 Chỉ bắt đầu đếm khi Kuma và runner theo lịch đều pass. Qua SSH tunnel ở §0.3,
 mở Grafana Explore → **Prometheus** và chạy API-01–05, VPS-01–03, REDIS-02
 trong [Query Library](promql_logql_library.md). Ghi số lượt thực tế, số mẫu,
-P95, 5xx, mức thường gặp và đỉnh vào [Baseline & Thresholds](baseline_thresholds.md)
+P95, 5xx, mức thường gặp và đỉnh vào [Threshold, SLI/SLO](threshold_sli_slo.md)
 theo ba mốc:
 
 1. **Sau 1 ngày:** xem _Last 24 hours_; dùng ngưỡng khả dụng và giới hạn tài
@@ -374,6 +374,25 @@ theo ba mốc:
 
 Mỗi mốc ghi ngưỡng cũ → mới và bằng chứng. Thiếu dữ liệu thì giữ ngưỡng trước,
 không điền `0` hoặc tự đánh dấu đã triển khai.
+
+Ghi vào [file Excel kết quả đo](monitoring_baseline_results.xlsx) theo thứ tự:
+điền `T0` và lượt chạy thực tế ở **Lịch chạy**, điền chỉ số tổng quát ở
+**Chỉ số chung**, rồi điền request/5xx/P95 của từng route ở **Theo route**.
+
+Với **CPU cao nhất**, dùng `BASE-06` ở chế độ **Instant** tại đúng cuối khoảng
+đo; panel CPU VPS chỉ dùng xem diễn biến. `BASE-06` trả tỷ lệ `0–1`, còn panel
+hiển thị `%` (ví dụ `0,16` = `16%`).
+
+Ô vàng là ô nhập; ô độ phủ và ngưỡng P95 được tính tự động. Đính kèm link
+Grafana/Prometheus/Kuma trong cột **Bằng chứng**.
+
+Trong sheet **Chỉ số chung**, `F` là số đo, `G` là rule đang chạy, `H` là
+ngưỡng đề xuất và `I` là quyết định duyệt. Mốc ngày 1 chỉ quan sát API 5xx/P95;
+ngưỡng P95 chờ baseline 14 ngày. Nếu ghi **P95 5 phút cao nhất / 24h**, dùng
+`API-08` ở chế độ **Instant** tại giờ chốt. `256 MiB` là giới hạn Redis; mức
+cảnh báo tạm là `153,6 MiB`, nghiêm trọng `217,6 MiB` theo
+[Threshold, SLI/SLO](threshold_sli_slo.md). Ngưỡng đề xuất chưa tự động
+trở thành alert trên VPS.
 
 ### 4.2. Kiểm tra rule trước khi chạy
 
@@ -416,4 +435,161 @@ production để kiểm tra rule.
 Ghi kết quả thực vào [Discovery Result](discovery_result.md). Hai rule này chưa
 gửi email vì Alertmanager thuộc Phase 7. Các ngưỡng 5xx, P95, CPU, RAM và disk
 chỉ thêm sau khi hoàn tất §4.1 và chọn giá trị trong
-[Baseline & Thresholds](baseline_thresholds.md).
+[Threshold, SLI/SLO](threshold_sli_slo.md).
+
+### 4.4. Lưu bản dashboard
+
+Hai bản JSON đang dùng: [DevOps Operations](dashboard_exports/devops_operations.json)
+và [Dev Troubleshooting](dashboard_exports/dev_troubleshooting.json). Chúng là
+bản lưu tài liệu, **không tự nạp** từ thư mục `docs`. Khi cần khôi phục, vào
+Grafana → Dashboards → New → Import, tải JSON và kiểm tra UID trước khi chọn
+**Import (Overwrite)**. Dashboard hiện tại vẫn được Grafana lưu trong volume
+`grafana_data`.
+
+## 5. Phase 5 — Grafana dashboard
+
+Trên Mac, mở SSH tunnel ở §0.3 rồi vào `http://localhost:3001`. Hai dashboard
+theo vai trò đã có bản export ở §4.4; dashboard Newman được nạp tự động từ
+`deploy/production/grafana/dashboards/newman-synthetic.json`.
+
+| Người xem | Dashboard                            | Đọc theo thứ tự                                                                                  |
+| --------- | ------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| DevOps    | **Superstore - Devops Operations**   | Bốn scrape target → Newman public/staff và giây từ lần cuối → Redis → API 5xx/P95 → CPU/RAM/disk |
+| Dev       | **Superstore — Dev Troubleshooting** | Route/status có traffic → 5xx/P95 theo route → FastAPI/Nginx HTTP log → application ERROR        |
+
+use [Query Library](promql_logql_library.md) để truy vấn và vẽ pannel
+
+### 5.1. Điều tra theo dấu hiệu
+
+Chọn đúng khoảng thời gian xảy ra lỗi. Truy vấn trong **Grafana Explore**;
+PromQL dùng datasource Prometheus, LogQL dùng Loki. Có thể mở rộng từ các ID
+trong [Query Library](promql_logql_library.md).
+
+```text
+No data
+→ kiểm tra time range/datasource → DevOps: Scrape targets
+→ `up{job=~"fastapi|redis|node|prometheus"}`
+→ up=0: kiểm tra target tương ứng; tất cả up=1: xem Newman freshness và traffic.
+
+Newman FAIL hoặc lần chạy cuối quá cũ
+→ DevOps: Newman public/staff → `newman_last_run_success{mode="timer"}`
+→ `time() - newman_last_run_timestamp_seconds{mode="timer"}`
+→ xem timer/journal của collection tương ứng.
+
+Dashboard báo 5xx/502
+→ DevOps: API 5xx/24h → Dev: API 5xx theo route
+→ Loki: `{service="fastapi",log_type="http"} | json | status >= 500`
+→ đối chiếu Nginx bằng cùng `x-request-id` (§2.2).
+
+Dashboard chậm
+→ DevOps: P95 API → Dev: P95 theo route (API-07)
+→ đối chiếu Redis RAM, CPU/RAM/disk VPS (REDIS-02, VPS-01–03).
+
+Redis/target không khỏe
+→ DevOps: Redis + Scrape targets (`redis_up{job="redis"}`, `up`)
+→ Redis=0 nhưng up=1: exporter không tới Redis; up=0: Prometheus không scrape được.
+```
+
+Nếu Newman FAIL nhưng FastAPI 5xx vẫn bằng `0`, kiểm tra thêm Next.js/Vercel:
+request có thể chưa đến FastAPI. `No data` khác `0`; xác nhận có traffic bằng
+**Request theo route / 24h** trước khi kết luận hệ thống khỏe. Lệnh kiểm tra
+timer nằm ở [Synthetic Baseline §6–7](synthetic_baseline.md).
+
+## 6. Phase 6 — SLI, SLO và error budget
+
+Đọc [Threshold, SLI/SLO](threshold_sli_slo.md) trước khi đặt target. Trong
+Grafana Explore → Prometheus, chạy `SLI-01`–`SLI-05` ở
+[Query Library §5](promql_logql_library.md) với cửa sổ 24 giờ; ghi mẫu số,
+availability, lỗi 5xx, latency compliance và Newman PASS/coverage. Lặp lại
+ở mốc 14 ngày và 30 ngày khi có đủ lịch sử.
+
+Ghi vào sheet **SLI SLO** của [file kết quả đo](monitoring_baseline_results.xlsx):
+`C` = SLI-02 (request hợp lệ), `D` = SLI-03 (5xx), `F` = SLI-04 (tỷ lệ
+Dashboard đạt `T`), `G` = SLI-05 (Staff PASS), `M` = bằng chứng. `E` tự tính
+availability; `H` lấy Staff coverage từ **Lịch chạy**. Nhập tỷ lệ dạng `0–1`.
+Sau đủ 30 ngày, chốt target ở `B16:B18`, `T` (giây) ở `C17`, rồi ghi `Có`
+vào `E16:E18` khi đã xác minh đủ dữ liệu. Ngày 1/14 có thể đặt `I6:I7`
+`=$B$16` sau khi chốt API target; `J:L` tự tính budget cho từng khoảng đo.
+
+## 7. Phase 7 — chuyển cảnh báo và xử lý sự cố
+
+Alertmanager nằm trong **cùng** `deploy/production/compose.yml` và dùng chung
+`/etc/superstore/images.lock.env`. Chuẩn bị cấu hình dưới đây **trước khi
+merge/deploy** release có Alertmanager: `deploy.sh` sẽ kiểm tra config, password,
+image và readiness. Chưa có email thực nhận thì chưa đánh dấu Phase 7 PASS.
+
+### 7.1. Chuẩn bị trên Mac và VPS
+
+Trên **Mac**, chép file mẫu không chứa mật khẩu lên VPS:
+
+```bash
+scp deploy/production/alertmanager/config.yml.example \
+  deploy@YOUR_VPS_IP:/tmp/superstore-alertmanager-config.yml
+```
+
+Trên **VPS**, cài file, sửa địa chỉ SMTP From/User/To và nhập app password
+vào file riêng. Không đưa hai file thật vào Git:
+
+```bash
+sudo install -d -m 750 /etc/superstore/alertmanager
+sudo install -o root -g 65534 -m 640 \
+  /tmp/superstore-alertmanager-config.yml \
+  /etc/superstore/alertmanager/config.yml
+sudo install -o root -g 65534 -m 640 \
+  /dev/null /etc/superstore/alertmanager/smtp_password
+sudo nano /etc/superstore/alertmanager/config.yml
+sudo nano /etc/superstore/alertmanager/smtp_password
+sudo unlink /tmp/superstore-alertmanager-config.yml
+```
+
+Kiểm tra file config không còn `example.invalid` và password không rỗng. Thêm
+`ALERTMANAGER_IMAGE=quay.io/prometheus/alertmanager:v0.35.0` vào
+`/etc/superstore/images.source.env`; [file mẫu](../../../deploy/production/images.source.env.example)
+trong repo ghi đủ các image. Pin **toàn bộ** source thành lock ứng viên mới:
+
+```bash
+sudo nano /etc/superstore/images.source.env
+candidate="/etc/superstore/images.lock.candidate.$(date +%Y%m%d%H%M%S).env"
+sudo bash /opt/superstore/current/deploy/production/bin/pin-images.sh \
+  /etc/superstore/images.source.env "$candidate"
+sudo diff -u /etc/superstore/images.lock.env "$candidate"
+```
+
+`diff` cần cho thấy key `ALERTMANAGER_IMAGE` mới. Nếu digest image khác cũng
+đổi, kiểm tra trước khi tiếp tục. Sau khi duyệt:
+
+```bash
+sudo install -o root -g root -m 600 \
+  "$candidate" /etc/superstore/images.lock.env
+sudo unlink "$candidate"
+```
+
+Release **mới** sẽ copy lock chung vào `releases/<SHA>/images.lock.env`; lock
+của release cũ không tự ghi đè. Backup hiện có lưu lock chung và hai file
+Alertmanager sau khi chúng được tạo.
+
+### 7.2. Kiểm tra sau deploy
+
+`deploy.sh` chạy `amtool check-config`, khởi động toàn bộ Compose và đợi
+Alertmanager ready. Trên VPS kiểm tra thêm:
+
+```bash
+COMPOSE=/opt/superstore/current/deploy/production/bin/compose.sh
+sudo bash "$COMPOSE" ps alertmanager prometheus
+curl -i -fsS http://127.0.0.1:9093/-/ready
+curl -i -fsS http://127.0.0.1:9090/api/v1/rules
+curl -i -fsS http://127.0.0.1:9090/api/v1/alertmanagers
+```
+
+Mong đợi: readiness `200`, hai rule được nạp, đích `alertmanager:9093` trong
+`activeAlertmanagers`. Nếu sửa config SMTP **sau deploy**, chạy
+`sudo bash "$COMPOSE" up -d --force-recreate alertmanager`, rồi kiểm tra lại.
+
+### 7.3. Thử email và ghi incident
+
+Dùng rule thử có kiểm soát trên staging; không dừng API/Redis production để
+kích hoạt cảnh báo. Lưu bằng chứng theo thứ tự: rule `Pending` → `Firing` →
+Alertmanager nhận đúng receiver → email nhận được → `Resolved` và email
+resolved. Cập nhật [Discovery Result](discovery_result.md). Khi có sự cố thật,
+phân loại P1 (diện rộng), P2 (nhiều route), P3 (một route), P4 (lỗi nhỏ);
+ghi thời điểm bắt đầu/phát hiện/xác nhận/phục hồi để tính MTTD, MTTA, MTTR.
