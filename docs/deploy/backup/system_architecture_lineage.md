@@ -16,6 +16,7 @@ systemd timer (03:15 giờ VPS, trễ tối đa 15 phút)
 ```
 
 Nguồn được gom: staff DB; `app.env`, `stack.env`, `grafana.env`, image env,
+Alertmanager config/SMTP password nếu đã cài,
 Snowflake secret nếu có; cấu hình Nginx, sudo, SSH public keys; release SHA,
 API image digest và danh sách apt package. `/etc/superstore/backup.env` chứa
 AWS credential và age public recipient, **không nằm trong archive**. Age private

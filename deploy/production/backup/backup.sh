@@ -179,6 +179,10 @@ copy_file /etc/superstore/stack.env etc/superstore/stack.env
 copy_file /etc/superstore/grafana.env etc/superstore/grafana.env
 copy_file /etc/superstore/images.lock.env etc/superstore/images.lock.env
 copy_file /etc/superstore/images.source.env etc/superstore/images.source.env
+if [[ -d /etc/superstore/alertmanager ]]; then
+  copy_file /etc/superstore/alertmanager/config.yml etc/superstore/alertmanager/config.yml
+  copy_file /etc/superstore/alertmanager/smtp_password etc/superstore/alertmanager/smtp_password
+fi
 copy_file /etc/nginx/conf.d/superstore-api.conf etc/nginx/conf.d/superstore-api.conf
 copy_file /etc/nginx/conf.d/00-superstore-logging.conf etc/nginx/conf.d/00-superstore-logging.conf
 copy_file /etc/sudoers.d/superstore-deploy etc/sudoers.d/superstore-deploy

@@ -7,7 +7,7 @@ headers:
   Content-Type: application/json
 body:
   type: json
-  content: '{ "email": "{{monitor_email_sales}}", "password": "{{monitor_password_sales}}" }'
+  content: '{ "email": "{{monitor_email_sales}}", "password": "{{vault:monitor_password_sales}}" }'
 scripts:
   - type: afterResponse
     code: |-

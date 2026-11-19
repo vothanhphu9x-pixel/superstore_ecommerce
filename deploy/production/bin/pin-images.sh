@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-source_file=${1:?Usage: pin-images.sh images.sources.env output.lock.env}
+source_file=${1:?Usage: pin-images.sh images.source.env output.lock.env}
 output_file=${2:?Provide a NEW output file}
 
 if [[ -e "$output_file" ]]; then

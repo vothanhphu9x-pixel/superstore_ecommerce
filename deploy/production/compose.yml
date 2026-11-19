@@ -129,6 +129,29 @@ services:
     networks: [scrape_api, observability]
     mem_limit: 768m
 
+  alertmanager:
+    <<: *default
+    image: ${ALERTMANAGER_IMAGE:?Pin ALERTMANAGER_IMAGE}
+    command:
+      - --config.file=/etc/alertmanager/config.yml
+      - --storage.path=/alertmanager
+      - --web.listen-address=:9093
+    volumes:
+      - /etc/superstore/alertmanager/config.yml:/etc/alertmanager/config.yml:ro
+      - /etc/superstore/alertmanager/smtp_password:/etc/alertmanager/secrets/smtp_password:ro
+      - alertmanager_data:/alertmanager
+    ports:
+      - "127.0.0.1:9093:9093"
+    networks: [observability]
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+
   node-exporter:
     <<: *default
     image: ${NODE_EXPORTER_IMAGE:?Pin NODE_EXPORTER_IMAGE}
@@ -230,3 +253,4 @@ volumes:
   minio_data:
   alloy_data:
   grafana_data:
+  alertmanager_data:

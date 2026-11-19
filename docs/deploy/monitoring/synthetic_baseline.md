@@ -107,12 +107,12 @@ Postman Cloud, chuyển thẳng đến §6 và chỉ bật lịch Newman.
 
 Tạo workspace private và environment “Superstore production synthetic”:
 
-| Biến                  | Giá trị                                   |
-| --------------------- | ----------------------------------------- |
-| api_origin            | https://api.gymtech.id.vn                 |
-| frontend_origin       | https://superstore.gymtech.id.vn          |
-| month_from / month_to | 20230101 / 20271201                       |
-| monitor_email_sales   | Email staff riêng có role sales; share value |
+| Biến                   | Giá trị                                        |
+| ---------------------- | ---------------------------------------------- |
+| api_origin             | https://api.gymtech.id.vn                      |
+| frontend_origin        | https://superstore.gymtech.id.vn               |
+| month_from / month_to  | 20230101 / 20271201                            |
+| monitor_email_sales    | Email staff riêng có role sales; share value   |
 | monitor_password_sales | Secure variable dùng Shared Vault; share value |
 
 Trên VPS, kiểm tra danh sách staff; chỉ tạo **tài khoản riêng** nếu chưa có.
@@ -354,42 +354,6 @@ pass/fail/timeout và thời gian đáp ứng **theo từng URL**. Đối chiế
 FastAPI http.log, Nginx log, Loki và Snowflake query history. Lượt bị thiếu
 không tính là pass.
 
-Nếu dùng Postman Cloud mỗi giờ, cửa sổ 5m của API-01–07 thường rỗng. Newman
-mỗi phút tạo nhiều mẫu hơn; vẫn dùng 24h để đếm và tại mốc 14 ngày dùng 14d
-để ước lượng P95:
-
-```promql
-sum by (route, status) (increase(superstore_http_requests_total{job="fastapi"}[24h]))
-```
-
-```promql
-histogram_quantile(0.95, sum by (route, le) (increase(superstore_http_request_duration_seconds_bucket{job="fastapi",route=~".*dashboard.*"}[14d])))
-```
-
-```promql
-sum by (route) (increase(superstore_http_request_duration_seconds_count{job="fastapi",route=~".*dashboard.*"}[14d]))
-```
-
-Ở mốc 30 ngày, thay `[14d]` bằng `[30d]` **chỉ khi** Prometheus còn đủ dữ
-liệu. Đọc **số mẫu** ở truy vấn cuối trước khi tin P95. Histogram là ước lượng
-theo bucket; vài lượt/ngày chưa đủ chốt SLO production. Postman/Kuma đo từ
-điểm kiểm tra qua mạng; FastAPI Histogram chỉ đo thời gian xử lý server.
-Không gộp các độ trễ này. CPU/RAM/disk, redis_up, up và Redis memory lấy từ
-[PromQL Library](promql_logql_library.md), không suy ra từ health URL.
-
-Ghi số đo và ngưỡng tạm/tái xét vào [Baseline & Thresholds](baseline_thresholds.md)
-và [Discovery Result](discovery_result.md). Cảnh báo **synthetic flow fail**
-sau khi lịch chạy ổn định; ngưỡng P95/5xx và tài nguyên được xét ở từng mốc.
-Khi có traffic người dùng thật, đo lại vì synthetic không đại diện cho tải đó.
-
-Tham khảo: [Postman Monitors](https://learning.postman.com/docs/monitoring-your-api/setting-up-monitor/),
-[Postman Shared Vault](https://learning.postman.com/docs/use/postman-vault/use-vault-secrets/),
-[Postman vault availability](https://learning.postman.com/docs/use/postman-vault/postman-vault-key/),
-[Postman monitor usage](https://learning.postman.com/docs/monitoring-your-api/monitor-usage/),
-[Postman cookie settings](https://learning.postman.com/docs/use/send-requests/response-data/cookies/),
-[Uptime Kuma monitor types](https://github.com/louislam/uptime-kuma/blob/master/src/pages/EditMonitor.vue),
-[Prometheus histograms](https://prometheus.io/docs/practices/histograms/).
-
 ## 6. Newman — chạy collection trên VPS, không dùng Postman Cloud
 
 Newman đọc **chính các file YAML trong `postman/collections`** và chuyển trong
@@ -464,12 +428,6 @@ Kết quả theo lịch nằm ở `newman-{public,staff}-timer.prom` với nhãn
 
 ## 7. Xem kết quả trên Prometheus và Grafana
 
-Release mới mount `/opt/superstore/metrics/newman` vào Node Exporter và
-provision dashboard `Superstore — Newman synthetic checks`. Thư mục metrics cần
-quyền `755`, file `.prom` cần `644` để Node Exporter (user
-`nobody`) đọc được. File `.state.json` vẫn là `600`; các file `.prom` không chứa
-password hoặc cookie.
-
 Sau khi cài trên VPS, tạo lại đúng hai container để nạp mount/config mới:
 
 ```bash
@@ -491,12 +449,3 @@ curl -i -fsSG http://127.0.0.1:9090/api/v1/query \
 `node_textfile_scrape_error=0`. Mở Grafana qua SSH tunnel ở
 [Operation §0.3](operation.md) → folder **Superstore Monitoring** → dashboard
 **Superstore — Newman synthetic checks**. Dashboard có lần chạy mới nhất,
-tuổi dữ liệu, số lượt fail 24 giờ, tỷ lệ pass 1/14/30 ngày, thời gian chạy và
-HTTP status từng request. Panel 14/30 ngày chỉ có ý nghĩa khi đã tích lũy đủ
-dữ liệu; Prometheus giữ tối đa `30d` hoặc `5GB`, giới hạn nào đến trước.
-
-Khi dùng Newman thay Cloud Monitor, lấy `T0` từ **lượt timer đầu tiên** mà
-Public và Staff đều pass. Theo [Baseline & Thresholds](baseline_thresholds.md),
-rà lại ngưỡng sau **1 → 14 → 30 ngày**. Không tính lượt chạy tay vào độ phủ
-lịch. File `.prom` chỉ giữ kết quả gần nhất; Prometheus giữ lịch sử counters và
-Grafana hiển thị lịch sử đó.
