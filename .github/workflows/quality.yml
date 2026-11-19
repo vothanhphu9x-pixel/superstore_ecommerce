@@ -310,9 +310,10 @@ jobs:
             test rules /etc/prometheus/project/tests/availability.test.yml
       - name: Validate production Compose and Alertmanager config
         run: |
-          sudo install -d -m 700 /etc/superstore
+          # These are empty CI placeholders, not production secrets.
+          sudo install -d -m 755 /etc/superstore
           for name in app.env stack.env grafana.env; do
-            sudo install -m 600 /dev/null "/etc/superstore/$name"
+            sudo install -m 644 /dev/null "/etc/superstore/$name"
           done
           env \
             API_IMAGE=ghcr.io/example/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
