@@ -9,7 +9,7 @@
 | MISSING    | Chưa triển khai                                       |
 | BROKEN     | Đã kiểm tra và có lỗi                                 |
 
-**Phạm vi:** Phase 0 — audit production Monitoring; Phase 1–7 bổ sung checklist
+**Phạm vi:** Phase 0 — audit production Monitoring; Phase 1–8 bổ sung checklist
 kiểm chứng. Kết quả Phase 0 dựa trên log VPS người vận hành cung cấp ngày
 **2026-11-14** và cấu hình trong repo. Kuma đang chạy, log Nginx và FastAPI đã
 được tìm thấy trong Loki, Alertmanager chưa cài. Đây là bằng chứng của lượt
@@ -29,7 +29,7 @@ audit, không phải health check liên tục.
 | Grafana datasource | DONE    | Truy vấn Prometheus `status=ok`; Explore Loki có log Nginx                                                                                   |
 | FastAPI → Loki     | DONE    | `http.log` có dòng mới và truy vấn `{service="fastapi"}` hiện log                                                                            |
 | Uptime Kuma        | DONE    | Người vận hành xác nhận container đang chạy; monitor public endpoint và lịch sử check chưa có bằng chứng lưu trong audit này                 |
-| Grafana SMTP       | VERIFY  | Đã sửa Compose và `grafana.env`; chưa có kết quả gửi email thử                                                                               |
+| Grafana notifications | VERIFY | Ngày 20/11: Grafana VPS còn bốn rule do Grafana quản lý và contact point `Admin IT`; release mới tắt Grafana Alerting/SMTP nhưng chưa deploy, không xóa rule trước khi Prometheus nạp đủ rule thay thế |
 | Alert rules        | VERIFY  | Hai rule target/Redis đã thêm trong repo; chưa có bằng chứng Prometheus production nạp rule                                                  |
 | Alertmanager       | MISSING | Trong audit 14/11 chưa cài; repo hiện có Compose/config mẫu, chưa có bằng chứng chạy hoặc gửi email trên VPS                                 |
 
@@ -101,7 +101,7 @@ Không dùng query Phase 3 cho dashboard hoặc alert trước khi chạy
 | Dashboard: Devops & Dev           | Done       | Monitoring data                                                                                                     |
 | Ngưỡng 5xx/P95/tài nguyên         | Done       | Công thức và ngưỡng tạm đã chọn trong tài liệu; cần số đo thật, rule và xác nhận đã nạp                             |
 | Rule target/Redis                 | Done       | PR CI chạy `promtool check/test`; cần xác nhận Prometheus `/api/v1/rules` sau deploy                                |
-| Chuyển tiếp email                 | MISSING    | Alertmanager và thử gửi ở Phase 7                                                                                   |
+| Chuyển tiếp email                 | VERIFY     | Alertmanager đã nhận rule thử ngày 19/11; cần email Firing/Resolved thực nhận sau khi sửa `smtp_from`               |
 
 Không đánh dấu DONE chỉ vì rule tồn tại trong repo. Xem lệnh kiểm tra tại
 [Operation §4](operation.md).
@@ -111,6 +111,7 @@ Không đánh dấu DONE chỉ vì rule tồn tại trong repo. Xem lệnh kiể
 | Kiểm tra                         | Trạng thái | Bằng chứng / việc còn lại                                                                |
 | -------------------------------- | ---------- | ---------------------------------------------------------------------------------------- |
 | DevOps Operations                | DONE       | Đã có bản export JSON; kiểm tra URL/panel trên Grafana theo [Operation §5](operation.md) |
+| DevOps alert overview            | VERIFY     | Bản export mới có panel đếm/bảng Firing và năm scrape target; cần import vào Grafana VPS rồi đối chiếu với `ALERTS`/`up` |
 | Dev Troubleshooting              | DONE       | Đã có bản export JSON; đối chiếu log mới và `request_id` trên production                 |
 | Newman Synthetic                 | DONE       | JSON được provision từ release; kiểm tra hai series `mode="timer"` và freshness          |
 | Đồng bộ export với bản đang chạy | VERIFY     | Export lại sau mỗi lần sửa dashboard trong Grafana                                       |
@@ -130,28 +131,40 @@ Hai dashboard DevOps/Dev hiện là công cụ vận hành; không phải SLO da
 
 ## 9. Phase 7 — Alert Delivery và Incident Response
 
-| Kiểm tra                              | Trạng thái | Bằng chứng / việc còn lại                                                                     |
-| ------------------------------------- | ---------- | --------------------------------------------------------------------------------------------- |
-| Alertmanager, route và receiver       | VERIFY     | Compose/config mẫu trong repo đã kiểm tra cú pháp; chưa có bằng chứng service/SMTP production |
-| Prometheus gửi alert tới Alertmanager | MISSING    | Xác nhận `/api/v1/alertmanagers` sau deploy                                                   |
-| Pending → Firing → email nhận được    | MISSING    | Thử rule có kiểm soát và lưu thời gian/receiver                                               |
-| Resolved và chống gửi trùng           | MISSING    | Xác nhận email resolved và `repeat_interval`                                                  |
-| Phân loại P1–P4, timeline/postmortem  | DONE       | Hướng dẫn ngắn ở [Operation §7](operation.md); chưa có incident thật để áp dụng |
+| Kiểm tra                              | Trạng thái | Bằng chứng / việc còn lại                                                                                                                  |
+| ------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Alertmanager, route và receiver       | Done       | Log 19/11: service chạy và nhận `AlertDeliveryDrill` ở `ops-email`                                                                         |
+| Prometheus gửi alert tới Alertmanager | DONE       | Alertmanager log đã ghi alert từ Prometheus; cần lưu thêm `/api/v1/alertmanagers`                                                          |
+| Bốn chuỗi Newman timer                | Done       | Cần xác nhận timestamp và consecutive failures cho `public`/`staff` đều có trong Prometheus; thiếu chuỗi 10m mới kích hoạt `MetricMissing` |
+| Node Exporter textfile                | Done       | Cần xác nhận `node_textfile_scrape_error{job="node"}=0`; giá trị 0 không chứng minh bốn chuỗi Newman có mặt                                |
+| Pending → Firing → email nhận được    | Done       | Log 19/11: gửi email lỗi vì `smtp_from` thiếu địa chỉ hợp lệ; chưa có bằng chứng sau khi sửa                                               |
+| Resolved và chống gửi trùng           | Done       | Chưa có email resolved và kết quả kiểm tra `repeat_interval`                                                                               |
+| Phân loại P1–P4, timeline/postmortem  | Done       | Hướng dẫn ngắn ở [Operation §7](operation.md); chưa có incident thật để áp dụng                                                            |
 
-## 10. Việc kế tiếp
+Source mới có 19 rule trong `availability.yml`, `resources.yml`, `synthetic.yml`
+và `api.yml`; Makefile/PR CI kiểm tra cú pháp và dữ liệu giả. **Chưa xác nhận**
+19 rule đã được nạp trên VPS hoặc email Firing/Resolved đã đến. Truy vấn
+Prometheus VPS ngày 20/11 chỉ thấy nhóm `superstore-availability` và nhóm thử
+`alert-delivery-drill`; các nhóm tài nguyên, API và synthetic chưa nạp.
+`deploy.sh` của release mới chặn deploy nếu thiếu một trong bốn nhóm. Sau deploy,
+ghi lại release SHA, `/api/v1/rules`, các metric nguồn và email thực nhận;
+đừng thay bằng kết quả `promtool` local.
+Hai rule `MetricMissing` và `TextfileError` đo **thiếu dữ liệu ở Prometheus**
+và **lỗi đọc textfile ở Node Exporter**; chúng không kiểm tra kết quả Newman.
+Lượt FAIL có ghi metrics vẫn cập nhật timestamp, còn lượt dừng trước khi ghi
+giữ timestamp cũ và có thể kích hoạt rule trễ lịch.
 
-1. Ghi bằng chứng Phase 1 trước/sau vào bảng trên nếu đã chạy trên VPS.
-2. Deploy cấu hình Alloy mới, đối chiếu request ID và hai nguồn log bổ sung.
-3. Kiểm chứng từng query Phase 3 trên Prometheus/Loki production.
-4. Đo baseline Phase 4 theo mốc 1 → 14 → 30 ngày, ghi lần thay ngưỡng và xác
-   nhận rule đã nạp; sau đó thêm rule 5xx/P95/tài nguyên. Phase 7 mới thêm Alertmanager và thử gửi cảnh báo.
-   Thử email Grafana trước khi đánh dấu SMTP **DONE**.
-5. Xác minh lịch sử check public endpoint của Kuma và runner collection đã chọn khi có
-   quyền truy cập hai giao diện đó.
-6. Chạy [Operation §6](operation.md), ghi số đo SLI và chốt SLO khi đủ 30 ngày;
-   sau đó mới tạo dashboard error budget.
-7. Chuẩn bị Alertmanager, người nhận và SMTP secret theo [Operation §7](operation.md);
-   kiểm thử email bằng rule có kiểm soát. Chưa bật cảnh báo theo error budget
-   khi target SLO chưa được chốt.
+## 10. Phase 8 — End-to-End Validation
 
-Đường dữ liệu và phạm vi thực tế: [System Architecture & Lineage](system_architecture_lineage.md).
+[Báo cáo Phase 8](../../tests/end_to_end_validation.md) theo dõi request → metrics/logs →
+rule → Alertmanager/email → phục hồi. Các phép kiểm production chỉ đọc dữ liệu
+hoặc gửi request nhỏ; lỗi API, Redis và exporter có chủ đích cần
+staging riêng. Repo chưa có Compose staging, vì vậy chưa thể đánh dấu các ca
+tạo lỗi là PASS.
+
+| Nhóm                       | Trạng thái | Bằng chứng còn cần                                                        |
+| -------------------------- | ---------- | ------------------------------------------------------------------------- |
+| Request → metrics/logs     | Done       | Counter/Histogram trước/sau và cùng request ID trong Loki                 |
+| Synthetic/Kuma → dashboard | Done       | Lượt timer mới, trạng thái monitor, giá trị panel cùng thời điểm          |
+| Fault injection staging    | MISSING    | Stack staging, nguồn tạo `503` và chuỗi Redis/exporter/API lỗi → phục hồi |
+| Alert delivery và resolved | Done       | Email Firing/Resolved thực nhận, receiver và thời gian gửi                |

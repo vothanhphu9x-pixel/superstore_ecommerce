@@ -91,15 +91,16 @@ dbt YAML tests chạy sau layer tương ứng; singular tests xuyên layer chạ
 
 ## 7. CI quality gate
 
-| Jira Story | Case ID | Acceptance Criterion                                          | Test / control                                 | Code          | Kết quả | Commit / run / bằng chứng | Defect |
-| ---------- | ------- | ------------------------------------------------------------- | ---------------------------------------------- | ------------- | ------- | ------------------------- | ------ |
-|            | CI-01   | Repository hygiene pass                                       | `quality.yml` — job `hygiene`                  | Có            |         |                           |        |
-|            | CI-02   | Python files được track biên dịch cú pháp thành công          | `quality.yml` — job `python-syntax`            | Có            |         |                           |        |
-|            | CI-03   | Backend pytest pass; FastAPI khởi động và `/health/live` pass | `quality.yml` — job `backend`                  | Có            |         |                           |        |
-|            | CI-04   | Frontend `npm ci`, lint, type-check và build pass             | `quality.yml` — job `frontend`                 | Có            |         |                           |        |
-|            | CI-05   | E2E dùng credential/SQLite tạm, chạy thật và pass, không skip | `quality.yml` — step `Run frontend E2E`        | Có            |         |                           |        |
-|            | CI-06   | Compose, DE contract và dbt parse pass                        | `quality.yml` — job `configuration`            | Có            |         |                           |        |
-|            | CI-07   | Job bắt buộc fail thì PR không được merge                     | GitHub branch ruleset / required status checks | Chưa xác minh |         |                           |        |
+| Jira Story | Case ID | Acceptance Criterion                                          | Test / control                                             | Code          | Kết quả | Commit / run / bằng chứng | Defect |
+| ---------- | ------- | ------------------------------------------------------------- | ---------------------------------------------------------- | ------------- | ------- | ------------------------- | ------ |
+|            | CI-01   | Repository hygiene pass                                       | `quality.yml` — job `hygiene`                              | Có            |         |                           |        |
+|            | CI-02   | Python files được track biên dịch cú pháp thành công          | `quality.yml` — job `python-syntax`                        | Có            |         |                           |        |
+|            | CI-03   | Backend pytest pass; FastAPI khởi động và `/health/live` pass | `quality.yml` — job `backend`                              | Có            |         |                           |        |
+|            | CI-04   | Frontend `npm ci`, lint, type-check và build pass             | `quality.yml` — job `frontend`                             | Có            |         |                           |        |
+|            | CI-05   | E2E dùng credential/SQLite tạm, chạy thật và pass, không skip | `quality.yml` — step `Run frontend E2E`                    | Có            |         |                           |        |
+|            | CI-06   | Newman collection/runner offline pass; metric không lộ secret | `quality.yml` — job `newman`; `newman/test/runner.test.js` | Có            |         |                           |        |
+|            | CI-07   | Compose, Monitoring rules, DE contract và dbt parse pass      | `quality.yml` — job `configuration`                        | Có            |         |                           |        |
+|            | CI-08   | Job bắt buộc fail thì PR không được merge                     | GitHub branch ruleset / required status checks             | Chưa xác minh |         |                           |        |
 
 ## 8. Production deploy smoke
 
@@ -117,7 +118,24 @@ dbt YAML tests chạy sau layer tương ứng; singular tests xuyên layer chạ
 SHA/release cùng URL workflow run. Tài khoản CFO giám sát và dữ liệu production
 chỉ được dùng theo cấu hình được phê duyệt.
 
-## 9. Cách cập nhật
+## 9. Monitoring end-to-end — Phase 8
+
+Kết quả từng lần chạy nằm trong [báo cáo Phase 8](end_to_end_validation.md).
+Matrix chỉ ánh xạ case với control; không đánh dấu `PASS` vì rule/panel đã có
+trong repo. Các ca tạo lỗi cần staging riêng.
+
+| Jira Story | Case ID | Acceptance Criterion                                   | Test / control                                | Code                               | Kết quả | Commit / run / bằng chứng | Defect |
+| ---------- | ------- | ------------------------------------------------------ | --------------------------------------------- | ---------------------------------- | ------- | ------------------------- | ------ |
+|            | E2E-01  | Request tăng Counter/Histogram đúng route/status       | Prometheus trước/sau; `core/observability.py` | Có metric; thủ công                |         |                           |        |
+|            | E2E-02  | Request ID nối response, FastAPI/Nginx log và Loki     | HTTP header, file log, LogQL                  | Có pipeline log; thủ công          |         |                           |        |
+|            | E2E-03  | Newman/Kuma, năm target và bốn chuỗi Newman timer hiện đúng | Timer, Kuma, `up`/`redis_up`, Newman metrics, Grafana | Có cấu hình; thủ công |         |                           |        |
+|            | E2E-04  | Staging `503` tăng Counter và hiện trong log/Loki      | Nguồn `503` trên staging, PromQL/LogQL        | Thiếu staging/nguồn `503`          |         |                           |        |
+|            | E2E-05  | Redis lỗi khi exporter up kích hoạt rule              | `SuperstoreRedisUnavailable`                  | Có rule; thiếu staging             |         |                           |        |
+|            | E2E-06  | Exporter/API down kích hoạt rule target                | `SuperstoreScrapeTargetDown`                  | Có rule; thiếu staging             |         |                           |        |
+|            | E2E-07  | Alert Firing đến receiver và email thử                 | Alertmanager + hộp thư thử                    | Có route; thiếu staging/email      |         |                           |        |
+|            | E2E-08  | Phục hồi metrics, alert và email Resolved              | Prometheus/Alertmanager + hộp thư thử         | Có `send_resolved`; thiếu staging  |         |                           |        |
+
+## 10. Cách cập nhật
 
 1. Trong mỗi PR, điền Story/AC, Case ID, kết quả và URL run vào mục **Test traceability** của PR template. Nếu fail, ghi Defect ID và link lần retest.
 2. Trong matrix này, điền Jira Story thật; cập nhật test/control và cột **Code** khi coverage thay đổi hoặc có Case ID mới.

@@ -17,6 +17,15 @@ release_dir="/opt/superstore/releases/$release"
 
 [[ -f "$release_dir/deploy/production/compose.yml" ]] || exit 1
 
+# Grafana notifications are disabled in this release. Verify that the
+# Prometheus rule files replacing them are part of the committed release.
+for rule_file in availability resources synthetic api; do
+  [[ -s "$release_dir/deploy/production/prometheus/rules/$rule_file.yml" ]] || {
+    printf 'Missing Prometheus rule file: %s.yml\n' "$rule_file" >&2
+    exit 1
+  }
+done
+
 api_domain=$(
   sed -n 's/^API_DOMAIN=//p' /etc/superstore/stack.env
 )
@@ -177,6 +186,33 @@ curl \
   --retry-delay 3 \
   --max-time 8 \
   http://127.0.0.1:9093/-/ready
+
+curl \
+  --fail \
+  --silent \
+  --show-error \
+  --retry 6 \
+  --retry-all-errors \
+  --retry-delay 3 \
+  --max-time 8 \
+  'http://127.0.0.1:9090/api/v1/rules?type=alert' \
+  | python3 -c '
+import json
+import sys
+
+response = json.load(sys.stdin)
+required = {
+    "superstore-availability",
+    "superstore-resources",
+    "superstore-synthetic",
+    "superstore-api",
+}
+loaded = {group["name"] for group in response["data"]["groups"]}
+missing = sorted(required - loaded)
+if response.get("status") != "success" or missing:
+    raise SystemExit("Prometheus rule groups missing: " + ", ".join(missing))
+print("Prometheus replacement alert rules loaded")
+'
 
 dc exec -T api python -c \
   "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health/ready', timeout=8)"

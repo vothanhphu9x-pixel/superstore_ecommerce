@@ -1,0 +1,66 @@
+groups:
+  - name: superstore-resources
+    rules:
+      - alert: SuperstoreCpuHighWarning
+        expr: 100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{job="node",mode="idle"}[5m]))) >= 60
+        for: 15m
+        labels: {severity: warning, family: cpu}
+        annotations:
+          summary: "VPS CPU above 60%"
+          description: "Five-minute CPU utilization on {{ $labels.instance }} stayed above 60% for 15 minutes."
+
+      - alert: SuperstoreCpuHighCritical
+        expr: 100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{job="node",mode="idle"}[5m]))) >= 85
+        for: 10m
+        labels: {severity: critical, family: cpu}
+        annotations:
+          summary: "VPS CPU above 85%"
+          description: "Five-minute CPU utilization on {{ $labels.instance }} stayed above 85% for 10 minutes."
+
+      - alert: SuperstoreMemoryHighWarning
+        expr: 100 * (1 - node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"}) >= 60
+        for: 15m
+        labels: {severity: warning, family: memory}
+        annotations:
+          summary: "VPS memory above 60%"
+          description: "Available memory on {{ $labels.instance }} remained below 40% for 15 minutes."
+
+      - alert: SuperstoreMemoryHighCritical
+        expr: 100 * (1 - node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"}) >= 85
+        for: 10m
+        labels: {severity: critical, family: memory}
+        annotations:
+          summary: "VPS memory above 85%"
+          description: "Available memory on {{ $labels.instance }} remained below 15% for 10 minutes."
+
+      - alert: SuperstoreDiskHighWarning
+        expr: 100 * (1 - node_filesystem_avail_bytes{job="node",mountpoint="/"} / node_filesystem_size_bytes{job="node",mountpoint="/"}) >= 60
+        for: 1h
+        labels: {severity: warning, family: disk}
+        annotations:
+          summary: "VPS root disk above 60%"
+          description: "Root filesystem on {{ $labels.instance }} remained above 60% for one hour."
+
+      - alert: SuperstoreDiskHighCritical
+        expr: 100 * (1 - node_filesystem_avail_bytes{job="node",mountpoint="/"} / node_filesystem_size_bytes{job="node",mountpoint="/"}) >= 85
+        for: 10m
+        labels: {severity: critical, family: disk}
+        annotations:
+          summary: "VPS root disk above 85%"
+          description: "Root filesystem on {{ $labels.instance }} remained above 85% for 10 minutes."
+
+      - alert: SuperstoreRedisMemoryHighWarning
+        expr: redis_memory_used_bytes{job="redis"} / redis_memory_max_bytes{job="redis"} >= 0.60
+        for: 15m
+        labels: {severity: warning, family: redis_memory}
+        annotations:
+          summary: "Redis memory above 60% of maxmemory"
+          description: "Redis on {{ $labels.instance }} is using at least 60% of its configured maxmemory."
+
+      - alert: SuperstoreRedisMemoryHighCritical
+        expr: redis_memory_used_bytes{job="redis"} / redis_memory_max_bytes{job="redis"} >= 0.85
+        for: 5m
+        labels: {severity: critical, family: redis_memory}
+        annotations:
+          summary: "Redis memory above 85% of maxmemory"
+          description: "Redis on {{ $labels.instance }} is using at least 85% of its configured maxmemory."

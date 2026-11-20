@@ -130,6 +130,15 @@ make compose-check
 
 Chỉ kiểm tra cấu hình, không khởi động container.
 
+Ngay sau đó, `make verify` kiểm tra Compose production bằng env mẫu và cú pháp
+Prometheus/Alertmanager, gồm cả alert rules:
+
+```bash
+make production-config-check
+```
+
+Lệnh không đọc secret VPS hoặc gửi cảnh báo thật.
+
 ### 2.6. DE pipeline contract
 
 ```bash
@@ -137,6 +146,15 @@ make pipeline-contract
 ```
 
 Kiểm tra hợp đồng nguồn và các thành phần của pipeline.
+
+Tiếp theo chạy kiểm tra Newman/Postman offline như PR CI:
+
+```bash
+make newman-check
+```
+
+Lệnh cài đúng dependency từ lockfile, kiểm tra cú pháp JavaScript và chạy test
+collection; không gọi website production.
 
 ### 2.7. dbt parse
 
@@ -278,7 +296,8 @@ Pull Request và khi push vào `main`:
 | `Python syntax`         | Compile Python đã được Git track                                            | File và dòng báo syntax error                               |
 | `FastAPI tests`         | Toàn bộ `RAG_CHATBOT/tests/` (gồm operations), Redis test và `/health/live` | Test case fail hoặc log FastAPI                             |
 | `Next.js checks`        | `npm ci`, lint, type-check, build, E2E Playwright với Redis test            | Bước đầu tiên fail; nếu E2E fail, xem log API/Next cuối job |
-| `Compose and dbt parse` | Compose, DE contract, dbt deps/parse                                        | Lỗi cấu hình hoặc model/dbt parse                           |
+| `Newman synthetic checks` | Cú pháp runner và test Postman collection offline                         | Bước `npm run check` hoặc `npm test`                         |
+| `Compose and dbt parse` | Compose dev/production, Monitoring rules, DE contract, dbt deps/parse      | Lỗi cấu hình, alert rule hoặc model/dbt parse                |
 
 Job `Next.js checks` tự tạo SQLite staff test tạm, sinh password/JWT secret tạm,
 seed staff `marketing`, cài Chromium rồi chạy FastAPI và Next.js trước khi chạy
@@ -303,30 +322,14 @@ và API/frontend được deploy. Cấu hình GitHub Environment: `FRONTEND_ORIG
 (variable), `MONITOR_EMAIL` và `MONITOR_PASSWORD` (secrets). Đây là gate riêng,
 không thuộc Dev/Makefile hay PR CI.
 
-### 4.1. Public health — `DEPLOY-01`
-
-`/api/health` trả `200`, `status=ok`, `api=up`.
-
-### 4.2. Chặn truy cập chưa đăng nhập — `DEPLOY-02`
-
-`/api/internal/staff/me` trước login trả `401`.
-
-### 4.3. Login và cookie CFO — `DEPLOY-03`
-
-Login thành công với role `cfo`; cookie có `Secure`, `HttpOnly`, `SameSite=Lax`,
-`Path=/`.
-
-### 4.4. KPI contract — `DEPLOY-04`
-
-CFO đọc KPI và response có đủ field bắt buộc.
-
-### 4.5. Dashboard RBAC — `DEPLOY-05`
-
-`by-category` không có trong index của CFO; gọi trực tiếp trả `403`.
-
-### 4.6. Logout — `DEPLOY-06`
-
-Logout xóa cookie; `/api/internal/staff/me` sau logout trả `401`.
+| Case ID | Kiểm tra | Kết quả mong đợi |
+| ------- | -------- | ---------------- |
+| `DEPLOY-01` | Public health | `/api/health` trả `200`, `status=ok`, `api=up`. |
+| `DEPLOY-02` | Truy cập trước login | `/api/internal/staff/me` trả `401`. |
+| `DEPLOY-03` | Login và cookie CFO | Login thành công với role `cfo`; cookie có `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/`. |
+| `DEPLOY-04` | KPI contract | CFO đọc được KPI; response có đủ field bắt buộc. |
+| `DEPLOY-05` | Dashboard RBAC | `by-category` không có trong index của CFO; gọi trực tiếp trả `403`. |
+| `DEPLOY-06` | Logout | Cookie bị xóa; `/api/internal/staff/me` sau logout trả `401`. |
 
 Smoke chỉ đọc dữ liệu nghiệp vụ; có thể ghi rate-limit, cache và logs. Kết quả
 ghi nhận theo release/CD run.
@@ -335,13 +338,82 @@ Chi tiết: [Test Plan](test_plan.md), [Traceability Matrix](traceability_matrix
 Khi fail, xem step `Smoke test production website and CFO access` trong job CD;
 không chạy lại bằng credential production nếu chưa được phép.
 
-## 5. Ghi nhận kết quả
+## 5. Monitoring end-to-end — Phase 8
+
+Đây là kiểm tra sau khi monitoring đã triển khai, khác với browser E2E và CD
+deploy smoke. Đọc tiêu chí `E2E-01`–`E2E-08` trong [Test Plan §2.9](test_plan.md)
+và ghi kết quả thực vào [báo cáo Phase 8](end_to_end_validation.md).
+
+### 5.1. Chuẩn bị môi trường
+
+Ghi môi trường, release SHA và thời điểm UTC trước khi chạy. Production chỉ
+gửi request nhỏ và đọc metrics/logs. Các ca cố ý tạo `503` hoặc dừng
+API/Redis/exporter cần **stack staging riêng**, với database, secret, đường log
+và hộp thư thử riêng. Repo chưa có Compose staging hoặc nguồn tạo `503` riêng
+cho staging: giữ `E2E-04`–`E2E-08` ở trạng thái `BLOCKED` tới khi có môi trường
+phù hợp. Không dùng Compose production để chạy fault injection.
+
+### 5.2. Quan sát production — `E2E-01`–`E2E-03`
+
+1. Theo [Monitoring Operation §1.1–1.2](../deploy/monitoring/operation.md),
+   đo Counter/Histogram trước và sau một request thật; lưu route, status, giá
+   trị và thời điểm. `/metrics`, `/api/health/live`, `/api/health/ready` bị
+   loại khỏi HTTP Counter/Histogram, nên dùng request API khác.
+2. Theo [Monitoring Operation §2](../deploy/monitoring/operation.md), lấy
+   `x-request-id` của response và đối chiếu FastAPI `http.log`, Nginx access
+   log và hai stream Loki. Request cần đi qua Nginx để kiểm tra Nginx log.
+3. Kiểm tra timer Newman `public`/`staff`, trạng thái Kuma, năm target
+   `up=1` (gồm Alertmanager sau Phase 7), `redis_up=1` và các panel tương ứng.
+   Hai truy vấn `newman_last_run_timestamp_seconds{job="node",mode="timer"}`
+   và `newman_consecutive_failures{job="node",mode="timer"}` phải trả hai
+   collection mỗi truy vấn; `node_textfile_scrape_error{job="node"}=0` chỉ
+   xác nhận collector không báo lỗi đọc file. Dùng
+   [Query Library](../deploy/monitoring/promql_logql_library.md) và
+   [Synthetic Baseline](../deploy/monitoring/synthetic_baseline.md).
+Panel có dữ liệu hoặc container `Running` không đủ để đánh dấu `PASS`; lưu
+giá trị truy vấn, log hoặc ảnh tại cùng khoảng thời gian.
+
+### 5.3. Tạo lỗi và phục hồi trên staging — `E2E-04`–`E2E-08`
+
+Chạy từng ca riêng, sau đó phục hồi và xác nhận bình thường trước khi sang ca
+tiếp theo. Staging cần cùng tên Prometheus job/rule và chu kỳ scrape `15s` như
+[cấu hình production](../../deploy/production/prometheus.yml), nhưng dùng
+receiver email thử. Rule target/Redis có `for: 2m`: ghi lần lượt Pending,
+Firing, receiver/email và Resolved. [Monitoring Operation §7.3](../deploy/monitoring/operation.md)
+mô tả cách thử email bằng rule riêng trên staging.
+
+| Case | Tác động trên staging | Bằng chứng cần lưu |
+| ---- | --------------------- | ------------------ |
+| `E2E-04` | Gửi request tới nguồn trả `503` chỉ có trên staging | Counter nhãn `status="503"`, HTTP/Nginx log và Loki |
+| `E2E-05` | Dừng Redis, giữ exporter | `up{job="redis"}=1`, `redis_up=0`, `SuperstoreRedisUnavailable` Pending → Firing |
+| `E2E-06` | Dừng riêng Redis exporter, phục hồi; sau đó dừng riêng API | `up{job="redis"}=0` rồi `up{job="fastapi"}=0`; `SuperstoreScrapeTargetDown` Pending → Firing cho từng target |
+| `E2E-07` | Giữ lỗi đến khi alert Firing | Alertmanager nhận đúng receiver và email Firing đến hộp thư thử |
+| `E2E-08` | Khởi động lại thành phần vừa dừng | `up`/`redis_up` về `1`, alert hết Firing và email Resolved đến hộp thư thử |
+
+Chỉ ghi `PASS` cho luồng email khi hộp thư nhận thật. `E2E-04` gửi một request
+`503`, chưa đạt rule 5xx ≥3 lỗi trên cùng route trong 5 phút, nên ca này không
+yêu cầu email. Sau ca cuối, xác nhận các
+service staging hoạt động và không còn alert thử Firing; gỡ rule thử khỏi
+staging. `make production-config-check` đã chạy rule test bằng dữ liệu giả,
+không thay cho kiểm tra end-to-end này.
+
+### 5.4. Kết quả
+
+Điền UTC, release SHA, giá trị trước/sau, log/panel/email và defect vào
+[báo cáo Phase 8](end_to_end_validation.md). Phase 8 chỉ `DONE` khi các ca
+bắt buộc pass, staging đã phục hồi và email Firing/Resolved được xác nhận.
+
+## 6. Ghi nhận kết quả
 
 Với mỗi PR, ghi Case ID, kết quả, URL GitHub Actions/Airflow run và Defect ID
 (nếu có) vào mục **Test traceability** của PR template. Cập nhật
 [Traceability Matrix](traceability_matrix.md) khi thêm/đổi case, test hoặc chốt
 baseline. Không đánh dấu `PASS` chỉ vì test file đã tồn tại hoặc `dbt parse`
 thành công.
+
+Monitoring Phase 8 dùng [báo cáo riêng](end_to_end_validation.md); cập nhật
+[Traceability Matrix](traceability_matrix.md) khi case/requirement thay đổi hoặc
+khi chốt baseline đã xác minh. Ca chưa thể chạy ghi `BLOCKED`.
 
 Chưa thêm `--cov-fail-under` vào CI. Đo coverage của suite hiện tại rồi mới
 thống nhất ngưỡng chặn merge.

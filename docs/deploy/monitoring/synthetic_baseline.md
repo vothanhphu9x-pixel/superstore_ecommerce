@@ -14,8 +14,8 @@ FastAPI /metrics + Node/Redis Exporter ──► Prometheus ──► PromQL/Gra
 
 Kuma và một runner collection tạo **traffic tổng hợp có kiểm soát** khi chưa có
 người dùng thật. Mặc định dùng Newman tự chạy trên VPS; Postman Cloud là lựa
-chọn bên ngoài nếu cần. Prometheus tự scrape bốn job: fastapi, redis, node,
-prometheus.
+chọn bên ngoài nếu cần. Prometheus tự scrape năm job sau release mới: fastapi,
+redis, node, prometheus, alertmanager.
 Đây là baseline **idle + synthetic**, chưa phản ánh giờ cao điểm hoặc sức
 chịu tải của ứng dụng.
 
@@ -361,6 +361,7 @@ bộ nhớ sang Postman Collection v2.1. Không cần export JSON hoặc Postman
 `public` chạy mỗi 5 phút, `staff` chạy mỗi phút. Mỗi lượt ghi kết quả tổng hợp,
 HTTP status và thời gian từng request vào file `.prom`; không ghi body, password
 hay cookie. Node Exporter đọc file này để Prometheus/Grafana hiển thị.
+
 Staff gọi lại 13 request mỗi phút; Redis cache có thể trả dashboard mà không
 truy vấn Snowflake ở từng lượt. Vì vậy đây là kiểm tra API/luồng đăng nhập,
 không phải phép kiểm tra kết nối Snowflake mới mỗi phút.
@@ -441,11 +442,19 @@ Sau một lượt Newman và một lần scrape (15 giây), kiểm tra:
 curl -i -fsSG http://127.0.0.1:9090/api/v1/query \
   --data-urlencode 'query=newman_last_run_success{mode="timer"}'
 curl -i -fsSG http://127.0.0.1:9090/api/v1/query \
+  --data-urlencode 'query=newman_last_run_timestamp_seconds{job="node",mode="timer"}'
+curl -i -fsSG http://127.0.0.1:9090/api/v1/query \
+  --data-urlencode 'query=newman_consecutive_failures{job="node",mode="timer"}'
+curl -i -fsSG http://127.0.0.1:9090/api/v1/query \
   --data-urlencode 'query=node_textfile_scrape_error'
 ```
 
-**Mong đợi:** có hai series (`collection="public"` và `collection="staff"`,
-đều có `mode="timer"`) với giá trị `1` khi pass;
-`node_textfile_scrape_error=0`. Mở Grafana qua SSH tunnel ở
+**Mong đợi:** `last_run_success` có hai series (`collection="public"` và
+`collection="staff"`, đều `mode="timer"`), giá trị `1` khi PASS. Hai truy vấn
+timestamp và consecutive failures cũng phải trả **hai series mỗi truy vấn**:
+đó là bốn chuỗi mà rule `SuperstoreNewmanMetricMissing` theo dõi. Timestamp
+tăng sau cả PASS lẫn FAIL. `node_textfile_scrape_error=0` chỉ cho biết Node
+Exporter không báo lỗi đọc file; giá trị này không chứng minh bốn chuỗi trên
+đều tồn tại. Mở Grafana qua SSH tunnel ở
 [Operation §0.3](operation.md) → folder **Superstore Monitoring** → dashboard
 **Superstore — Newman synthetic checks**. Dashboard có lần chạy mới nhất,

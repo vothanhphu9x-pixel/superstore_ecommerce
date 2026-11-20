@@ -222,11 +222,14 @@ sudo nano /etc/superstore/stack.env
 sudo nano /etc/superstore/images.source.env
 ```
 
-Trong `grafana.env`, dùng `GF_SMTP_USER`, `GF_SMTP_PASSWORD` và
-`GF_SMTP_FROM_ADDRESS` (cùng địa chỉ gửi). Nếu file cũ còn
-`GRAFANA_SMTP_USER`/`GRAFANA_SMTP_PASSWORD`, đổi tên hai key này trước khi
-khởi động lại Grafana. Compose chỉ đọc file này vào container; không nội suy
-các key trong file thành biến `${...}`.
+Trong `grafana.env`, chỉ cần tài khoản quản trị và cấu hình đăng nhập như
+[file mẫu](../../deploy/production/grafana.env.example). Grafana không gửi
+notification; Prometheus và Alertmanager xử lý cảnh báo/email. Nếu file thật
+trên VPS còn `GF_SMTP_*` hoặc `GRAFANA_SMTP_*`, xóa các dòng đó khi cập nhật
+cấu hình. Compose đặt `GF_UNIFIED_ALERTING_ENABLED=false` và
+`GF_SMTP_ENABLED=false`, nên Grafana vẫn hiển thị dashboard/Explore nhưng
+không gửi thông báo riêng. Compose đọc `grafana.env` vào container; không nội
+suy các key trong file thành biến `${...}`.
 
 Snowflake config keys mà API hiện đọc:
 
@@ -415,24 +418,25 @@ Workflow đang để lại `release.tar.gz` sau khi giải nén tại release di
 này không được Compose sử dụng; sau khi xác nhận release ổn định, có thể xóa archive
 của đúng release để tiết kiệm dung lượng, giữ lại thư mục đã giải nén.
 
-## 9. Connect Grafana, Prometheus & Minio By SSH tunnel
+## 9. Mở Grafana, Prometheus, MinIO và Alertmanager qua SSH tunnel
 
-SSH tunnel không triển khai hay khởi chạy Grafana và Prometheus. Nó chỉ tạo đường truyền bảo mật từ máy Mac đến hai port localhost trên VPS:
+SSH tunnel chỉ nối các cổng localhost trên Mac với VPS; các service phải chạy sẵn trên VPS.
 
-```
-ssh -N \
+```bash
+ssh -o ExitOnForwardFailure=yes -N \
   -L 3001:127.0.0.1:3001 \
   -L 9090:127.0.0.1:9090 \
   -L 9001:127.0.0.1:9001 \
+  -L 9093:127.0.0.1:9093 \
   deploy@YOUR_VPS
 ```
 
-| Máy Mac (Local)  | VPS (Host)       | Dịch vụ       |
-| ---------------- | ---------------- | ------------- |
-| `localhost:3001` | `127.0.0.1:3001` | Grafana       |
-| `localhost:9090` | `127.0.0.1:9090` | Prometheus    |
-| `localhost:9000` | `127.0.0.1:9000` | MinIO API     |
-| `localhost:9001` | `127.0.0.1:9001` | MinIO Console |
+| Máy Mac (Local)  | VPS (Host)       | Dịch vụ           |
+| ---------------- | ---------------- | ----------------- |
+| `localhost:3001` | `127.0.0.1:3001` | Grafana           |
+| `localhost:9090` | `127.0.0.1:9090` | Prometheus        |
+| `localhost:9001` | `127.0.0.1:9001` | MinIO Console     |
+| `localhost:9093` | `127.0.0.1:9093` | Alertmanager      |
 
 Một lưu ý: Trước khi kiểm tra 4 Targets ở trạng thái UP, phải bảo đảm FastAPI đã expose /metrics, Redis Exporter và Node Exporter hoạt động, đồng thời Prometheus có thể truy cập chúng qua Docker network
 
@@ -671,7 +675,9 @@ sudo bash "/opt/superstore/releases/$RELEASE_SHA/deploy/production/bin/deploy.sh
   "$RELEASE_SHA" "$API_IMAGE"
 ```
 
-`deploy.sh` kéo image, kiểm tra readiness/HTTPS rồi cập nhật symlink `current`.
+`deploy.sh` kéo image, kiểm tra bốn nhóm rule Prometheus đã nạp, kiểm tra
+readiness/HTTPS rồi cập nhật symlink `current`. Release thiếu nhóm rule sẽ
+fail trước khi được đánh dấu là release hiện hành.
 Tạo lại các bucket MinIO cần cho monitoring nếu dùng, vì dữ liệu MinIO không
 nằm trong backup.
 Kiểm tra `/api/health/ready`, staff login, dashboard và production smoke theo

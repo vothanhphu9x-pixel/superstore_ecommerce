@@ -32,3 +32,8 @@ scrape_configs:
     static_configs:
       - targets:
           - prometheus:9090
+
+  - job_name: alertmanager
+    static_configs:
+      - targets:
+          - alertmanager:9093

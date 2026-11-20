@@ -61,19 +61,23 @@ function label(value) {
 function writeMetrics(result) {
   const stateFile = path.join(metricsDir, `newman-${kind}-${mode}.state.json`);
   const metricsFile = path.join(metricsDir, `newman-${kind}-${mode}.prom`);
-  let state = { runs: 0, failed: 0, assertionsFailed: 0 };
+  let state = { runs: 0, failed: 0, assertionsFailed: 0, consecutiveFailures: 0 };
   if (fs.existsSync(stateFile)) {
     state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
   }
   state.runs += 1;
   state.failed += Number(!result.ok);
   state.assertionsFailed += result.assertionsFailed;
+  state.consecutiveFailures = result.ok ? 0 : (state.consecutiveFailures || 0) + 1;
 
   const tags = `{collection=${label(kind)},mode=${label(mode)}}`;
   const lines = [
     "# HELP newman_last_run_success 1 if the most recent collection run passed.",
     "# TYPE newman_last_run_success gauge",
     `newman_last_run_success${tags} ${Number(result.ok)}`,
+    "# HELP newman_consecutive_failures Number of consecutive failed collection runs.",
+    "# TYPE newman_consecutive_failures gauge",
+    `newman_consecutive_failures${tags} ${state.consecutiveFailures}`,
     "# HELP newman_last_run_timestamp_seconds Unix time of the most recent completed run.",
     "# TYPE newman_last_run_timestamp_seconds gauge",
     `newman_last_run_timestamp_seconds${tags} ${result.timestamp}`,

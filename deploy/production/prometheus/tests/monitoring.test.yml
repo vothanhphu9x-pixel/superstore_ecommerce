@@ -1,0 +1,138 @@
+rule_files:
+  - ../rules/resources.yml
+  - ../rules/synthetic.yml
+  - ../rules/api.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: consecutive_newman_failures_clear_after_success
+    interval: 1m
+    input_series:
+      - series: 'newman_consecutive_failures{job="node",mode="timer",collection="staff"}'
+        values: '0 1 2 2 0'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: SuperstoreNewmanConsecutiveFailures
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: SuperstoreNewmanConsecutiveFailures
+        exp_alerts:
+          - exp_labels:
+              job: node
+              mode: timer
+              collection: staff
+              severity: critical
+              family: newman_fail
+            exp_annotations:
+              summary: Newman staff failed twice in a row
+              description: Check the latest systemd run and the public website journey.
+      - eval_time: 4m
+        alertname: SuperstoreNewmanConsecutiveFailures
+        exp_alerts: []
+
+  - name: cpu_thresholds_respect_for_period
+    interval: 1m
+    input_series:
+      - series: 'node_cpu_seconds_total{job="node",instance="node-exporter:9100",mode="idle",cpu="0"}'
+        values: '0+0x21'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: SuperstoreCpuHighWarning
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: SuperstoreCpuHighWarning
+        exp_alerts:
+          - exp_labels:
+              instance: node-exporter:9100
+              severity: warning
+              family: cpu
+            exp_annotations:
+              summary: VPS CPU above 60%
+              description: Five-minute CPU utilization on node-exporter:9100 stayed above 60% for 15 minutes.
+      - eval_time: 20m
+        alertname: SuperstoreCpuHighCritical
+        exp_alerts:
+          - exp_labels:
+              instance: node-exporter:9100
+              severity: critical
+              family: cpu
+            exp_annotations:
+              summary: VPS CPU above 85%
+              description: Five-minute CPU utilization on node-exporter:9100 stayed above 85% for 10 minutes.
+
+  - name: absent_timer_metrics_alert_for_each_collection
+    interval: 1m
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: SuperstoreNewmanMetricMissing
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SuperstoreNewmanMetricMissing
+        exp_alerts:
+          - exp_labels:
+              job: node
+              mode: timer
+              collection: staff
+              severity: warning
+              family: newman_missing
+            exp_annotations:
+              summary: Newman staff timer metric is missing
+              description: Check timer installation, runner version, and /opt/superstore/metrics/newman textfiles.
+          - exp_labels:
+              job: node
+              mode: timer
+              collection: public
+              severity: warning
+              family: newman_missing
+            exp_annotations:
+              summary: Newman public timer metric is missing
+              description: Check timer installation, runner version, and /opt/superstore/metrics/newman textfiles.
+
+  - name: api_5xx_escalates_then_recovers
+    interval: 1m
+    input_series:
+      - series: 'superstore_http_requests_total{job="fastapi",route="/dashboard",status="500",method="GET"}'
+        values: '0 0 0 1 2 3 4 5 5 5 5 5 5 5'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: SuperstoreApi5xxWarning
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: SuperstoreApi5xxWarning
+        exp_alerts:
+          - exp_labels:
+              route: /dashboard
+              severity: warning
+              family: api_5xx
+            exp_annotations:
+              summary: API 5xx on /dashboard
+              description: At least three 5xx in five minutes on this route. Inspect FastAPI and Nginx logs.
+      - eval_time: 7m
+        alertname: SuperstoreApi5xxCritical
+        exp_alerts:
+          - exp_labels:
+              route: /dashboard
+              severity: critical
+              family: api_5xx
+            exp_annotations:
+              summary: Repeated API 5xx on /dashboard
+              description: At least five 5xx in five minutes on this route.
+      - eval_time: 13m
+        alertname: SuperstoreApi5xxWarning
+        exp_alerts: []
+      - eval_time: 13m
+        alertname: SuperstoreApi5xxCritical
+        exp_alerts: []
+
+  - name: api_5xx_counts_each_route_separately
+    interval: 1m
+    input_series:
+      - series: 'superstore_http_requests_total{job="fastapi",route="/staff/login",status="503",method="POST"}'
+        values: '0 0 0 1 2 2'
+      - series: 'superstore_http_requests_total{job="fastapi",route="/dashboard",status="503",method="GET"}'
+        values: '0 0 0 1 2 2'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: SuperstoreApi5xxWarning
+        exp_alerts: []

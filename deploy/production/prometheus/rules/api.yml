@@ -1,0 +1,33 @@
+# P95 thresholds are temporary day-1 values; review after 14/30 days.
+groups:
+  - name: superstore-api
+    rules:
+      - alert: SuperstoreApi5xxWarning
+        expr: sum by (route) (increase(superstore_http_requests_total{job="fastapi",status=~"5..",route!="unmatched"}[5m])) >= 3
+        labels: { severity: warning, family: api_5xx }
+        annotations:
+          summary: "API 5xx on {{ $labels.route }}"
+          description: "At least three 5xx in five minutes on this route. Inspect FastAPI and Nginx logs."
+
+      - alert: SuperstoreApi5xxCritical
+        expr: sum by (route) (increase(superstore_http_requests_total{job="fastapi",status=~"5..",route!="unmatched"}[5m])) >= 5
+        labels: { severity: critical, family: api_5xx }
+        annotations:
+          summary: "Repeated API 5xx on {{ $labels.route }}"
+          description: "At least five 5xx in five minutes on this route."
+
+      - alert: SuperstoreApiP95Warning
+        expr: (histogram_quantile(0.95, sum by (route, le) (rate(superstore_http_request_duration_seconds_bucket{job="fastapi",route!="unmatched"}[5m]))) > 5.52) and on (route) (sum by (route) (increase(superstore_http_requests_total{job="fastapi",route!="unmatched"}[24h])) >= 20)
+        for: 1h
+        labels: { severity: warning, family: api_p95 }
+        annotations:
+          summary: "API P95 above 5.52 seconds on {{ $labels.route }}"
+          description: "Temporary warning threshold: 1.5 times the day-1 peak P95 of 3.68s. Review after 14 days."
+
+      - alert: SuperstoreApiP95Critical
+        expr: (histogram_quantile(0.95, sum by (route, le) (rate(superstore_http_request_duration_seconds_bucket{job="fastapi",route!="unmatched"}[5m]))) > 7.36) and on (route) (sum by (route) (increase(superstore_http_requests_total{job="fastapi",route!="unmatched"}[24h])) >= 20)
+        for: 1h
+        labels: { severity: critical, family: api_p95 }
+        annotations:
+          summary: "API P95 above 7.36 seconds on {{ $labels.route }}"
+          description: "Temporary critical threshold: twice the day-1 peak P95 of 3.68s. Review after 14 days."

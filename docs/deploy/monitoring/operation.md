@@ -10,9 +10,11 @@ sudo bash "$COMPOSE" ps
 ```
 
 **Mong đợi:** `api`, `redis`, `redis-exporter`, `prometheus`, `node-exporter`,
-`alloy`, `loki`, `minio`, `grafana` ở trạng thái `Up`; `api` và `redis` healthy.
+`alloy`, `loki`, `minio`, `grafana`, `alertmanager` ở trạng thái `Up`; `api` và
+`redis` healthy.
 
-Kuma dùng stack riêng; Alertmanager chưa được cài:
+Kuma dùng stack riêng. Ở lần audit Phase 0 ngày 14/11, Alertmanager chưa được
+cài; trạng thái hiện tại cần xác nhận bằng lệnh sau:
 
 ```bash
 sudo docker ps -a --format '{{.Names}}\t{{.Status}}' |
@@ -37,7 +39,7 @@ curl -i -fsS http://127.0.0.1:8000/metrics |
 Counter và ba loại mẫu Histogram `_bucket`, `_sum`, `_count`. Health và
 `/metrics` không làm Counter tăng.
 
-Kiểm tra bốn scrape target:
+Kiểm tra scrape target (`alertmanager` là job thứ năm sau release mới):
 
 ```bash
 curl -i -fsSG http://127.0.0.1:9090/api/v1/query \
@@ -112,7 +114,7 @@ ssh -N \
 
 Mở `http://localhost:3001` → **Grafana Explore**:
 
-- Datasource **Prometheus**: truy vấn `up` → bốn job có giá trị `1`.
+- Datasource **Prometheus**: truy vấn `up` → năm job có giá trị `1` sau release mới.
 - Datasource **Loki**: chọn _Last 15 minutes_, truy vấn `{service="fastapi"}`
   và `{service="nginx"}` → thấy log của request vừa gọi.
 - `http://localhost:3002` → Uptime Kuma mở được; kiểm tra monitor public
@@ -135,17 +137,32 @@ Nếu file không có dòng mới, kiểm tra API và `APP_LOG_DIR`; nếu file 
 nhưng Grafana rỗng, kiểm tra log Alloy/Loki, nhãn `service="fastapi"` và thời
 gian truy vấn trong Explore.
 
-### 0.4. Kiểm tra Grafana SMTP và phần chưa cài
+### 0.4. Kiểm tra Grafana không gửi notification
 
-Kiểm tra **sự hiện diện** của biến SMTP mà không in giá trị:
+Trước khi tắt notification Grafana, deploy kiểm tra bốn file rule trong release
+và bốn nhóm rule đã nạp ở Prometheus. Nếu thiếu, deploy fail và thử khôi phục
+container của release trước. Sau khi deploy thành công, xóa các dòng
+`GF_SMTP_*`/`GRAFANA_SMTP_*` cũ trong `/etc/superstore/grafana.env` và tạo lại
+container Grafana. Không xóa volume `grafana_data` vì nó giữ dashboard và tài
+khoản:
 
 ```bash
+sudo nano /etc/superstore/grafana.env
+sudo bash "$COMPOSE" up -d --force-recreate grafana
 sudo bash "$COMPOSE" exec -T grafana sh -c \
-  'test -n "$GF_SMTP_USER" && test -n "$GF_SMTP_PASSWORD" && test -n "$GF_SMTP_FROM_ADDRESS" && echo "SMTP variables present"'
+  'test "$GF_UNIFIED_ALERTING_ENABLED" = false && test "$GF_SMTP_ENABLED" = false && echo "Grafana notifications disabled"'
 ```
 
-**Mong đợi:** `SMTP variables present`. Đây chỉ là kiểm tra cấu hình; SMTP chỉ
-đạt **DONE** khi gửi email thử từ Grafana thành công.
+**Mong đợi:** `Grafana notifications disabled`. Compose tắt Grafana Alerting
+và SMTP; dashboard/Explore vẫn dùng được. Contact point/notification policy cũ
+có thể còn lưu trong `grafana_data` nhưng không được thực thi; email production
+do Alertmanager gửi. Kiểm tra riêng email Firing/Resolved ở Phase 7. Việc xóa
+contact point/rule cũ khỏi volume chỉ làm sau khi xác nhận cả bốn nhóm
+Prometheus và email Alertmanager hoạt động trên VPS.
+
+Loki chỉ dùng cho Explore, không có Loki Ruler. Datasource provision đặt
+`jsonData.manageAlerts: false` để Grafana không tải rule Loki và không hiện
+`Cannot load rules for this datasource`; truy vấn log vẫn hoạt động.
 
 ## 1. Phase 1 — xác minh metrics
 
@@ -322,7 +339,7 @@ done
 ```
 
 **Mong đợi:** HTTP `200`, JSON `status="success"`; API rate dương sau request,
-P95 có giá trị tính bằng giây, `redis_up=1`, bốn target `up=1`. Chạy tiếp các
+P95 có giá trị tính bằng giây, `redis_up=1`, năm target `up=1` sau release mới. Chạy tiếp các
 query VPS/Redis trong thư viện và kiểm tra đơn vị. Query HTTP 5xx có thể rỗng
 khi chưa từng có lỗi 5xx; không tạo lỗi production chỉ để có kết quả.
 
@@ -364,8 +381,9 @@ trong [Query Library](promql_logql_library.md). Ghi số lượt thực tế, s�
 P95, 5xx, mức thường gặp và đỉnh vào [Threshold, SLI/SLO](threshold_sli_slo.md)
 theo ba mốc:
 
-1. **Sau 1 ngày:** xem _Last 24 hours_; dùng ngưỡng khả dụng và giới hạn tài
-   nguyên tạm, theo dõi API mà chưa suy tỷ lệ lỗi/P95 từ mẫu ít.
+1. **Sau 1 ngày:** xem _Last 24 hours_; dùng ngưỡng tài nguyên và P95 tạm từ
+   số đo ngày đầu. Rule 5xx dùng số lỗi trên từng route trong 5 phút; điều kiện
+   ≥20 request/24h chỉ áp dụng cho P95.
 2. **Sau 14 ngày:** xem _Last 14 days_; đủ số mẫu mới chọn ngưỡng API theo
    baseline thực và rà lại giới hạn tài nguyên.
 3. **Sau 30 ngày:** xem _Last 30 days_; thay baseline 14 ngày bằng số liệu mới,
@@ -387,22 +405,28 @@ hiển thị `%` (ví dụ `0,16` = `16%`).
 Grafana/Prometheus/Kuma trong cột **Bằng chứng**.
 
 Trong sheet **Chỉ số chung**, `F` là số đo, `G` là rule đang chạy, `H` là
-ngưỡng đề xuất và `I` là quyết định duyệt. Mốc ngày 1 chỉ quan sát API 5xx/P95;
-ngưỡng P95 chờ baseline 14 ngày. Nếu ghi **P95 5 phút cao nhất / 24h**, dùng
+ngưỡng đề xuất và `I` là quyết định duyệt. Ngưỡng P95 ngày 1 trong rule
+hiện chỉ là tạm; rule 5xx dùng ngưỡng vận hành 3/5 lỗi trong 5 phút. Cập nhật
+cột `G` khi đã xác minh rule trên production. Nếu ghi
+**P95 5 phút cao nhất / 24h**, dùng
 `API-08` ở chế độ **Instant** tại giờ chốt. `256 MiB` là giới hạn Redis; mức
 cảnh báo tạm là `153,6 MiB`, nghiêm trọng `217,6 MiB` theo
-[Threshold, SLI/SLO](threshold_sli_slo.md). Ngưỡng đề xuất chưa tự động
-trở thành alert trên VPS.
+[Threshold, SLI/SLO](threshold_sli_slo.md). Thay ngưỡng sau 14/30 ngày dựa
+trên số đo thực và ghi lại commit/release đã đổi rule.
 
 ### 4.2. Kiểm tra rule trước khi chạy
 
-Sau khi release chứa `prometheus/rules/availability.yml` đã có trên VPS:
+Sau khi release chứa bốn file rule trong `prometheus/rules/` đã có trên VPS:
 
 ```bash
 COMPOSE=/opt/superstore/current/deploy/production/bin/compose.sh
 sudo bash "$COMPOSE" config --quiet
 sudo bash "$COMPOSE" run --rm --no-deps --entrypoint /bin/promtool \
-  prometheus check rules /etc/prometheus/rules/availability.yml
+  prometheus check rules \
+  /etc/prometheus/rules/availability.yml \
+  /etc/prometheus/rules/resources.yml \
+  /etc/prometheus/rules/synthetic.yml \
+  /etc/prometheus/rules/api.yml
 sudo bash "$COMPOSE" run --rm --no-deps --entrypoint /bin/promtool \
   prometheus check config /etc/prometheus/prometheus.yml
 ```
@@ -425,17 +449,12 @@ curl -i -fsS 'http://127.0.0.1:9090/api/v1/rules?type=alert'
 curl -i -fsS 'http://127.0.0.1:9090/api/v1/alerts'
 ```
 
-**Mong đợi:** `superstore-availability` có hai rule
-`SuperstoreScrapeTargetDown` và `SuperstoreRedisUnavailable`. Khi các service
-khỏe, chúng ở trạng thái Inactive. `up=0` nghĩa là Prometheus không scrape
-được target; `redis_up=0` với `up{job="redis"}=1` nghĩa là exporter chạy nhưng
-không kết nối được Redis. Chỉ thử tạo lỗi trên staging, không dừng service
-production để kiểm tra rule.
-
-Ghi kết quả thực vào [Discovery Result](discovery_result.md). Hai rule này chưa
-gửi email vì Alertmanager thuộc Phase 7. Các ngưỡng 5xx, P95, CPU, RAM và disk
-chỉ thêm sau khi hoàn tất §4.1 và chọn giá trị trong
-[Threshold, SLI/SLO](threshold_sli_slo.md).
+**Mong đợi:** bốn nhóm `superstore-availability`, `superstore-resources`,
+`superstore-synthetic`, `superstore-api` được nạp. Khi điều kiện chưa đạt,
+rule ở trạng thái Inactive. `up=0` nghĩa là mất scrape; `redis_up=0` với
+`up{job="redis"}=1` nghĩa là exporter chạy nhưng không kết nối Redis. Ghi
+kết quả thực vào [Discovery Result](discovery_result.md). Đường gửi email
+được kiểm tra riêng ở Phase 7.
 
 ### 4.4. Lưu bản dashboard
 
@@ -445,6 +464,10 @@ bản lưu tài liệu, **không tự nạp** từ thư mục `docs`. Khi cần 
 Grafana → Dashboards → New → Import, tải JSON và kiểm tra UID trước khi chọn
 **Import (Overwrite)**. Dashboard hiện tại vẫn được Grafana lưu trong volume
 `grafana_data`.
+Sau khi cập nhật DevOps Operations trong repo, import bản JSON mới qua SSH
+tunnel; cùng UID `adnbj65` để cập nhật đúng dashboard. Kiểm tra hai panel
+`Alerts đang Firing`, `Chi tiết alert đang Firing` và panel `Scrape targets`
+hiển thị đủ năm job. Bản export trong Git không tự thay đổi giao diện VPS.
 
 ## 5. Phase 5 — Grafana dashboard
 
@@ -454,10 +477,16 @@ theo vai trò đã có bản export ở §4.4; dashboard Newman được nạp t
 
 | Người xem | Dashboard                            | Đọc theo thứ tự                                                                                  |
 | --------- | ------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| DevOps    | **Superstore - Devops Operations**   | Bốn scrape target → Newman public/staff và giây từ lần cuối → Redis → API 5xx/P95 → CPU/RAM/disk |
+| DevOps    | **Superstore - Devops Operations**   | Alert đang Firing → năm scrape target → Newman public/staff và giây từ lần cuối → Redis → API 5xx/P95 → CPU/RAM/disk |
 | Dev       | **Superstore — Dev Troubleshooting** | Route/status có traffic → 5xx/P95 theo route → FastAPI/Nginx HTTP log → application ERROR        |
 
-use [Query Library](promql_logql_library.md) để truy vấn và vẽ pannel
+Panel `Alerts đang Firing` dùng
+`count(ALERTS{alertstate="firing"}) or vector(0)`; bảng bên cạnh dùng
+`ALERTS{alertstate="firing"}` để xem `alertname`, `severity`, `route`,
+`instance` hoặc `collection` khi nhãn đó có mặt. Số `0`/bảng rỗng chỉ xác nhận
+không có alert Firing **nếu** datasource Prometheus đang truy vấn được. Alert
+được đánh giá trong Prometheus và gửi email qua Alertmanager; Grafana chỉ hiển
+thị. Dùng [Query Library](promql_logql_library.md) để mở rộng truy vấn.
 
 ### 5.1. Điều tra theo dấu hiệu
 
@@ -468,7 +497,7 @@ trong [Query Library](promql_logql_library.md).
 ```text
 No data
 → kiểm tra time range/datasource → DevOps: Scrape targets
-→ `up{job=~"fastapi|redis|node|prometheus"}`
+→ `up{job=~"fastapi|redis|node|prometheus|alertmanager"}`
 → up=0: kiểm tra target tương ứng; tất cả up=1: xem Newman freshness và traffic.
 
 Newman FAIL hoặc lần chạy cuối quá cũ
@@ -477,7 +506,7 @@ Newman FAIL hoặc lần chạy cuối quá cũ
 → xem timer/journal của collection tương ứng.
 
 Dashboard báo 5xx/502
-→ DevOps: API 5xx/24h → Dev: API 5xx theo route
+→ DevOps: API 5xx/5m theo route (API-09) → Dev: HTTP log theo route
 → Loki: `{service="fastapi",log_type="http"} | json | status >= 500`
 → đối chiếu Nginx bằng cùng `x-request-id` (§2.2).
 
@@ -535,8 +564,10 @@ sudo install -d -m 750 /etc/superstore/alertmanager
 sudo install -o root -g 65534 -m 640 \
   /tmp/superstore-alertmanager-config.yml \
   /etc/superstore/alertmanager/config.yml
-sudo install -o root -g 65534 -m 640 \
-  /dev/null /etc/superstore/alertmanager/smtp_password
+if ! sudo test -e /etc/superstore/alertmanager/smtp_password; then
+  sudo install -o root -g 65534 -m 640 \
+    /dev/null /etc/superstore/alertmanager/smtp_password
+fi
 sudo nano /etc/superstore/alertmanager/config.yml
 sudo nano /etc/superstore/alertmanager/smtp_password
 sudo unlink /tmp/superstore-alertmanager-config.yml
@@ -554,9 +585,6 @@ sudo bash /opt/superstore/current/deploy/production/bin/pin-images.sh \
   /etc/superstore/images.source.env "$candidate"
 sudo diff -u /etc/superstore/images.lock.env "$candidate"
 ```
-
-`diff` cần cho thấy key `ALERTMANAGER_IMAGE` mới. Nếu digest image khác cũng
-đổi, kiểm tra trước khi tiếp tục. Sau khi duyệt:
 
 ```bash
 sudo install -o root -g root -m 600 \
@@ -581,15 +609,164 @@ curl -i -fsS http://127.0.0.1:9090/api/v1/rules
 curl -i -fsS http://127.0.0.1:9090/api/v1/alertmanagers
 ```
 
-Mong đợi: readiness `200`, hai rule được nạp, đích `alertmanager:9093` trong
+Mong đợi: readiness `200`, bốn nhóm rule được nạp, đích `alertmanager:9093` trong
 `activeAlertmanagers`. Nếu sửa config SMTP **sau deploy**, chạy
 `sudo bash "$COMPOSE" up -d --force-recreate alertmanager`, rồi kiểm tra lại.
 
+| Nhóm rule | Điều kiện tạm trong source | File |
+| --- | --- | --- |
+| Availability | FastAPI, Redis exporter, Node exporter, Prometheus hoặc Alertmanager mất scrape 2m; Redis không sẵn sàng 2m | `availability.yml` |
+| VPS/Redis | CPU, RAM, disk root ≥60% warning hoặc ≥85% critical; Redis RAM ≥60%/85% của `maxmemory` | `resources.yml` |
+| Synthetic | Newman public/staff fail 2 lượt liên tiếp, trễ lịch, thiếu metric hoặc Node Exporter báo lỗi textfile | `synthetic.yml` |
+| API | Cùng route: 5xx ≥3/5 lỗi trong 5 phút; P95 5 phút >5,52/7,36 giây liên tục 1h và route có ≥20 request/24h | `api.yml` |
+
+Năm rule trong `synthetic.yml` kiểm tra các bước khác nhau của luồng Newman →
+file `.prom` → Node Exporter → Prometheus:
+
+| Rule | Điều kiện Firing | Cần kiểm tra |
+| --- | --- | --- |
+| `SuperstoreNewmanConsecutiveFailures` | Public hoặc staff FAIL ≥2 lượt **timer** liên tiếp; không có thời gian chờ `for` | Kết quả journey và log `superstore-newman@*.service` |
+| `SuperstoreNewmanStaffLate` | Lượt staff hoàn tất gần nhất đã quá 120s, điều kiện giữ thêm 1m | Timer, service và timestamp trong file `newman-staff-timer.prom` |
+| `SuperstoreNewmanPublicLate` | Lượt public hoàn tất gần nhất đã quá 600s, điều kiện giữ thêm 1m | Timer, service và timestamp trong file `newman-public-timer.prom` |
+| `SuperstoreNewmanMetricMissing` | Thiếu bất kỳ chuỗi timestamp/consecutive failures nào của staff/public liên tục 10m | Bốn chuỗi metric trong Prometheus, file `.prom`, tên metric/nhãn và scrape `up{job="node"}` |
+| `SuperstoreNewmanTextfileError` | `node_textfile_scrape_error{job="node"}=1` liên tục 2m | Lỗi đọc/parse textfile của Node Exporter; có thể do file khác cùng thư mục collector |
+
+Lượt FAIL vẫn cập nhật `newman_last_run_timestamp_seconds` nếu runner ghi được
+metrics; rule `Late` chỉ báo khi **không có lượt hoàn tất**, còn rule FAIL liên
+tiếp báo journey thất bại. `MetricMissing` nhìn **kết quả ở Prometheus**:
+`newman_last_run_timestamp_seconds` và `newman_consecutive_failures`, mỗi tên
+phải có `collection="staff"` và `collection="public"` với `mode="timer"`.
+`TextfileError` nhìn **lỗi collector ở Node Exporter**. Thiếu file không nhất
+thiết gây lỗi đọc; file sai định dạng có thể gây cả hai cảnh báo. Lượt chạy tay
+`mode="manual"` không đặt lại các rule timer.
+
+Tổng cộng **19 rule** trong bốn file; mức `warning` và `critical` của cùng
+`family` được Alertmanager mẫu chặn gửi trùng khi critical đang Firing. File
+SMTP thật là `/etc/superstore/alertmanager/config.yml`, **không tự cập nhật**
+từ `config.yml.example` khi deploy. Nếu file thật được tạo trước khi có
+`inhibit_rules` hoặc nhánh `family="api_5xx"`, thêm cả hai khối đó từ file mẫu.
+Nhánh 5xx nhóm email theo `alertname` và `route`, nhắc lại sau **1 giờ** nếu
+vẫn Firing. Warning và critical là hai alert khác tên; khi lỗi tăng từ 3 lên
+5 trong 5 phút, critical có thể tạo email mới trước mốc nhắc 1 giờ. Cùng một
+alert trên cùng route không gửi email cho từng lỗi tăng thêm. Các cảnh báo
+`critical` khác cũng nhắc sau 1 giờ; `warning` còn lại dùng lịch nhắc gốc
+4 giờ. Prometheus scrape và đánh giá rule mỗi **15 giây**. Với rule không có
+`keep_firing_for`, điều kiện hết đúng thì rule chuyển Resolved ở lần đánh giá
+tiếp theo; riêng 5xx còn phụ thuộc cửa sổ đếm 5 phút. Alertmanager mẫu đợi
+`group_wait: 30s` trước email Firing đầu tiên, kiểm tra thay đổi/Resolved mỗi
+`group_interval: 5m`, và gửi Resolved khi `send_resolved: true`. Alert ngắn hơn
+`group_wait` có thể không gửi email nào. Các mốc 1/4 giờ chỉ là **nhắc lại nếu
+vẫn Firing**, không quyết định lúc rule Resolved. Thời gian này phụ thuộc file
+thật trên VPS, không tự cập nhật từ file mẫu. Sau khi sửa file thật, chạy:
+
+```bash
+sudo bash "$COMPOSE" run --rm --no-deps --entrypoint /bin/amtool \
+  alertmanager check-config /etc/alertmanager/config.yml
+sudo bash "$COMPOSE" up -d --force-recreate alertmanager
+```
+
+Sau deploy, xác nhận `up{job="alertmanager"}=1`,
+`redis_memory_max_bytes{job="redis"}>0`, **hai series**
+`newman_consecutive_failures{job="node",mode="timer"}` và **hai series**
+`newman_last_run_timestamp_seconds{job="node",mode="timer"}`, cùng
+`node_textfile_scrape_error{job="node"}=0` trong Grafana Explore. Nếu thiếu
+metric, điều tra exporter hoặc Newman trước khi tin rằng rule tương ứng đang
+giám sát được. Alertmanager/Prometheus tự ngừng thì email nội bộ có thể không
+đi; giữ Uptime Kuma làm điểm kiểm tra bên ngoài. Grafana dùng để xem metric,
+log và trạng thái alert. Trong Grafana Explore → Prometheus, chạy
+`ALERTS{alertstate="firing"}`; kết quả rỗng nghĩa là hiện không có alert Firing
+**nếu** Prometheus đang hoạt động. Grafana Alerting và SMTP đã tắt trong
+Compose; dashboard DevOps có panel Firing dùng truy vấn này. Bản export trong
+`docs` không tự cập nhật giao diện đang chạy.
+
+Ngưỡng P95 là quyết định **tạm từ baseline ngày 1**; 5xx dùng ngưỡng vận hành
+3/5 lỗi trên cùng route trong 5 phút. Sau 14 và 30 ngày, đối chiếu
+[Threshold, SLI/SLO](threshold_sli_slo.md), cập nhật `api.yml` và test
+rule trước deploy. Chưa có rule error budget/burn rate vì SLO 30 ngày chưa đủ
+bằng chứng; Grafana/Loki cũng chưa có metric nguồn để đặt alert riêng.
+Snowflake và Vercel hiện được phát hiện gián tiếp qua API 5xx/Newman/Kuma;
+chưa có exporter riêng để tạo rule chính xác cho từng dịch vụ đó. Slack chưa
+được cấu hình; receiver hiện tại chỉ gửi email.
+
 ### 7.3. Thử email và ghi incident
 
-Dùng rule thử có kiểm soát trên staging; không dừng API/Redis production để
-kích hoạt cảnh báo. Lưu bằng chứng theo thứ tự: rule `Pending` → `Firing` →
-Alertmanager nhận đúng receiver → email nhận được → `Resolved` và email
-resolved. Cập nhật [Discovery Result](discovery_result.md). Khi có sự cố thật,
-phân loại P1 (diện rộng), P2 (nhiều route), P3 (một route), P4 (lỗi nhỏ);
-ghi thời điểm bắt đầu/phát hiện/xác nhận/phục hồi để tính MTTD, MTTA, MTTR.
+Rule `AlertDeliveryDrill` dùng để thử đường gửi email, không cần dừng API hay
+Redis. Các lệnh dưới đây dùng `compose.sh` của **production** trên VPS; nhãn
+`environment: staging` trong file rule không tự chuyển nó sang môi trường
+staging. Chỉ thực hiện khi đã chọn đúng Prometheus và hộp thư nhận cảnh báo.
+
+**1. Kiểm tra file đã được mount và cú pháp rule.** File trên VPS nằm trong
+release hiện hành; Prometheus nhìn thấy nó tại `/etc/prometheus/rules/`:
+
+```bash
+COMPOSE=/opt/superstore/current/deploy/production/bin/compose.sh
+RULE=/opt/superstore/current/deploy/production/prometheus/rules/alert_delivery_drill.yml
+
+sudo ls -l "$RULE"
+sudo bash "$COMPOSE" exec -T prometheus \
+  ls -l /etc/prometheus/rules/alert_delivery_drill.yml
+sudo bash "$COMPOSE" run --rm --no-deps --entrypoint /bin/promtool \
+  prometheus check rules /etc/prometheus/rules/alert_delivery_drill.yml
+```
+
+`promtool check rules` chỉ kiểm tra file; nó chưa nạp rule vào Prometheus.
+Nếu file không xuất hiện trong container, kiểm tra lại release và bind mount
+`./prometheus/rules:/etc/prometheus/rules:ro` trước khi tiếp tục.
+
+**2. Kích hoạt cảnh báo thử.** Mở `$RULE`, đặt `expr: vector(1) == 1` và giữ
+`for: 1m`. Kiểm tra lại cú pháp bằng lệnh `promtool` ở bước 1, rồi nạp rule:
+
+```bash
+sudo nano "$RULE"
+sudo bash "$COMPOSE" kill -s SIGHUP prometheus
+curl -i -sS 'http://127.0.0.1:9090/api/v1/rules?type=alert'
+curl -i -sS 'http://127.0.0.1:9090/api/v1/alerts'
+```
+
+Tìm `AlertDeliveryDrill` và lưu thời điểm nó chuyển từ `pending` sang
+`firing`. `SIGHUP` nạp lại cả cấu hình lẫn rule file; cấu hình hiện tại chưa
+bật `--web.enable-lifecycle`, nên không dùng HTTP `/-/reload`.
+
+**3. Xác nhận Alertmanager và email.**
+
+```bash
+curl -i -sS 'http://127.0.0.1:9093/api/v2/alerts/groups'
+sudo bash "$COMPOSE" logs --since=15m --tail=100 alertmanager
+```
+
+Kiểm tra alert đến receiver `ops-email` và hộp thư nhận được email Firing.
+Alertmanager có `group_wait: 30s`, nên email không đến ngay tại thời điểm
+Prometheus chuyển `firing`. Nếu gửi lỗi, xem log và các trường `smtp_from`,
+`to`, SMTP credential; không in mật khẩu vào bằng chứng.
+
+**4. Cho cảnh báo về Resolved.** Đổi dòng trên thành
+`expr: vector(0) == 1`, kiểm tra lại bằng `promtool`, rồi gửi `SIGHUP` lần
+nữa. `vector(0) == 1` không trả mẫu nào, nên rule ngừng Firing sau lần đánh
+giá kế tiếp:
+
+```bash
+sudo nano "$RULE"
+sudo bash "$COMPOSE" run --rm --no-deps --entrypoint /bin/promtool \
+  prometheus check rules /etc/prometheus/rules/alert_delivery_drill.yml
+sudo bash "$COMPOSE" kill -s SIGHUP prometheus
+curl -i -sS 'http://127.0.0.1:9090/api/v1/alerts'
+curl -i -sS 'http://127.0.0.1:9093/api/v2/alerts/groups'
+sudo bash "$COMPOSE" logs --since=15m --tail=100 alertmanager
+```
+
+Xác nhận `AlertDeliveryDrill` không còn Firing và email Resolved đã đến;
+receiver hiện có `send_resolved: true`. File trong workspace hiện đã đặt
+`expr: vector(0) == 1`. Gỡ rule thử khỏi release trước lần deploy tiếp theo
+nếu không muốn duy trì nó trong danh sách rule.
+
+Ghi bằng chứng Pending → Firing → Alertmanager → email Firing → Resolved →
+email Resolved vào [Discovery Result](discovery_result.md). Khi có sự cố thật,
+phân loại P1 (diện rộng), P2 (nhiều route), P3 (một route), P4 (lỗi nhỏ); ghi
+thời điểm bắt đầu, phát hiện, xác nhận và phục hồi để tính MTTD, MTTA, MTTR.
+
+## 8. Phase 8 — kiểm thử toàn bộ luồng Monitoring
+
+Phạm vi, Case ID và bằng chứng của Phase 8 được quản lý tập trung trong
+[Test Plan](../../tests/test_plan.md), [Test Operations §5](../../tests/operation.md)
+và [báo cáo kết quả](../../tests/end_to_end_validation.md). Các lệnh vận hành
+Prometheus, Loki và Alertmanager ở §1–7 của file này vẫn dùng khi điều tra.
