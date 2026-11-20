@@ -26,7 +26,116 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "1=UP, 0=DOWN. Prometheus phải đọc được FastAPI, Redis, Node và chính Prometheus.",
+      "description": "Số alert Firing do Prometheus đánh giá. 0 chỉ có ý nghĩa khi datasource Prometheus hoạt động; mở bảng bên cạnh để xem tên và nhãn alert.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#ad46ff",
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "id": 14,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.2.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "count(ALERTS{alertstate=\"firing\"}) or vector(0)",
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "title": "Alerts đang Firing",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Các alert Prometheus đang Firing. Bảng rỗng khi không có alert; kiểm tra datasource và panel đếm để phân biệt trạng thái khỏe với lỗi truy vấn.",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 18,
+        "x": 6,
+        "y": 0
+      },
+      "id": 15,
+      "options": {
+        "showHeader": true
+      },
+      "pluginVersion": "13.2.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "ALERTS{alertstate=\"firing\"}",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Chi tiết alert đang Firing",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "1=UP, 0=DOWN. Prometheus phải đọc được FastAPI, Redis exporter, Node exporter, chính Prometheus và Alertmanager.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -70,7 +179,7 @@
         "h": 5,
         "w": 6,
         "x": 0,
-        "y": 0
+        "y": 8
       },
       "id": 1,
       "options": {
@@ -98,7 +207,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "up{job=~\"fastapi|redis|node|prometheus\"}",
+          "expr": "up{job=~\"fastapi|redis|node|prometheus|alertmanager\"}",
           "legendFormat": "{{job}}",
           "range": true,
           "refId": "A"
@@ -156,7 +265,7 @@
         "h": 5,
         "w": 6,
         "x": 6,
-        "y": 0
+        "y": 8
       },
       "id": 2,
       "options": {
@@ -229,7 +338,7 @@
         "h": 5,
         "w": 6,
         "x": 12,
-        "y": 0
+        "y": 8
       },
       "id": 3,
       "options": {
@@ -302,7 +411,7 @@
         "h": 5,
         "w": 6,
         "x": 18,
-        "y": 0
+        "y": 8
       },
       "id": 5,
       "options": {
@@ -376,7 +485,7 @@
         "h": 5,
         "w": 6,
         "x": 0,
-        "y": 5
+        "y": 13
       },
       "id": 4,
       "options": {
@@ -451,7 +560,7 @@
         "h": 5,
         "w": 6,
         "x": 6,
-        "y": 5
+        "y": 13
       },
       "id": 13,
       "options": {
@@ -538,7 +647,7 @@
         "h": 5,
         "w": 6,
         "x": 12,
-        "y": 5
+        "y": 13
       },
       "id": 11,
       "options": {
@@ -613,7 +722,7 @@
         "h": 5,
         "w": 6,
         "x": 18,
-        "y": 5
+        "y": 13
       },
       "id": 12,
       "options": {
@@ -666,7 +775,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Độ trễ P95 của request FastAPI được instrument; traffic hiện chủ yếu là Newman. Chưa có alert P95.",
+      "description": "Độ trễ P95 của request FastAPI được instrument; traffic hiện chủ yếu là Newman. P95 alert được đánh giá trong Prometheus theo từng route.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -727,7 +836,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 10
+        "y": 18
       },
       "id": 6,
       "options": {
@@ -810,7 +919,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 10
+        "y": 18
       },
       "id": 7,
       "options": {
@@ -927,7 +1036,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 18
+        "y": 26
       },
       "id": 8,
       "options": {
@@ -1032,7 +1141,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 18
+        "y": 26
       },
       "id": 9,
       "options": {
@@ -1137,7 +1246,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 18
+        "y": 26
       },
       "id": 10,
       "options": {
@@ -1199,7 +1308,7 @@
   "timezone": "browser",
   "title": "Superstore - Devops Operations",
   "weekStart": "",
-  "version": 27,
+  "version": 28,
   "uid": "adnbj65",
   "id": null
 }

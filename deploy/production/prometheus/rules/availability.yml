@@ -2,7 +2,7 @@ groups:
   - name: superstore-availability
     rules:
       - alert: SuperstoreScrapeTargetDown
-        expr: up{job=~"fastapi|redis|node|prometheus"} == 0
+        expr: up{job=~"fastapi|redis|node|prometheus|alertmanager"} == 0
         for: 2m
         labels:
           severity: critical

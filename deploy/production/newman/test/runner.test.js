@@ -43,6 +43,7 @@ test("YAML collections run offline and publish secret-free metrics", async () =>
   assert.equal(loadCollection(root, "staff").item.length, 13);
 
   let kpiCalls = 0;
+  let failPublicHealth = false;
   const server = http.createServer((request, response) => {
     const pathname = new URL(request.url, "http://localhost").pathname;
     const send = (code, body, headers = {}) => {
@@ -51,7 +52,8 @@ test("YAML collections run offline and publish secret-free metrics", async () =>
     };
 
     if (pathname === "/api/health/live") return send(200, { status: "ok", release: "0".repeat(40) });
-    if (pathname === "/api/health") return send(200, { status: "ok", api: "up" });
+    if (pathname === "/api/health") return failPublicHealth
+      ? send(503, { status: "down" }) : send(200, { status: "ok", api: "up" });
     if (pathname === "/login") return send(200, "Staff sign in");
     if (pathname === "/api/health/ready" || pathname === "/metrics") return send(404, {});
     if (pathname === "/api/internal/staff/login") {
@@ -87,11 +89,21 @@ test("YAML collections run offline and publish secret-free metrics", async () =>
       const promFile = path.join(metricsDir, `newman-${kind}-manual.prom`);
       const stateFile = path.join(metricsDir, `newman-${kind}-manual.state.json`);
       const text = fs.readFileSync(promFile, "utf8");
+      assert.ok(text.includes(`newman_consecutive_failures{collection="${kind}",mode="manual"} 0`));
       assert.match(text, new RegExp(`newman_last_run_success\\{collection="${kind}",mode="manual"\\} 1`));
       assert.doesNotMatch(text, /test-password-only|test-token/);
       assert.equal(fs.statSync(promFile).mode & 0o777, 0o644);
       assert.equal(fs.statSync(stateFile).mode & 0o777, 0o600);
     }
+    failPublicHealth = true;
+    assert.equal((await run("public", origin, metricsDir)).code, 1);
+    assert.equal((await run("public", origin, metricsDir)).code, 1);
+    let text = fs.readFileSync(path.join(metricsDir, "newman-public-manual.prom"), "utf8");
+    assert.ok(text.includes('newman_consecutive_failures{collection="public",mode="manual"} 2'));
+    failPublicHealth = false;
+    assert.equal((await run("public", origin, metricsDir)).code, 0);
+    text = fs.readFileSync(path.join(metricsDir, "newman-public-manual.prom"), "utf8");
+    assert.ok(text.includes('newman_consecutive_failures{collection="public",mode="manual"} 0'));
   } finally {
     server.close();
     fs.rmSync(metricsDir, { recursive: true, force: true });

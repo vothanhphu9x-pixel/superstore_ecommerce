@@ -225,9 +225,8 @@ services:
       - /etc/superstore/grafana.env
     environment:
       GF_SERVER_ROOT_URL: http://localhost:3001
-      GF_SMTP_ENABLED: "true"
-      GF_SMTP_HOST: "smtp.gmail.com:587"
-      GF_SMTP_FROM_NAME: "Superstore Monitoring"
+      GF_UNIFIED_ALERTING_ENABLED: "false"
+      GF_SMTP_ENABLED: "false"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro

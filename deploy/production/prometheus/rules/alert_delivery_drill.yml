@@ -1,0 +1,13 @@
+groups:
+  - name: alert-delivery-drill
+    rules:
+      - alert: AlertDeliveryDrill
+        expr: vector(0) == 1
+        for: 1m
+        labels:
+          severity: warning
+          environment: staging
+        annotations:
+          summary: "Staging email delivery test"
+
+# sau test doi expr: vector(0) == 1

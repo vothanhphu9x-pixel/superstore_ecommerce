@@ -18,11 +18,14 @@ theo [Operation §3](operation.md).
 | API-06 | Request rate theo route/status | `sum by (route, status) (rate(superstore_http_requests_total{job="fastapi"}[5m]))`                                                                               | request/giây |
 | API-07 | P95 theo route                 | `histogram_quantile(0.95, sum by (route, le) (rate(superstore_http_request_duration_seconds_bucket{job="fastapi"}[5m])))`                                        | giây         |
 | API-08 | P95 5 phút cao nhất / 24h      | `max_over_time((histogram_quantile(0.95, sum by (le) (rate(superstore_http_request_duration_seconds_bucket{job="fastapi"}[5m]))))[24h:15s])`                     | giây         |
+| API-09 | Lỗi 5xx / 5m theo route        | `sum by (route) (increase(superstore_http_requests_total{job="fastapi",status=~"5..",route!="unmatched"}[5m]))`                                          | lỗi xấp xỉ   |
 
 `/metrics`, `/api/health/live` và `/api/health/ready` bị loại khỏi HTTP
 Counter/Histogram. Khi không có traffic, rate/quantile có thể không có dữ liệu;
 không tự coi đó là API khỏe. Kiểm tra `up{job="fastapi"}` riêng. HTTP 4xx
 (ví dụ thiếu API key) không nằm trong 5xx rate.
+API-09 là số liệu dùng cho rule warning ≥3 và critical ≥5 trên cùng route;
+`increase()` có thể cho kết quả lẻ do nội suy giữa các lần scrape.
 
 ## 2. VPS, Redis, Prometheus — PromQL
 
@@ -35,9 +38,23 @@ không tự coi đó là API khỏe. Kiểm tra `up{job="fastapi"}` riêng. HTTP
 | VPS-05   | Network gửi       | `sum by (instance) (rate(node_network_transmit_bytes_total{job="node",device!="lo"}[5m]))`                                   | byte/giây |
 | REDIS-01 | Redis sẵn sàng    | `redis_up{job="redis"}`                                                                                                      | 1/0       |
 | REDIS-02 | Redis dùng RAM    | `redis_memory_used_bytes{job="redis"}`                                                                                       | byte      |
-| PROM-01  | Scrape target     | `up{job=~"fastapi\|redis\|node\|prometheus"}`                                                                                | 1/0       |
-| PROM-02  | Thời gian scrape  | `scrape_duration_seconds{job=~"fastapi\|redis\|node\|prometheus"}`                                                           | giây      |
-| PROM-03  | Số mẫu mỗi scrape | `scrape_samples_scraped{job=~"fastapi\|redis\|node\|prometheus"}`                                                            | mẫu       |
+| PROM-01  | Scrape target     | `up{job=~"fastapi\|redis\|node\|prometheus\|alertmanager"}`                                                                                | 1/0       |
+| PROM-02  | Thời gian scrape  | `scrape_duration_seconds{job=~"fastapi\|redis\|node\|prometheus\|alertmanager"}`                                                           | giây      |
+| PROM-03  | Số mẫu mỗi scrape | `scrape_samples_scraped{job=~"fastapi\|redis\|node\|prometheus\|alertmanager"}`                                                            | mẫu       |
+| PROM-04  | Alert đang Firing | `ALERTS{alertstate="firing"}`                                                                                                                  | 1/alert   |
+| REDIS-03 | Redis maxmemory   | `redis_memory_max_bytes{job="redis"}`                                                                                                         | byte      |
+| NEW-01   | Newman fail liên tiếp | `newman_consecutive_failures{job="node",mode="timer"}`                                                                                   | lượt      |
+| NEW-02   | Textfile lỗi     | `node_textfile_scrape_error{job="node"}`                                                                                                      | 0/1       |
+| NEW-03   | Lượt Newman hoàn tất gần nhất | `newman_last_run_timestamp_seconds{job="node",mode="timer"}` | Unix giây, theo `collection` |
+
+NEW-01 và NEW-03 phải trả **hai series mỗi truy vấn** (`collection="staff"`,
+`collection="public"`): đây là bốn chuỗi mà rule
+`SuperstoreNewmanMetricMissing` kiểm tra. FAIL vẫn cập nhật timestamp nếu
+runner ghi được metrics; `newman_consecutive_failures` tăng để rule FAIL liên
+tiếp xử lý. NEW-02 bằng `1` nghĩa là Node Exporter báo lỗi khi đọc textfile;
+bằng `0` không bảo đảm bốn chuỗi Newman đều có mặt. Nếu Node Exporter không
+được Prometheus scrape, NEW-02 có thể không có kết quả; kiểm tra thêm
+`up{job="node"}`.
 
 VPS-03 phụ thuộc nhãn `mountpoint="/"`; nếu không có kết quả, xem
 `node_filesystem_size_bytes{job="node"}` để chọn nhãn mountpoint thật. Network
@@ -95,7 +112,7 @@ scrape; làm tròn số lượt để ghi báo cáo.
 | BASE-08 | Disk root cao nhất              | `max_over_time((1 - node_filesystem_avail_bytes{job="node",mountpoint="/"} / node_filesystem_size_bytes{job="node",mountpoint="/"})[24h:15s])` | tỷ lệ 0–1                    |
 | BASE-09 | Redis RAM cao nhất              | `max_over_time(redis_memory_used_bytes{job="redis"}[24h]) / 1024 / 1024`                                                                       | MiB                          |
 | BASE-10 | Giới hạn Redis đang cấu hình    | `redis_memory_max_bytes{job="redis"} / 1024 / 1024`                                                                                            | MiB; dự kiến `256`           |
-| BASE-11 | Số scrape target UP             | `sum(up{job=~"fastapi\|redis\|node\|prometheus"})`                                                                                             | 0–4                          |
+| BASE-11 | Số scrape target UP             | `sum(up{job=~"fastapi\|redis\|node\|prometheus\|alertmanager"})`                                                                                             | 0–5                          |
 
 `P95 5 phút` tại giờ chốt dùng **API-04**; đỉnh của các P95 5 phút trong 24 giờ
 dùng **API-08** ở chế độ **Instant** tại giờ chốt. API-08 lấy mẫu mỗi `15s`;

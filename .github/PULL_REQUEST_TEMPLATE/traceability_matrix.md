@@ -88,8 +88,9 @@ dbt YAML tests chạy sau layer tương ứng; singular tests xuyên layer chạ
 |            | CI-03   | Backend pytest pass; FastAPI khởi động và `/health/live` pass    | `quality.yml` — job `backend`                  | Có            |         |                           |        |
 |            | CI-04   | Frontend `npm ci`, lint, type-check và build pass                 | `quality.yml` — job `frontend`                 | Có            |         |                           |        |
 |            | CI-05   | E2E dùng credential/SQLite tạm, chạy thật và pass, không skip    | `quality.yml` — step `Run frontend E2E`        | Có            |         |                           |        |
-|            | CI-06   | Compose, DE contract và dbt parse pass                           | `quality.yml` — job `configuration`            | Có            |         |                           |        |
-|            | CI-07   | Job bắt buộc fail thì PR không được merge                        | GitHub branch ruleset / required status checks | Chưa xác minh |         |                           |        |
+|            | CI-06   | Newman collection/runner offline pass; metric không lộ secret    | `quality.yml` — job `newman`; `newman/test/runner.test.js` | Có | | | |
+|            | CI-07   | Compose, Monitoring rules, DE contract và dbt parse pass         | `quality.yml` — job `configuration`            | Có            |         |                           |        |
+|            | CI-08   | Job bắt buộc fail thì PR không được merge                        | GitHub branch ruleset / required status checks | Chưa xác minh |         |                           |        |
 
 ## 7. Cách điền trong PR
 

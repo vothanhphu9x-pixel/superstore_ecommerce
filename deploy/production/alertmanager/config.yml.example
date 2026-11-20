@@ -13,12 +13,28 @@ route:
   repeat_interval: 4h
   routes:
     - matchers:
+        - family="api_5xx"
+      receiver: ops-email
+      group_by: [alertname, route]
+      repeat_interval: 1h
+    - matchers:
         - severity="critical"
       receiver: ops-email
       repeat_interval: 1h
+
+inhibit_rules:
+  - source_matchers:
+      - severity="critical"
+      - family=~".+"
+    target_matchers:
+      - severity="warning"
+      - family=~".+"
+    equal: [family, instance, route, collection]
 
 receivers:
   - name: ops-email
     email_configs:
       - to: operator@example.invalid
         send_resolved: true
+        headers:
+          Subject: '[Superstore][Alertmanager][{{ .Status }}] {{ .CommonLabels.alertname }}'

@@ -303,11 +303,17 @@ jobs:
           docker run --rm --entrypoint /bin/promtool \
             -v "$PWD/deploy/production/prometheus/rules:/etc/prometheus/rules:ro" \
             prom/prometheus:v3.15.1 \
-            check rules /etc/prometheus/rules/availability.yml
+            check rules \
+            /etc/prometheus/rules/availability.yml \
+            /etc/prometheus/rules/resources.yml \
+            /etc/prometheus/rules/synthetic.yml \
+            /etc/prometheus/rules/api.yml
           docker run --rm --entrypoint /bin/promtool \
             -v "$PWD/deploy/production/prometheus:/etc/prometheus/project:ro" \
             prom/prometheus:v3.15.1 \
-            test rules /etc/prometheus/project/tests/availability.test.yml
+            test rules \
+            /etc/prometheus/project/tests/availability.test.yml \
+            /etc/prometheus/project/tests/monitoring.test.yml
       - name: Validate production Compose and Alertmanager config
         run: |
           # These are empty CI placeholders, not production secrets.

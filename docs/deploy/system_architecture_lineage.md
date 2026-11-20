@@ -56,7 +56,7 @@ public, Redis không public. Public readiness, docs, OpenAPI và Prometheus metr
 /etc/superstore/                         [GIỮ — cấu hình/secret lâu dài]
 ├── app.env                              [secret API, staff, Snowflake]
 ├── stack.env                            [API_DOMAIN]
-├── grafana.env                          [secret Grafana/SMTP]
+├── grafana.env                          [secret đăng nhập quản trị Grafana; không dùng SMTP]
 ├── newman.env                           [GIỮ — URL và tài khoản sales dùng kiểm tra]
 ├── backup.env                           [GIỮ — AWS credential + age recipient; không vào archive]
 ├── images.source.env                    [tham chiếu image nguồn]

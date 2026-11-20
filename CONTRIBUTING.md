@@ -136,9 +136,11 @@ docker compose exec -T \
 `dbt compile` validates Jinja, `ref()`, macros, SQL generation and the dbt dependency graph;
 the Airflow containers must be running for this command.
 
-`make verify` runs all offline checks. It does not build application images, start Docker
-services or connect to Snowflake, Odoo, Qdrant, Redis or an LLM. Frontend runtime and
-security checks are documented in `docs/frontend/operation.md`.
+`make verify` runs local tests, builds and starts the development API/frontend
+containers for E2E, then runs dbt data tests in `airflow-scheduler` against the
+configured Snowflake account. Start the required services and load the data
+before running it. PR CI repeats checks that do not need live Snowflake data;
+see `docs/tests/operation.md` for the order and prerequisites.
 
 ## 6. Commit by outcome
 

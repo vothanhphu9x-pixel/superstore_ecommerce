@@ -7,7 +7,7 @@ E2E_ARGS ?=
 GREEN := \033[32m
 RESET := \033[0m
 
-.PHONY: python-syntax verify-hygiene pipeline-contract test-auth test-dashboard test-integration test-operations backend-check frontend-check frontend-e2e-up frontend-e2e compose-check dbt-parse dbt-check-account dbt-test-staging dbt-test-silver dbt-test-gold dbt-test-mart dbt-test-singular dbt-tests verify
+.PHONY: python-syntax verify-hygiene pipeline-contract newman-check production-config-check test-auth test-dashboard test-integration test-operations backend-check frontend-check frontend-e2e-up frontend-e2e compose-check dbt-parse dbt-check-account dbt-test-staging dbt-test-snapshot dbt-test-silver dbt-test-gold dbt-test-mart dbt-test-singular dbt-tests verify
 
 
 # Kiểm tra Python syntax
@@ -35,6 +35,13 @@ verify-hygiene:
 pipeline-contract:
 	python3 scripts/check_de_pipeline_contract.py
 	@printf "$(GREEN)✓ DE pipeline contract passed$(RESET)\n"
+
+
+# Kiểm tra Newman/Postman offline giống job CI; không gọi production
+
+newman-check:
+	cd deploy/production/newman && npm ci && npm run check && npm test
+	@printf "$(GREEN)✓ Newman checks passed$(RESET)\n"
 
 
 # Kiểm tra backend bằng virtual environment của RAG_CHATBOT
@@ -93,6 +100,44 @@ frontend-e2e:
 compose-check:
 	cd "$(DATA)" && docker compose config --quiet
 	@printf "$(GREEN)✓ Docker Compose config passed$(RESET)\n"
+
+
+# Kiểm tra Compose production bằng env mẫu và rule monitoring, không cần secret VPS
+
+production-config-check:
+	@set -eu; \
+	temporary=$$(mktemp deploy/production/.compose-check.XXXXXX); \
+	trap 'unlink "$$temporary"' EXIT; \
+	sed \
+	  -e 's#/etc/superstore/app.env#$(CURDIR)/RAG_CHATBOT/.env.example#g' \
+	  -e 's#/etc/superstore/stack.env#$(CURDIR)/data_platform/.env.example#g' \
+	  -e 's#/etc/superstore/grafana.env#$(CURDIR)/data_platform/.env.example#g' \
+	  deploy/production/compose.yml > "$$temporary"; \
+	API_IMAGE=ghcr.io/example/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+	APP_RELEASE=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+	MINIO_ROOT_USER=ci-placeholder MINIO_ROOT_PASSWORD=ci-placeholder \
+	docker compose --env-file deploy/production/images.source.env.example \
+	  -f "$$temporary" config --quiet
+	docker run --rm --entrypoint /bin/promtool \
+	  -v "$(CURDIR)/deploy/production/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+	  -v "$(CURDIR)/deploy/production/prometheus/rules:/etc/prometheus/rules:ro" \
+	  prom/prometheus:v3.15.1 check config /etc/prometheus/prometheus.yml
+	docker run --rm --entrypoint /bin/promtool \
+	  -v "$(CURDIR)/deploy/production/prometheus/rules:/etc/prometheus/rules:ro" \
+	  prom/prometheus:v3.15.1 check rules \
+	  /etc/prometheus/rules/availability.yml \
+	  /etc/prometheus/rules/resources.yml \
+	  /etc/prometheus/rules/synthetic.yml \
+	  /etc/prometheus/rules/api.yml
+	docker run --rm --entrypoint /bin/promtool \
+	  -v "$(CURDIR)/deploy/production/prometheus:/etc/prometheus/project:ro" \
+	  prom/prometheus:v3.15.1 test rules \
+	  /etc/prometheus/project/tests/availability.test.yml \
+	  /etc/prometheus/project/tests/monitoring.test.yml
+	docker run --rm --entrypoint /bin/amtool \
+	  -v "$(CURDIR)/deploy/production/alertmanager/config.yml.example:/etc/alertmanager/config.yml:ro" \
+	  quay.io/prometheus/alertmanager:v0.35.0 check-config /etc/alertmanager/config.yml
+	@printf "$(GREEN)✓ Production monitoring config passed$(RESET)\n"
 
 
 # Kiểm tra dbt project
@@ -161,7 +206,9 @@ verify:
 	$(MAKE) backend-check
 	$(MAKE) frontend-check
 	$(MAKE) compose-check
+	$(MAKE) production-config-check
 	$(MAKE) pipeline-contract
+	$(MAKE) newman-check
 	$(MAKE) dbt-parse
 	$(MAKE) frontend-e2e
 	$(MAKE) dbt-tests

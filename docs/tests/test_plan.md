@@ -18,6 +18,8 @@ File này mô tả case và kết quả mong đợi; lệnh chạy nằm trong
 | Data quality    | Staging, Snapshot, Silver, Gold, Mart                         | Có dbt YAML và singular SQL tests; chạy local/Airflow, không chạy trong PR CI               |
 | CI              | Tự động chạy test và báo fail                                 | Có `.github/workflows/quality.yml`; required checks chưa xác minh                           |
 | Deploy smoke    | Kiểm tra website/API production sau khi deploy                | Có `deploy/production/tests/smoke_public.py`; chạy trong workflow CD, không thuộc Dev/PR CI |
+| Newman offline  | Kiểm tra collection/runner và metric xuất ra không lộ secret | Có `deploy/production/newman/test/runner.test.js`; Local/CI không gọi production |
+| Monitoring E2E | Request → metrics/logs → alert/email → phục hồi | Có cấu hình metrics/rule/log; chưa có staging để tạo lỗi có chủ đích |
 
 ## 2. Test cases
 
@@ -108,8 +110,9 @@ Airflow hiện chạy dbt test sau từng layer và chạy singular tests **sau 
 | CI-03   | Backend pytest + API liveness          | Job `backend` trong `quality.yml`          | Pytest pass; FastAPI khởi động và `/health/live` trả thành công |
 | CI-04   | Frontend install/lint/type-check/build | Job `frontend` trong `quality.yml`         | `npm ci`, lint, type-check và build đều pass                    |
 | CI-05   | Frontend E2E                           | Job `frontend` trong `quality.yml`         | Tạo credential/SQLite tạm; E2E chạy và pass, không skip         |
-| CI-06   | Compose/DE contract/dbt parse          | Job `configuration` trong `quality.yml`    | Cả ba bước pass; dbt parse không kết nối Snowflake thật         |
-| CI-07   | Không cho merge khi gate fail          | Cần xác minh GitHub required status checks | PR không merge được nếu job bắt buộc fail                       |
+| CI-06   | Newman collection/runner offline       | `newman/test/runner.test.js`; job `newman` | `npm ci`, cú pháp, public/staff giả lập và metric không lộ secret pass |
+| CI-07   | Compose/Monitoring/DE/dbt parse        | Job `configuration` trong `quality.yml`    | Compose, rule Prometheus/Alertmanager, DE contract, dbt parse pass |
+| CI-08   | Không cho merge khi gate fail          | Cần xác minh GitHub required status checks | PR không merge được nếu job bắt buộc fail                       |
 
 `dbt parse` trong PR CI chỉ kiểm tra cấu trúc, không thay thế dbt data tests trên Snowflake chạy local/Airflow.
 Thứ tự trên theo vị trí job trong `quality.yml`; các job không có `needs` nên GitHub có thể chạy song song.
@@ -137,9 +140,31 @@ CFO từ Environment secrets. Chỉ đọc dữ liệu nghiệp vụ; có thể 
 rate-limit/cache/log runtime. Khi fail, kiểm tra log job, website/API và cấu
 hình trước khi đánh dấu release đạt.
 
+### 2.9 Monitoring end-to-end — `TRAIN-MON-01`
+
+Đây là Phase 8 sau khi monitoring được triển khai. Cách chạy và thu thập bằng
+chứng ở [Test Operations §5](operation.md#5-monitoring-end-to-end--phase-8);
+kết quả từng lần chạy ở [báo cáo Phase 8](end_to_end_validation.md).
+
+| Case ID | Môi trường | Acceptance Criterion | Test / control | Hiện trạng |
+| ------- | ---------- | -------------------- | -------------- | ---------- |
+| E2E-01 | Production | Request thật làm HTTP Counter và Histogram tăng đúng route/status | Prometheus trước/sau request; `core/observability.py` | Thủ công |
+| E2E-02 | Production | Cùng `x-request-id` có trong FastAPI/Nginx log và Loki | Response header, hai file log, LogQL | Thủ công |
+| E2E-03 | Production | Newman/Kuma, năm scrape target và bốn chuỗi Newman timer phản ánh đúng trên Prometheus/Grafana; textfile collector không lỗi | Timer, Kuma, `up`, `redis_up`, timestamp/consecutive failures, `node_textfile_scrape_error`, panel | Thủ công |
+| E2E-04 | Staging | Request trả `503` làm Counter nhãn `status="503"` tăng; HTTP/Nginx log đi tới Loki | Nguồn tạo `503` chỉ trên staging, PromQL/LogQL | Chưa có staging/nguồn tạo `503` |
+| E2E-05 | Staging | Redis dừng nhưng exporter còn chạy: `up{job="redis"}=1`, `redis_up=0`; rule Pending → Firing | `SuperstoreRedisUnavailable` | Có rule; thiếu staging |
+| E2E-06 | Staging | Dừng riêng exporter/API: `up{job="redis"}`/`up{job="fastapi"}=0`; rule Pending → Firing | `SuperstoreScrapeTargetDown` | Có rule; thiếu staging |
+| E2E-07 | Staging | Firing đến đúng Alertmanager receiver và email thử được nhận | Alertmanager API/log + hộp thư thử | Thiếu staging/bằng chứng email |
+| E2E-08 | Staging | Khôi phục service: metric về bình thường, rule hết Firing, email Resolved được nhận | Prometheus, Alertmanager, hộp thư thử | Thiếu staging/bằng chứng email |
+
+`promtool test rules` trong `make production-config-check` kiểm tra logic rule
+bằng dữ liệu giả; không thay thế `E2E-05`–`E2E-08`. FastAPI ghi status HTTP cụ
+thể như `503`, không ghi nhãn `5xx`. Nginx/Loki chỉ được kiểm chứng nếu request
+đi qua Nginx staging. Không gây lỗi hoặc dừng service trên production.
+
 ## 3. Môi trường và dữ liệu test
 
-**Giống nhau:** Local `make verify` và PR CI đều kiểm tra hygiene, Python, pytest, frontend lint/type-check/build, Compose/DE contract, dbt parse và E2E. API tests dùng `TestClient`, SQLite tạm, API key/JWT test, tắt cache và mock Snowflake; cả hai E2E đều yêu cầu `Frontend_Origin` khớp URL browser.
+**Giống nhau:** Local `make verify` và PR CI đều kiểm tra hygiene, Python, pytest, frontend lint/type-check/build, Compose dev/production và Monitoring rules, DE contract, Newman offline, dbt parse và E2E. API tests dùng `TestClient`, SQLite tạm, API key/JWT test, tắt cache và mock Snowflake; cả hai E2E đều yêu cầu `Frontend_Origin` khớp URL browser.
 
 | Phần         | Local qua Makefile                                                                                                                          | PR CI                                                                                            |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -154,18 +179,23 @@ Production deploy smoke là gate riêng sau merge: CD chạy sau khi Quality Gat
 thành công, deploy commit đã kiểm tra rồi mới gọi website production. Nó không
 được tính vào `make verify` hoặc PR CI.
 
+Monitoring Phase 8 chạy theo [§2.9](#29-monitoring-end-to-end--train-mon-01)
+sau khi hệ thống đã triển khai. Production chỉ có ca quan sát an toàn; các ca
+tạo lỗi cần staging riêng và không thuộc `make verify` hay PR CI.
+
 ## 4. Thứ tự thực thi
 
 1. Chuẩn bị local: backend `.venv`, staff E2E, Airflow và Snowflake đã nạp đủ dữ liệu.
-2. `make verify` chạy: Git hygiene → Python syntax → Backend → Frontend static → Compose → DE contract → dbt parse → Docker E2E → dbt data tests; dừng ngay khi có lỗi.
+2. `make verify` chạy: Git hygiene → Python syntax → Backend → Frontend static → Compose dev/production và Monitoring rules → DE contract → Newman offline → dbt parse → Docker E2E → dbt data tests; dừng ngay khi có lỗi.
 3. Chỉ commit khi toàn bộ pass. PR CI chạy lại các kiểm tra không cần Snowflake thật; Airflow vẫn test dữ liệu sau từng layer.
 4. Sau merge, CD deploy đúng commit đã qua Quality Gate rồi chạy các case production được liệt kê ở Mục 2.8. Smoke fail thì release chưa được xác nhận khỏe.
+5. Khi vận hành monitoring, chạy Phase 8 theo Mục 2.9; ghi bằng chứng production/staging riêng.
 
 Các lệnh thực thi và cách đọc kết quả chỉ đặt trong [Test Operations](operation.md).
 
 ## 5. Tiêu chí pass/fail và xử lý defect
 
-Một domain đạt khi các test bắt buộc pass và có bằng chứng. `dbt parse` không chứng minh data quality. Test bị skip không được tính là pass. Với production, chỉ xác nhận release khỏe khi toàn bộ case production đang được script thực thi trong CD run đều pass; nếu fail, ghi release là chưa đạt và xử lý trước khi thông báo hoàn tất.
+Một domain đạt khi các test bắt buộc pass và có bằng chứng. `dbt parse` không chứng minh data quality; Newman offline không chứng minh website production khỏe. Test bị skip không được tính là pass. Với production, chỉ xác nhận release khỏe khi toàn bộ case deploy smoke đang được script thực thi trong CD run đều pass; monitoring E2E được ghi nhận riêng theo §2.9. Nếu fail, ghi release là chưa đạt và xử lý trước khi thông báo hoàn tất.
 
 Khi fail, ghi:
 
@@ -188,3 +218,6 @@ Story → Acceptance Criterion → Case ID → test function/SQL → Dev/CI, Air
 
 Không đánh dấu `PASS` trước khi có kết quả chạy thật.
 Với production cases trong Mục 2.8, ghi commit/release SHA và URL production workflow run; không gộp bằng chứng này với PR CI.
+Với `E2E-01`–`E2E-08`, ghi UTC, release SHA, giá trị trước/sau, log/panel/email
+và defect vào [báo cáo Phase 8](end_to_end_validation.md); matrix chỉ giữ ánh xạ
+Case ID ↔ requirement/control và baseline đã xác minh.

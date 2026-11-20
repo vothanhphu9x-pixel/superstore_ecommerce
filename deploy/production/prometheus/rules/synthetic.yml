@@ -1,0 +1,42 @@
+groups:
+  - name: superstore-synthetic
+    rules:
+      - alert: SuperstoreNewmanConsecutiveFailures
+        expr: newman_consecutive_failures{job="node",mode="timer",collection=~"public|staff"} >= 2
+        for: 0m
+        labels: {severity: critical, family: newman_fail}
+        annotations:
+          summary: "Newman {{ $labels.collection }} failed twice in a row"
+          description: "Check the latest systemd run and the public website journey."
+
+      - alert: SuperstoreNewmanStaffLate
+        expr: time() - newman_last_run_timestamp_seconds{job="node",mode="timer",collection="staff"} > 120
+        for: 1m
+        labels: {severity: critical, family: newman_late}
+        annotations:
+          summary: "Staff journey has not completed for over two minutes"
+          description: "Check superstore-newman@staff.timer and its service logs."
+
+      - alert: SuperstoreNewmanPublicLate
+        expr: time() - newman_last_run_timestamp_seconds{job="node",mode="timer",collection="public"} > 600
+        for: 1m
+        labels: {severity: warning, family: newman_late}
+        annotations:
+          summary: "Public checks have not completed for over ten minutes"
+          description: "Check superstore-newman@public.timer and its service logs."
+
+      - alert: SuperstoreNewmanMetricMissing
+        expr: absent(newman_last_run_timestamp_seconds{job="node",mode="timer",collection="staff"}) or absent(newman_last_run_timestamp_seconds{job="node",mode="timer",collection="public"}) or absent(newman_consecutive_failures{job="node",mode="timer",collection="staff"}) or absent(newman_consecutive_failures{job="node",mode="timer",collection="public"})
+        for: 10m
+        labels: {severity: warning, family: newman_missing}
+        annotations:
+          summary: "Newman {{ $labels.collection }} timer metric is missing"
+          description: "Check timer installation, runner version, and /opt/superstore/metrics/newman textfiles."
+
+      - alert: SuperstoreNewmanTextfileError
+        expr: node_textfile_scrape_error{job="node"} == 1
+        for: 2m
+        labels: {severity: warning, family: newman_textfile}
+        annotations:
+          summary: "Node Exporter cannot read a Newman metrics file"
+          description: "Check .prom file format and permissions in /opt/superstore/metrics/newman."
